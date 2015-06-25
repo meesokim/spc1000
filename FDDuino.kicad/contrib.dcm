@@ -1,0 +1,15 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP 74F676
+D 74F74F676, 16bit serial/parallel-in, serial-out shift register, DIP-24
+K Shift Register, Philips
+F contrib/74f676.pdf
+$ENDCMP
+#
+$CMP FX614
+D FX614, Bell 202 Compatible Modem, DIP-16/SO-16
+K Bell Modem
+F contrib/fx614ds.pdf
+$ENDCMP
+#
+#End Doc Library
