@@ -306,8 +306,6 @@ F 3 "" H 6400 1450 60  0000 C CNN
 $EndComp
 Text GLabel 4400 1100 0    60   Input ~ 0
 /IORQ
-Text GLabel 4400 1300 0    60   Input ~ 0
-/MERQ
 Text GLabel 4400 1600 0    60   Input ~ 0
 /WR
 Text GLabel 4400 1800 0    60   Input ~ 0
@@ -1191,12 +1189,10 @@ Text Notes 7450 7500 0    60   ~ 0
 FDDuino for MSX
 Text Notes 8150 7650 0    60   ~ 0
 2015.06.24
-Text GLabel 5400 2350 0    60   Input ~ 0
+Text GLabel 4400 1300 0    60   Input ~ 0
 /SLTSL
 Wire Wire Line
-	5650 1850 5650 2150
-Wire Wire Line
-	5400 2350 5650 2350
+	5650 1850 5650 2350
 Wire Wire Line
 	7550 3150 7700 3150
 Wire Wire Line
@@ -1224,14 +1220,14 @@ Wire Wire Line
 	7150 4200 7300 4200
 NoConn ~ 7300 4800
 $Comp
-L 7402 U4
-U 1 1 558BEC36
+L 7400 U2
+U 3 1 558D5F6F
 P 6250 2250
-F 0 "U4" H 6250 2300 60  0000 C CNN
-F 1 "7402" H 6300 2200 60  0000 C CNN
-F 2 "Housings_DIP:DIP-14_W7.62mm" H 6250 2250 60  0000 C CNN
+F 0 "U2" H 6250 2300 60  0000 C CNN
+F 1 "7400" H 6250 2150 60  0000 C CNN
+F 2 "" H 6250 2250 60  0000 C CNN
 F 3 "" H 6250 2250 60  0000 C CNN
-	1    6250 2250
+	3    6250 2250
 	1    0    0    -1  
 $EndComp
 $EndSCHEMATC

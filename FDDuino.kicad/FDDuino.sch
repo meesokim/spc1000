@@ -150,36 +150,6 @@ F 3 "" H 5500 4450 60  0000 C CNN
 	1    5500 4450
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	6150 1600 7750 1600
-Wire Wire Line
-	6150 1700 7750 1700
-Wire Wire Line
-	6150 1800 7750 1800
-Wire Wire Line
-	6150 1900 7750 1900
-Wire Wire Line
-	6150 2000 7750 2000
-Wire Wire Line
-	6150 2100 7750 2100
-Wire Wire Line
-	6150 2200 7750 2200
-Wire Wire Line
-	6150 2400 7750 2400
-Wire Wire Line
-	6150 2500 7750 2500
-Wire Wire Line
-	6150 2600 7750 2600
-Wire Wire Line
-	6150 2700 7750 2700
-Wire Wire Line
-	6150 2800 7750 2800
-Wire Wire Line
-	6150 2900 7750 2900
-Wire Wire Line
-	6150 3000 7750 3000
-Wire Wire Line
-	6150 3100 7750 3100
 Wire Bus Line
 	4100 2800 4100 3800
 Wire Wire Line
@@ -283,9 +253,9 @@ $EndComp
 Wire Wire Line
 	7750 4750 7450 4750
 Wire Wire Line
-	7750 4850 7450 4850
-Wire Wire Line
 	7750 4950 7450 4950
+Wire Wire Line
+	7750 5050 7450 5050
 Wire Wire Line
 	6150 3300 6450 3300
 Wire Wire Line
@@ -318,8 +288,6 @@ Entry Wire Line
 	6450 3900 6550 4000
 Entry Wire Line
 	6450 4000 6550 4100
-Wire Bus Line
-	6550 3250 6550 4250
 Wire Wire Line
 	3800 2700 4850 2700
 Wire Wire Line
@@ -329,26 +297,26 @@ Wire Bus Line
 Wire Bus Line
 	4500 3800 4500 2800
 Wire Wire Line
-	7750 5050 7450 5050
-Wire Wire Line
 	7750 5150 7450 5150
+Wire Wire Line
+	7750 5250 7450 5250
 Entry Wire Line
 	7350 4850 7450 4750
-Entry Wire Line
-	7350 4950 7450 4850
 Entry Wire Line
 	7350 5050 7450 4950
 Entry Wire Line
 	7350 5150 7450 5050
 Entry Wire Line
+	7350 5250 7450 5150
+Entry Wire Line
 	4500 1900 4600 1800
 Text Label 7500 4750 0    60   ~ 0
 RESET_SPC
-Text Label 7500 4850 0    60   ~ 0
-/CS
 Text Label 7500 4950 0    60   ~ 0
-/RD
+/CS
 Text Label 7500 5050 0    60   ~ 0
+/RD
+Text Label 7500 5150 0    60   ~ 0
 /WR
 Wire Wire Line
 	4850 1900 4850 2600
@@ -393,21 +361,21 @@ Text Label 2300 3350 0    60   ~ 0
 /RD
 Text Label 2300 3450 0    60   ~ 0
 /WR
-Text Label 7500 5150 0    60   ~ 0
+Text Label 7500 5250 0    60   ~ 0
 A0
 Entry Wire Line
-	7350 5350 7450 5250
+	7350 5550 7450 5450
 Entry Wire Line
-	7350 5250 7450 5150
-Text Label 7500 5250 0    60   ~ 0
+	7350 5350 7450 5250
+Text Label 7500 5450 0    60   ~ 0
 A1
 Wire Wire Line
-	7450 5250 7750 5250
-Entry Wire Line
-	7350 5550 7450 5450
-Wire Wire Line
 	7450 5450 7750 5450
-Text Label 7500 5450 0    60   ~ 0
+Entry Wire Line
+	7350 5650 7450 5550
+Wire Wire Line
+	7450 5550 7750 5550
+Text Label 7450 5650 0    60   ~ 0
 RESET
 Wire Bus Line
 	4500 2150 4500 750 
@@ -438,21 +406,21 @@ PC6
 Text Label 6200 4000 0    60   ~ 0
 PC7
 Wire Wire Line
-	9650 4350 9950 4350
+	7400 3100 7750 3100
 Wire Wire Line
-	9650 4450 9950 4450
+	7400 3000 7750 3000
 Wire Wire Line
-	9650 4550 9950 4550
+	7400 2900 7750 2900
 Wire Wire Line
-	9650 4650 9950 4650
+	7400 2800 7750 2800
 Wire Wire Line
-	9650 4750 9950 4750
+	7400 2700 7750 2700
 Wire Wire Line
-	9650 4850 9950 4850
+	7400 2600 7750 2600
 Wire Wire Line
-	9650 4950 9950 4950
+	7400 2500 7750 2500
 Wire Wire Line
-	9650 5050 9950 5050
+	7400 2400 7750 2400
 Entry Wire Line
 	9950 4350 10050 4450
 Entry Wire Line
@@ -471,24 +439,24 @@ Entry Wire Line
 	9950 5050 10050 5150
 Wire Bus Line
 	10050 4300 10050 5350
-Text Label 9700 4350 0    60   ~ 0
+Text Label 7500 3100 0    60   ~ 0
 PC0
-Text Label 9700 4450 0    60   ~ 0
+Text Label 7500 3000 0    60   ~ 0
 PC1
-Text Label 9700 4550 0    60   ~ 0
+Text Label 7500 2900 0    60   ~ 0
 PC2
-Text Label 9700 4650 0    60   ~ 0
+Text Label 7500 2800 0    60   ~ 0
 PC3
-Text Label 9700 4750 0    60   ~ 0
+Text Label 7500 2700 0    60   ~ 0
 PC4
-Text Label 9700 4850 0    60   ~ 0
+Text Label 7500 2600 0    60   ~ 0
 PC5
-Text Label 9700 4950 0    60   ~ 0
+Text Label 7500 2500 0    60   ~ 0
 PC6
-Text Label 9700 5050 0    60   ~ 0
+Text Label 7500 2400 0    60   ~ 0
 PC7
 Text GLabel 10150 5350 2    60   Input ~ 0
-PC
+PA
 Wire Bus Line
 	10050 5350 10150 5350
 Text GLabel 6650 4250 2    60   Input ~ 0
@@ -527,10 +495,6 @@ F 3 "" H 7500 3400 60  0000 C CNN
 $EndComp
 Wire Wire Line
 	7750 3400 7500 3400
-Wire Wire Line
-	7750 3300 7600 3300
-Wire Wire Line
-	7600 3300 7600 3400
 Connection ~ 7600 3400
 Wire Wire Line
 	3200 1150 3200 1200
@@ -583,8 +547,6 @@ Wire Wire Line
 Wire Wire Line
 	9750 5450 9750 5350
 Connection ~ 9750 5350
-Wire Wire Line
-	6150 1500 7750 1500
 Entry Wire Line
 	7350 4450 7450 4350
 Entry Wire Line
@@ -643,4 +605,222 @@ Text Notes 7400 7500 0    60   ~ 0
 FDDuino (emulation of SD725) for SPC-1000 extension bus
 Text Notes 8450 7650 0    60   ~ 12
 2015.06.26
+Wire Wire Line
+	6150 2400 6450 2400
+Wire Wire Line
+	6150 2500 6450 2500
+Wire Wire Line
+	6150 2600 6450 2600
+Wire Wire Line
+	6150 2700 6450 2700
+Wire Wire Line
+	6150 2800 6450 2800
+Wire Wire Line
+	6150 2900 6450 2900
+Wire Wire Line
+	6150 3000 6450 3000
+Wire Wire Line
+	6150 3100 6450 3100
+Entry Wire Line
+	6450 2400 6550 2500
+Entry Wire Line
+	6450 2500 6550 2600
+Entry Wire Line
+	6450 2600 6550 2700
+Entry Wire Line
+	6450 2700 6550 2800
+Entry Wire Line
+	6450 2800 6550 2900
+Entry Wire Line
+	6450 2900 6550 3000
+Entry Wire Line
+	6450 3000 6550 3100
+Entry Wire Line
+	6450 3100 6550 3200
+Text GLabel 6650 3200 2    60   Input ~ 0
+PB
+Wire Bus Line
+	6550 3250 6550 4250
+Wire Bus Line
+	6650 3200 6550 3200
+Wire Bus Line
+	6550 3200 6550 2400
+Wire Wire Line
+	6150 1500 6450 1500
+Wire Wire Line
+	6150 1600 6450 1600
+Wire Wire Line
+	6150 1700 6450 1700
+Wire Wire Line
+	6150 1800 6450 1800
+Wire Wire Line
+	6150 1900 6450 1900
+Wire Wire Line
+	6150 2000 6450 2000
+Wire Wire Line
+	6150 2100 6450 2100
+Wire Wire Line
+	6150 2200 6450 2200
+Entry Wire Line
+	6450 1500 6550 1600
+Entry Wire Line
+	6450 1600 6550 1700
+Entry Wire Line
+	6450 1700 6550 1800
+Entry Wire Line
+	6450 1800 6550 1900
+Entry Wire Line
+	6450 1900 6550 2000
+Entry Wire Line
+	6450 2000 6550 2100
+Entry Wire Line
+	6450 2100 6550 2200
+Entry Wire Line
+	6450 2200 6550 2300
+Text GLabel 7200 2300 0    60   Input ~ 0
+PB
+Wire Bus Line
+	6650 2300 6550 2300
+Wire Bus Line
+	6550 2300 6550 1500
+Text Label 6200 1500 0    60   ~ 0
+PA0
+Text Label 6200 1600 0    60   ~ 0
+PA1
+Text Label 6200 1700 0    60   ~ 0
+PA2
+Text Label 6200 1800 0    60   ~ 0
+PA3
+Text Label 6200 1900 0    60   ~ 0
+PA4
+Text Label 6200 2000 0    60   ~ 0
+PA5
+Text Label 6200 2100 0    60   ~ 0
+PA6
+Text Label 6200 2200 0    60   ~ 0
+PA7
+Text Label 6200 2400 0    60   ~ 0
+PB0
+Text Label 6200 2500 0    60   ~ 0
+PB1
+Text Label 6200 2600 0    60   ~ 0
+PB2
+Text Label 6200 2700 0    60   ~ 0
+PB3
+Text Label 6200 2800 0    60   ~ 0
+PB4
+Text Label 6200 2900 0    60   ~ 0
+PB5
+Text Label 6200 3000 0    60   ~ 0
+PB6
+Text Label 6200 3100 0    60   ~ 0
+PB7
+Wire Wire Line
+	7400 1500 7750 1500
+Wire Wire Line
+	7400 1600 7750 1600
+Wire Wire Line
+	7400 1700 7750 1700
+Wire Wire Line
+	7400 1800 7750 1800
+Wire Wire Line
+	7400 1900 7750 1900
+Wire Wire Line
+	7400 2000 7750 2000
+Wire Wire Line
+	7400 2100 7750 2100
+Wire Wire Line
+	7400 2200 7750 2200
+Entry Wire Line
+	7400 1500 7300 1600
+Entry Wire Line
+	7400 1600 7300 1700
+Entry Wire Line
+	7400 1700 7300 1800
+Entry Wire Line
+	7400 1800 7300 1900
+Entry Wire Line
+	7400 1900 7300 2000
+Entry Wire Line
+	7400 2000 7300 2100
+Entry Wire Line
+	7400 2100 7300 2200
+Entry Wire Line
+	7400 2200 7300 2300
+Text GLabel 6650 2300 2    60   Input ~ 0
+PA
+Wire Bus Line
+	7200 2300 7300 2300
+Wire Bus Line
+	7300 2300 7300 1500
+Text Label 7650 1500 2    60   ~ 0
+PB0
+Text Label 7650 1600 2    60   ~ 0
+PB1
+Text Label 7650 1700 2    60   ~ 0
+PB2
+Text Label 7650 1800 2    60   ~ 0
+PB3
+Text Label 7650 1900 2    60   ~ 0
+PB4
+Text Label 7650 2000 2    60   ~ 0
+PB5
+Text Label 7650 2100 2    60   ~ 0
+PB6
+Text Label 7650 2200 2    60   ~ 0
+PB7
+Text GLabel 7200 3200 0    60   Input ~ 0
+PC
+Entry Wire Line
+	7400 2400 7300 2500
+Entry Wire Line
+	7400 2500 7300 2600
+Entry Wire Line
+	7400 2600 7300 2700
+Entry Wire Line
+	7400 2700 7300 2800
+Entry Wire Line
+	7400 2800 7300 2900
+Entry Wire Line
+	7400 2900 7300 3000
+Entry Wire Line
+	7400 3000 7300 3100
+Entry Wire Line
+	7400 3100 7300 3200
+Wire Bus Line
+	7200 3200 7300 3200
+Wire Bus Line
+	7300 3200 7300 2400
+Wire Wire Line
+	9650 4350 9950 4350
+Wire Wire Line
+	9650 4450 9950 4450
+Wire Wire Line
+	9650 4550 9950 4550
+Wire Wire Line
+	9650 4650 9950 4650
+Wire Wire Line
+	9650 4750 9950 4750
+Wire Wire Line
+	9650 4850 9950 4850
+Wire Wire Line
+	9650 4950 9950 4950
+Wire Wire Line
+	9650 5050 9950 5050
+Text Label 9700 4350 0    60   ~ 0
+PA0
+Text Label 9700 4450 0    60   ~ 0
+PA1
+Text Label 9700 4550 0    60   ~ 0
+PA2
+Text Label 9700 4650 0    60   ~ 0
+PA3
+Text Label 9700 4750 0    60   ~ 0
+PA4
+Text Label 9700 4850 0    60   ~ 0
+PA5
+Text Label 9700 4950 0    60   ~ 0
+PA6
+Text Label 9700 5050 0    60   ~ 0
+PA7
 $EndSCHEMATC
