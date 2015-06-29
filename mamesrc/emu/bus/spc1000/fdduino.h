@@ -22,6 +22,76 @@ typedef char byte;
 #define PB_O pB
 #define PC_O pC
 
+#include <stdio.h>
+#include <String>
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef bool boolean;
+
+#define FILE_READ 1
+#define FILE_WRITE 0
+#define O_RDONLY 2
+
+class File {
+ private:
+  char _name[13]; // our name
+  FILE *_file;  // underlying file pointer
+
+public:
+  File(FILE *f, const char *name);     // wraps an underlying SdFile
+  File(void);      // 'empty' constructor
+  virtual size_t write(uint8_t);
+  virtual size_t write(const uint8_t *buf, size_t size);
+  virtual int read();
+  virtual int peek();
+  virtual int available();
+  virtual void flush();
+  int read(void *buf, uint16_t nbyte);
+  boolean seek(uint32_t pos);
+  uint32_t position();
+  uint32_t size();
+  void close();
+  operator bool();
+  char * name();
+
+  boolean isDirectory(void);
+  File openNextFile(uint8_t mode = O_RDONLY);
+  void rewindDirectory(void);
+};
+
+#define SD_CHIP_SELECT_PIN 0
+
+class SD {
+	public:
+	SD();
+	boolean begin(uint8_t csPin = SD_CHIP_SELECT_PIN);
+
+	// Open the specified file/directory with the supplied mode (e.g. read or
+	// write, etc). Returns a File object for interacting with the file.
+	// Note that currently only one file can be open at a time.
+	File open(const char *filename, uint8_t mode = FILE_READ);
+//	File open(const String &filename, uint8_t mode = FILE_READ) { return open( filename.c_str(), mode ); }
+
+	// Methods to determine if the requested file path exists.
+	boolean exists(char *filepath);
+//	boolean exists(const String &filepath) { return exists(filepath.c_str()); }
+
+	// Create the requested directory heirarchy--if intermediate directories
+	// do not exist they will be created.
+	boolean mkdir(char *filepath);
+//	boolean mkdir(const String &filepath) { return mkdir(filepath.c_str()); }
+
+	// Delete the file.
+	boolean remove(char *filepath);
+//	boolean remove(const String &filepath) { return remove(filepath.c_str()); }
+
+	boolean rmdir(char *filepath);
+//	boolean rmdir(const String &filepath) { return rmdir(filepath.c_str()); }		
+	
+};
+
 class Arduino2560 {
 	public:
 		Arduino2560() {
@@ -45,8 +115,8 @@ class Arduino2560 {
 		}
 		void setPortC(int val) {
 			pC = (pC & 0xf) | (val & 0xf0);
-			printf("PC=%02x\n", pC);
 			doService();
+			//printf("PC=%02x\n", pC);
 		}
 		int getPortC() {
 			return pC;
@@ -116,18 +186,18 @@ class Arduino2560 {
 		{
 			if (iq < sizeof(resq))
 				resq[iq++] = b;
-			printf("addByte: resq[%d]=%d\n", iq-1,b);
+//			printf("addByte: resq[%d]=%d\n", iq-1,b);
 		}
 		byte getByte()
 		{
-			printf("getByte: ih=%d, iq=%d\n", iq, ih);
+//			printf("getByte: ih=%d, iq=%d\n", iq, ih);
 			if (ih <= iq)
 				return resq[ih++];
 			return 0;
 		}
 		bool checkByte()
 		{
-			printf("checkByte: ih=%d, iq=%d\n", iq, ih);
+//			printf("checkByte: ih=%d, iq=%d\n", iq, ih);
 			if (ih <= iq)
 				return true;
 			return false;

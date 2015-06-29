@@ -30,8 +30,9 @@ void Arduino2560::doCommand(int val)
     case RDDSK:
       byte nsect, drive, track, sector;
       printf("RDDSK: Read Disk(p%d=0x%02x)\n", args, val);
-	  if (args < 4)
-		  param[args++] = val;
+	  if (args < 4) {
+		param[args++] = val;
+	  }
 	  else { 
 		nsect = param[0];
 		drive = param[1];
@@ -82,18 +83,20 @@ void Arduino2560::doService() {
 	{
 		digitalWrite(FDD_RFD, HIGH);
 		fs = ATTENSION;
-	} else if (!(pC & ATN_S) && (pC & DAV_S) && (fs == DATAVALID || fs == ATTENSION))
+	} else if (!(pC & ATN_S) && (pC & DAV_S))
 	{
-		digitalWrite(FDD_RFD, LOW);
-		digitalWrite(FDD_DAC, HIGH);		
 		byte data = getPortA();
 		//printf("Write=%d\n", data);
 		doCommand(data);
-		fs = DATACOMPLETED;
-	} else if (!(pC & DAV_S) && fs == DATACOMPLETED)
+		//printf("cmd=%d\n", cmd);
+		if (cmd == -1) {
+			digitalWrite(FDD_RFD, LOW);			
+		}
+		digitalWrite(FDD_DAC, HIGH);		
+		fs = DATAVALID;
+	} else if (!(pC & DAV_S) && fs == DATAVALID)
 	{
 		digitalWrite(FDD_DAC, LOW);
-		PC_O = 0;
 		//printf("Write Completed\n");
 		fs = NONE;
 	} else if (pC & RFD_S)
@@ -105,18 +108,11 @@ void Arduino2560::doService() {
 	} else if (!(pC & RFD_S) && fs == DATAREQ)
 	{
 		byte data = 0;
-		if (checkByte())
-		{
-			data = getByte();
-			printf("Read=0x%02x\n", data);
-		}
+		data = getByte();
+		//printf("Read=0x%02x\n", data);
 		PB_O = data;
 		digitalWrite(FDD_DAV, LOW);
 		fs = DATASEND;
-	} else if ((pC & DAC_S) && fs == DATASEND)
-	{
-	//     Serial.println("Read Completed");
-		fs = NONE;
 	}
 }
 
