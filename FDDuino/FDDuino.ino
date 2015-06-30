@@ -377,7 +377,7 @@ void loop() {
   } else if (!(pc & RFD_S) && fs == DATAREQ)
   {
     byte data = resque[rq++];
-    p("Read=%d\n", data);
+    printf("Read=%d\n", data);
      PB_O = data;
      digitalWrite(FDD_DAV, LOW);
      fs = DATASEND;
