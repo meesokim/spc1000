@@ -40,7 +40,7 @@ class File {
   FILE *_file;  // underlying file pointer
 
 public:
-  File(FILE *f, const char *name);     // wraps an underlying SdFile
+  File(const char *name, const int m);     // wraps an underlying SdFile
   File(void);      // 'empty' constructor
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
@@ -124,6 +124,8 @@ class Arduino2560 {
 	private:
 		int pA, pB, pC;
 		int fs;
+		
+		File *file[2];
 		byte param[2048];
 		void doService();
 		void doCommand(int data);

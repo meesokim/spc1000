@@ -8,6 +8,93 @@
 
 #include "emu.h"
 #include "fdduino.h"
+#define FILE_READ 1
+#define FILE_WRITE 0
+#define O_RDONLY 2
+
+#include <fstream>
+#include <iostream>
+
+File::File(const char *name, int m)
+{
+	// wraps an underlying SdFile
+	char *mode = "r";
+	if (mode == FILE_READ)
+		mode = "r";
+	else if (mode == FILE_WRITE)
+		mode = "w";
+	else
+		mode = "r";
+	file = fopen(name, mode);
+}
+
+File::File()
+{
+}
+
+size_t File::write(uint8_t b)
+{
+	return 0;
+}
+
+size_t File::write(const uint8_t *buf, size_t size)
+{
+	return 0;
+}
+
+int File::read() 
+{
+	return 0;
+}
+
+int File::peek()
+{
+	return 0;
+}
+int File::available()
+{
+	return 0;
+}
+void File::flush()
+{
+}
+int File::read(void *buf, uint16_t nbyte)
+{
+	return 0;
+}
+boolean File::seek(uint32_t pos)
+{
+	return true;
+}
+uint32_t File::position()
+{
+	int pos = 0;
+	return pos;
+}
+uint32_t File::size()
+{
+	return 0;
+}
+void File::Fileclose()
+{
+}
+char * File::name()
+{
+}
+boolean File::isDirectory()
+{
+	return true;
+}
+File File::openNextFile(uint8_t mode = O_RDONLY)
+{
+	return this;
+}
+void File::rewindDirectory(void)
+{
+	
+};
+
+#define SECBYTES 256
 
 void Arduino2560::doCommand(int val)
 {
@@ -30,15 +117,19 @@ void Arduino2560::doCommand(int val)
     case RDDSK:
       byte nsect, drive, track, sector;
       printf("RDDSK: Read Disk(p%d=0x%02x)\n", args, val);
-	  if (args < 4) {
+	  if (args < 5) {
 		param[args++] = val;
 	  }
 	  else { 
-		nsect = param[0];
-		drive = param[1];
-		track = param[2];
-		sector = param[3];
+		nsect = param[1];
+		drive = param[2];
+		track = param[3];
+		sector = param[4];
 		printf("size(#ofsectors)=%d,drive=%d, track=%d, sector=%d\n", nsect, drive, track, sector);
+		file[drive].seek((track * 16 + sector - 1));
+		nsect = (nsect > 16 - sector ? 16 - sector : nsect);
+		for (int i = 0; nsect * SECBYTES; i++)
+			addByte(file[drive].read());
 		resetCmd();
       }
       break;
