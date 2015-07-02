@@ -57,7 +57,7 @@ static const PS2Keymap_t *keymap=NULL;
 static uint8_t cmd_parity;
 volatile uint8_t cmd_ack_value;
 uint8_t cmd_value;
-volatile bool	cmd_in_progress;
+//volatile bool	cmd_in_progress;
 volatile int	cmd_count;
 
 // odd parity
@@ -78,35 +78,6 @@ void ps2interrupt(void)
 	uint8_t n, val;
 
 	val = digitalRead(DataPin);
-	if (cmd_in_progress) {
-		cmd_count++;          // cmd_count keeps track of the shifting
-		switch (cmd_count) {
-		case 1: // start bit
-		  digitalWrite(DataPin,LOW);
-		  Serial.print("->");
-		  Serial.println(cmd_value);
-		  break;
-		case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
-		  // data bits to shift
-		  digitalWrite(DataPin,cmd_value&1);
-		  cmd_value = cmd_value>>1;
-		  break;
-		case 10:  // parity bit
-		  digitalWrite(DataPin,cmd_parity);
-		  break;
-		case 11:  // stop bit
-		  // release the data pin, so stop bit actually relies on pull-up
-		  // but this ensures the data pin is ready to be driven by the kbd for
-		  // for the next bit.
-		  digitalWrite(DataPin, HIGH);
-		  pinMode(DataPin, INPUT);
-		  break;
-		case 12: // ack bit - driven by the kbd, so we read its value
-		  cmd_ack_value = digitalRead(DataPin);
-		  cmd_in_progress = false;  // done shifting out
-		}
-	return; // don't fall through to the receive section of the ISR
-	}	
 	now_ms = millis();
 	if (now_ms - prev_ms > 250) {
 		bitcount = 0;
@@ -362,7 +333,7 @@ PS2Keyboard::PS2Keyboard() {
 }
 
 void PS2Keyboard::reset() {
-  cmd_in_progress           = false;
+  //cmd_in_progress           = false;
   cmd_count                 = 0;
   cmd_value                 = 0;
   cmd_ack_value             = 1;
@@ -441,7 +412,7 @@ void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin, const PS2Keymap_t &ma
 void kbd_send_command(uint8_t val) {
   // stop interrupt routine from receiving characters so that we can use it
   // to send a byte
-  cmd_in_progress = true;
+//  cmd_in_progress = true;
   cmd_count       = 0;
  
   // set up the byte to shift out and initialise the ack bit
@@ -468,8 +439,38 @@ void kbd_send_command(uint8_t val) {
   pinMode(ClkPin, INPUT);
  
   // wait for interrupt routine to shift out byte, parity and receive ack bit
-  while (cmd_ack_value!=0) ;
- 
+  cmd_count = 0;
+  noInterrupts();
+  while (true) {
+	  while (digitalRead(ClkPin));
+		cmd_count++;          // cmd_count keeps track of the shifting
+		switch (cmd_count) {
+		case 1: // start bit
+		  digitalWrite(DataPin,LOW);
+		  Serial.print("->");
+		  Serial.println(cmd_value);
+		  break;
+		case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
+		  // data bits to shift
+		  digitalWrite(DataPin,cmd_value&1);
+		  cmd_value = cmd_value>>1;
+		  break;
+		case 10:  // parity bit
+		  digitalWrite(DataPin,cmd_parity);
+		  break;
+		case 11:  // stop bit
+		  // release the data pin, so stop bit actually relies on pull-up
+		  // but this ensures the data pin is ready to be driven by the kbd for
+		  // for the next bit.
+		  digitalWrite(DataPin, HIGH);
+		  pinMode(DataPin, INPUT);
+		  break;
+		case 12: // ack bit - driven by the kbd, so we read its value
+		  cmd_ack_value = digitalRead(DataPin);
+		  //cmd_in_progress = false;  // done shifting out
+		  break;
+	  }
+  }
   // switch back to the interrupt routine receiving characters from the kbd
-  cmd_in_progress = false;
+  interrupts();
 }
