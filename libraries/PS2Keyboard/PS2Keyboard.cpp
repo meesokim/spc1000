@@ -77,6 +77,8 @@ void ps2interrupt(void)
 	uint32_t now_ms;
 	uint8_t n, val;
 
+	if (cmd_value > 0)
+		return;
 	val = digitalRead(DataPin);
 	now_ms = millis();
 	if (now_ms - prev_ms > 250) {
@@ -94,7 +96,9 @@ void ps2interrupt(void)
 		if (i >= BUFFER_SIZE) i = 0;
 		if (i != tail) {
 			buffer[i] = incoming;
-			Serial.println(incoming);
+			if (incoming == 171)
+				kbd_send_command(0xFF);
+			Serial.println(incoming, HEX);
 			head = i;
 		}
 		bitcount = 0;
@@ -136,7 +140,7 @@ const PROGMEM PS2Keymap_t PS2Keymap_US = {
 	0, ',', 'k', 'i', 'o', '0', '9', 0,
 	0, '.', '/', 'l', ';', 'p', '-', 0,
 	0, 0, '\'', 0, '[', '=', 0, 0,
-	0 /*CapsLock*/, 0 /*Rshift*/, PS2_ENTER /*Enter*/, ']', 0, '\\', 0, 0,
+	PS2_CAPS, 0 /*Rshift*/, PS2_ENTER /*Enter*/, ']', 0, '\\', 0, 0,
 	0, 0, 0, 0, 0, 0, PS2_BACKSPACE, 0,
 	0, '1', 0, '4', '7', 0, 0, 0,
 	'0', '.', '2', '5', '6', '8', PS2_ESC, 0 /*NumLock*/,
@@ -154,7 +158,7 @@ const PROGMEM PS2Keymap_t PS2Keymap_US = {
 	0, '<', 'K', 'I', 'O', ')', '(', 0,
 	0, '>', '?', 'L', ':', 'P', '_', 0,
 	0, 0, '"', 0, '{', '+', 0, 0,
-	0 /*CapsLock*/, 0 /*Rshift*/, PS2_ENTER /*Enter*/, '}', 0, '|', 0, 0,
+	PS2_CAPS, 0 /*Rshift*/, PS2_ENTER /*Enter*/, '}', 0, '|', 0, 0,
 	0, 0, 0, 0, 0, 0, PS2_BACKSPACE, 0,
 	0, '1', 0, '4', '7', 0, 0, 0,
 	'0', '.', '2', '5', '6', '8', PS2_ESC, 0 /*NumLock*/,
@@ -337,7 +341,7 @@ void PS2Keyboard::reset() {
   cmd_count                 = 0;
   cmd_value                 = 0;
   cmd_ack_value             = 1;
-  kbd_send_command(0xFF);   
+//  kbd_send_command(0xFF);   
 }
 
 void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin, const PS2Keymap_t &map) {
@@ -440,9 +444,14 @@ void kbd_send_command(uint8_t val) {
  
   // wait for interrupt routine to shift out byte, parity and receive ack bit
   cmd_count = 0;
-  noInterrupts();
+  //noInterrupts();
+  int repeat = 0;
+  Serial.println("kbd_send_command");
   while (true) {
-	  while (digitalRead(ClkPin));
+	  repeat = 0;
+	  while (digitalRead(ClkPin))
+		  if (repeat++ > 1000000) break;
+	    if (repeat > 100000) break;
 		cmd_count++;          // cmd_count keeps track of the shifting
 		switch (cmd_count) {
 		case 1: // start bit
@@ -471,6 +480,7 @@ void kbd_send_command(uint8_t val) {
 		  break;
 	  }
   }
+  cmd_value = 0;
   // switch back to the interrupt routine receiving characters from the kbd
-  interrupts();
+  //interrupts();
 }

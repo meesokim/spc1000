@@ -4,6 +4,7 @@
 #define DATA_PIN 4
 const int IRQpin =  3;
 PS2Keyboard keyboard;
+byte caps = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -44,6 +45,12 @@ void loop() {
       Serial.print("[Down]");
     } else if (c == PS2_DELETE) {
       Serial.print("[Del]");
+    } else if (c == PS2_F1) {
+      Serial.print("[F1]");
+    } else if (c == PS2_CAPS) {
+      caps = !caps;
+ //     kbd_send_command(0xED);
+ //     kbd_send_command(caps ? 0x4 : 0x0);    
     } else {
       
       // otherwise, just print all normal characters

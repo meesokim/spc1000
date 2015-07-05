@@ -1,0 +1,232 @@
+[HIMDBVersion]
+2.0
+[DATABASE_VERSION]
+"2.8" 
+[PROJECT_DETAILS]
+"X1keybord" "C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord" "C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\X1keybord.hwp" "M16C" "Renesas M16C Standard" "Application" "R8C/Tiny" "R8C/M12A" 
+[INFORMATION]
+"プロジェクト情報がありません" 
+[TOOL_CHAIN]
+"Renesas M16C Standard Toolchain" "6.00.00" 
+[CONFIGURATIONS]
+"Debug" "C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\Debug" 
+"Release" "C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\Release" 
+[BUILD_PHASES]
+"Renesas M16C Assembler" 1 
+"Renesas M16C C/C++ Compiler" 1 
+"Renesas M16C C/C++ Library Generator" 1 
+"Renesas M16C Configurator" 1 
+"Renesas M16C ConfiguratorR8C" 1 
+"Renesas OptLinker" 1 
+[TOOL_ENVIRONMENT]
+[EXTENSIONS]
+"Absolute file" "ABS" 
+"Absolute list file" "ALS" 
+"Assembler error tag file" "ATG" 
+"Assembly include file" "INC" 
+"Assembly source file" "A30" 
+"Binary file" "BIN" 
+"Branch Information file" "JIN" 
+"C header file" "H" 
+"C source file" "C" 
+"C++ header file" "HPP" 
+"C++ source file" "CC" 
+"C++ source file" "CP" 
+"C++ source file" "CPP" 
+"Calling information file" "CAL" 
+"Configuration file" "CFG" 
+"Cross reference file" "XRF" 
+"Hex file" "HEX" 
+"ID file" "ID" 
+"IEEE695 Absolute file" "X30" 
+"Inspector Information file" "UTL" 
+"Library file" "LIB" 
+"Library information file" "LBP" 
+"Library list file" "LLS" 
+"Linkage error tag file" "LTG" 
+"Linkage map file" "MAP" 
+"List file" "LST" 
+"MISRA report file" "CSV" 
+"MISRA rule file" "RDE" 
+"Object file" "OBJ" 
+"Preprocessed C source file" "I" 
+"Profile file" "PRO" 
+"Relocatable file" "R30" 
+"Relocatable file" "REL" 
+"S-Record file" "MOT" 
+"Stack information file" "SNI" 
+"Systemcall file" "MRC" 
+[FILE_GROUPS]
+"Absolute file" "BIN" "NONE" "" 
+"Absolute list file" "TEXT" "EDITOR" "" 
+"Assembler error tag file" "TEXT" "EDITOR" "" 
+"Assembly include file" "TEXT" "EDITOR" "" 
+"Assembly source file" "TEXT" "EDITOR" "" 
+"Binary file" "BIN" "NONE" "" 
+"Branch Information file" "TEXT" "EDITOR" "" 
+"C header file" "TEXT" "EDITOR" "" 
+"C source file" "TEXT" "EDITOR" "" 
+"C++ header file" "TEXT" "EDITOR" "" 
+"C++ source file" "TEXT" "EDITOR" "" 
+"Calling information file" "BIN" "NONE" "" 
+"Configuration file" "TEXT" "EDITOR" "" 
+"Cross reference file" "TEXT" "EDITOR" "" 
+"Hex file" "TEXT" "EDITOR" "" 
+"ID file" "TEXT" "EDITOR" "" 
+"IEEE695 Absolute file" "BIN" "NONE" "" 
+"Inspector Information file" "BIN" "NONE" "" 
+"Library file" "BIN" "NONE" "" 
+"Library information file" "TEXT" "EDITOR" "" 
+"Library list file" "TEXT" "EDITOR" "" 
+"Linkage error tag file" "TEXT" "EDITOR" "" 
+"Linkage map file" "TEXT" "EDITOR" "" 
+"List file" "TEXT" "EDITOR" "" 
+"MISRA report file" "TEXT" "EDITOR" "" 
+"MISRA rule file" "TEXT" "EDITOR" "" 
+"Object file" "BIN" "NONE" "" 
+"Preprocessed C source file" "TEXT" "EDITOR" "" 
+"Profile file" "BIN" "NONE" "" 
+"Relocatable file" "BIN" "NONE" "" 
+"S-Record file" "TEXT" "EDITOR" "" 
+"Stack information file" "BIN" "NONE" "" 
+"Systemcall file" "TEXT" "EDITOR" "" 
+[ASSOCIATED_APPLICATIONS]
+[TOOLCHAIN_PHASE]
+"Renesas M16C Assembler" 
+"Renesas M16C C/C++ Compiler" 
+"Renesas M16C C/C++ Library Generator" 
+"Renesas M16C Configurator" 
+"Renesas M16C ConfiguratorR8C" 
+"Renesas OptLinker" 
+[UTILITY_PHASE]
+[CUSTOM_PHASES]
+[CUSTOM_PHASE_INPUT_GROUP]
+[CUSTOM_PHASE_OUTPUT_SYNTAX]
+[BUILD_ORDER]
+"Renesas M16C C/C++ Library Generator" 1 
+"Renesas M16C C/C++ Compiler" 1 
+"Renesas M16C Assembler" 1 
+"Renesas OptLinker" 1 
+"Renesas M16C ConfiguratorR8C" 0 
+"Renesas M16C Configurator" 0 
+[BUILD_PHASE_DETAILS]
+"Renesas M16C Assembler" "Assembly source file" 1 
+"Renesas M16C C/C++ Compiler" "C source file|C++ source file" 1 
+"Renesas M16C C/C++ Library Generator" "" 0 
+"Renesas M16C Configurator" "Configuration file" 0 
+"Renesas M16C ConfiguratorR8C" "Configuration file" 0 
+"Renesas OptLinker" "Object file|Library file|Relocatable file" 0 
+[BUILD_FILE_ORDER_Assembly source file]
+"Renesas M16C Assembler" 1 
+[BUILD_FILE_ORDER_C source file]
+"Renesas M16C C/C++ Compiler" 1 
+[BUILD_FILE_ORDER_C++ source file]
+"Renesas M16C C/C++ Compiler" 1 
+[SCRAP]
+"Project Generator Setup File" "" 
+[MAPPINGS]
+"Assembly source file" "Renesas M16C Assembler" "Renesas M16C C/C++ Compiler" 
+"Library file" "Renesas OptLinker" "Renesas M16C C/C++ Library Generator" 
+"Object file" "Renesas OptLinker" "Renesas M16C Assembler" 
+"Object file" "Renesas OptLinker" "Renesas M16C C/C++ Compiler" 
+[PROJECT_FILES]
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\iodefine.h" "User" "C header file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\keyconv.c" "User" "C source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\keyconv.h" "User" "C header file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\keytable.h" "User" "C header file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\main.c" "User" "C source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ncrt0.a30" "User" "Assembly source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ps2.c" "User" "C source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ps2.h" "User" "C header file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\timer.c" "User" "C source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\timer.h" "User" "C header file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\x1key.c" "User" "C source file" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\x1key.h" "User" "C header file" 2 
+[FOLDER]
+"Assembly source file" "Assembly source file" 
+"C header file" "C header file" 
+"C source file" "C source file" 
+[GENERAL_DATA_PROJECT]
+"USE_CUSTOM_LINKAGE_ORDER" "1" 
+[ON_DEMAND_COMPONENTS_LOADED]
+[SYNC_SESSION_NAMES]
+[SESSIONS]
+"DefaultSession" "C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\DefaultSession.hsf" 0 
+[GENERAL_DATA_SESSION_DefaultSession]
+[OPTIONS_Debug_Renesas M16C Assembler]
+"Assembly source file" "0c08a6ad3a0afc10" 4 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ncrt0.a30" "0c08a6ad3a0afc10" 4 
+[OPTIONS_Debug_Renesas M16C C/C++ Compiler]
+"C source file" "0c08a6ad3a0afc10" 2 
+"C++ source file" "0d255f408a0afc10" 3 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\keyconv.c" "0005bc57566afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\main.c" "0f26a3f24a0afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ps2.c" "0697e34f775afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\timer.c" "05a40b30775afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\x1key.c" "02c4a5fd475afc10" 2 
+[OPTIONS_Debug_Renesas M16C C/C++ Library Generator]
+"Single Shot" "0c08a6ad3a0afc10" 1 
+[OPTIONS_Debug_Renesas M16C Configurator]
+"Single Shot" "0005bc57566afc10" 6 
+[OPTIONS_Debug_Renesas M16C ConfiguratorR8C]
+"Single Shot" "0005bc57566afc10" 6 
+[OPTIONS_Debug_Renesas OptLinker]
+"Single Shot" "0fa00d57566afc10" 5 
+[OPTIONS_Debug]
+"" 0 
+"[V|VERSION|1] [B|COMMAND|1] [S|SPEC|UITRON4] " 6 
+"[V|VERSION|1] [S|DEFINE|__UART0__] [S|LANG|CPP] [S|OUTPUT|OBJECTCODE] [B|INSPECTOR|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [S|MISRA|ALL] [B|SILENT|1] [S|CPU|R8C]
+" 3 
+"[V|VERSION|1] [S|LIST|LM] [B|INSPECTOR|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [B|DISABLES_MESSAGE|1] [S|CPU|R8C] " 4 
+"[V|VERSION|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(PROJECTNAME).lib^"] [S|CPU|R8C] [B|NOFLOAT|1] [S|MODE|BUILD/CHANGED]" 1 
+"[V|VERSION|1] [S|OUTPUT|OBJECTCODE] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [B|INSPECTOR|1] [B|SILENT|1] [S|CPU|R8C] [S|DEFINE|__UART0__] " 2 
+"[V|VERSION|6] [B|OPTIMIZE|0] [B|DEBUG|1] [S|OUTPUT|^"$(CONFIGDIR)\$(PROJECTNAME).mot^"] [B|LIST|1] [S|LIST|^"$(CONFIGDIR)\$(PROJECTNAME).map^"] [S|OTHER|^"-change_message=information=1100,1322,1410^"] [S|FORM|STYPE] [B|TOTAL_SIZE|1] [B|STACK|1] [S|START|data_SE,bss_SE,data_SO,bss_SO,data_NE,bss_NE,data_NO,bss_NO,stack,istack,heap_NE(400)|interrupt,rom_NE,rom_NO,data_SEI,data_SOI,data_NEI,data_NOI,switch_table,C$VTBL,program(e000)|vector(fed8)]" 5 
+[EXCLUDED_FILES_Debug]
+[LINKAGE_ORDER_Debug]
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\Debug\ncrt0.r30" 
+[GENERAL_DATA_CONFIGURATION_Debug]
+[OPTIONS_Release_Renesas M16C Assembler]
+"Assembly source file" "07cdf9d0e95afc10" 4 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ncrt0.a30" "07cdf9d0e95afc10" 4 
+[OPTIONS_Release_Renesas M16C C/C++ Compiler]
+"C source file" "0f9e27549d9afc10" 2 
+"C++ source file" "0f9e27549d9afc10" 3 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\keyconv.c" "0f9e27549d9afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\main.c" "0f9e27549d9afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\ps2.c" "0f9e27549d9afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\timer.c" "0f9e27549d9afc10" 2 
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\x1key.c" "0f9e27549d9afc10" 2 
+[OPTIONS_Release_Renesas M16C C/C++ Library Generator]
+"Single Shot" "07cdf9d0e95afc10" 1 
+[OPTIONS_Release_Renesas M16C Configurator]
+"Single Shot" "0005bc57566afc10" 6 
+[OPTIONS_Release_Renesas M16C ConfiguratorR8C]
+"Single Shot" "0005bc57566afc10" 6 
+[OPTIONS_Release_Renesas OptLinker]
+"Single Shot" "00024c3dd5aafc10" 5 
+[OPTIONS_Release]
+"" 0 
+"[V|VERSION|1] [B|COMMAND|1] [S|SPEC|UITRON4] " 6 
+"[V|VERSION|1] [B|INSPECTOR|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [S|LIST|L|M] [B|DISABLES_MESSAGE|1] [S|CPU|R8C]
+" 4 
+"[V|VERSION|1] [S|DEFINE|__UART0__] [S|LANG|CPP] [S|OUTPUT|OBJECTCODE] [B|INSPECTOR|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [S|OPTIMIZE|5] [B|OR|1] [S|MISRA|ALL] [B|SILENT|1] [S|CPU|R8C]
+" 3 
+"[V|VERSION|1] [S|DEFINE|__UART0__] [S|LANG|C] [S|OUTPUT|OBJECTCODE] [B|INSPECTOR|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [S|OPTIMIZE|5] [B|OR|1] [S|MISRA|ALL] [B|SILENT|1] [S|CPU|R8C]
+" 2 
+"[V|VERSION|1] [S|MODE|BUILD/CHANGED] [S|EXISTOUTPUTPATH|^"$(CONFIGDIR)\$(PROJECTNAME).lib^"] [B|NOFLOAT|1] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(PROJECTNAME).lib^"] [S|OPTIMIZE|3] [S|OPTIMIZERS|OR] [S|CPU|R8C]
+" 1 
+"[V|VERSION|6] [S|FORM|STYPE] [S|BYTE_COUNT_VALUE|FF] [B|DEBUG|0] [S|CRC|NONE|00000000] [B|LIST|1] [S|LIST|^"$(CONFIGDIR)\$(PROJECTNAME).map^"] [S|SHOW|METHODCUSTOM|] [S|OUTPUT|^"$(CONFIGDIR)\$(PROJECTNAME).mot^"] [I|SPACE|^"FF^"] [S|OPTIMIZEITEMS|ALL] [S|START|data_SE,bss_SE,data_SO,bss_SO,data_NE,bss_NE,data_NO,bss_NO,stack,istack,heap_NE(0400)|program_dataflash,flash_data_NE,flash_data_NO(03000)|interrupt,rom_NE,rom_NO,data_SEI,data_SOI,data_NEI,data_NOI,switch_table,C$VTBL,program(0F800)|vector(0FED8)] [B|STACK|1] [B|TOTAL_SIZE|1] [S|OTHER|^"-change_message=information=1100,1322,1410^"]
+" 5 
+[EXCLUDED_FILES_Release]
+[LINKAGE_ORDER_Release]
+"C:\Users\uts\SkyDrive\Documents\HEW\R8C_X1keybord\X1keybord\Release\ncrt0.r30" 
+[GENERAL_DATA_CONFIGURATION_Release]
+[GENERAL_DATA_CONFIGURATION_SESSION_Debug_DefaultSession]
+[SESSION_DATA_CONFIGURATION_SESSION_Debug_DefaultSession]
+"MEMORY_MAPPING_OPTIONS" "" 
+[GENERAL_DATA_CONFIGURATION_SESSION_Release_DefaultSession]
+[SESSION_DATA_CONFIGURATION_SESSION_Release_DefaultSession]
+"MEMORY_MAPPING_OPTIONS" "" 
+[EXT_DEBUGGER_INFO]
+0 "" "" "" "" 
+[END]

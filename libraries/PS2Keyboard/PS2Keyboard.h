@@ -52,19 +52,20 @@
 #define PS2_LEFTARROW			8
 #define PS2_DOWNARROW			10
 #define PS2_RIGHTARROW			21
-#define PS2_F1				0
-#define PS2_F2				0
-#define PS2_F3				0
-#define PS2_F4				0
-#define PS2_F5				0
-#define PS2_F6				0
-#define PS2_F7				0
-#define PS2_F8				0
-#define PS2_F9				0
-#define PS2_F10				0
-#define PS2_F11				0
-#define PS2_F12				0
+#define PS2_F1				5
+#define PS2_F2				6
+#define PS2_F3				4
+#define PS2_F4				0xc
+#define PS2_F5				3
+#define PS2_F6				0xb
+#define PS2_F7				0x83
+#define PS2_F8				0xa
+#define PS2_F9				1
+#define PS2_F10				9
+#define PS2_F11				0x78
+#define PS2_F12				7
 #define PS2_SCROLL			0
+#define PS2_CAPS			58
 
 #define PS2_INVERTED_EXCLAMATION	161 // ¡
 #define PS2_CENT_SIGN			162 // ¢
@@ -175,7 +176,7 @@ typedef struct {
 
 extern const PROGMEM PS2Keymap_t PS2Keymap_US;
 extern const PROGMEM PS2Keymap_t PS2Keymap_German;
-
+extern void kbd_send_command(uint8_t val);
 
 /**
  * Purpose: Provides an easy access to PS2 keyboards
