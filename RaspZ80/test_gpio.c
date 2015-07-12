@@ -166,59 +166,47 @@ void main()
 {
 	int addr = 0, i = 0, a= 0, b=0;
 	pid_t pid;
-	int cpu=3;
 	setup();
-	for(i = 0; i < 20; i++)
-		pinMode(i, INPUT);
+	for(i = 0; i < 28; i++)
+		pinMode(i, OUTPUT);
+	for(i = 0; i < 28; i++)
+	{
+		GPIO_SET(i);
+		a = GET_GPIO(i);
+		GPIO_CLR(i);
+		b = GET_GPIO(i);
+		printf("GPIO%02d-SET(%d)-CLR(%d)\n",i, a, b);
+	}
+	exit(0);
 	pinMode(SCLK, OUTPUT);
 	pinMode(OE, OUTPUT);
-	if ( (pid = fork()) == 0 ) {
-        cpu_set_t mask;
- 
-        CPU_ZERO(&mask);
-        CPU_SET(cpu, &mask);
-        pid = getpid();
-        if ( sched_setaffinity(pid, sizeof(mask), &mask) ) {
-            fprintf(stderr, "%d 번 CPU를 선호하도록 설정하지 못했습니다.\n",
-                    cpu);
-            exit(EXIT_FAILURE);
-        }
-        else {
-            printf("%d 번 CPU를 선호하도록 설정했습니다.\n", cpu);
-        }
-		while(1)
+	while(1)
+	{
+		a = *(gpio_map+PINLEVEL_OFFSET);
+		if (!(a & 1 << EXT1))
 		{
-			a = *(gpio_map+PINLEVEL_OFFSET);
-			if (!(a & 1 << EXT1))
+			if (!(a & (1 << RD)))
 			{
-				if (!(a & (1 << RD)))
-				{
-					//b++;
-					b = (a >> 9) & 3;
-					SET_GPIO8(b);
-					OUT_GPIO8();
-	//				printf("Read from SCP1000\n");
-				} else if (!(a & (1 << WR)))
-				{
-					a = GET_GPIO8();
-					a = GET_GPIO8();
-					a = GET_GPIO8();
-					a = GET_GPIO8();
-					while(!digitalRead(EXT1));	
-					printf("data=%d\n",a);
-				}
-				while(!*(gpio_map+PINLEVEL_OFFSET) & 1 << EXT1);	
-				INP_GPIO8();
+				//b++;
+				b = (a >> 9) & 3;
+				SET_GPIO8(b);
+				OUT_GPIO8();
+//				printf("Read from SCP1000\n");
+			} else if (!(a & (1 << WR)))
+			{
+				a = GET_GPIO8();
+				a = GET_GPIO8();
+				a = GET_GPIO8();
+				a = GET_GPIO8();
+				while(!digitalRead(EXT1));	
+				printf("data=%d\n",a);
 			}
+			while(!*(gpio_map+PINLEVEL_OFFSET) & 1 << EXT1);	
+			INP_GPIO8();
 		}
-        for ( i = 0; i < UINT_MAX; i++) {
-        }
-    }
-    else {
-        int status;
-        waitpid(pid, &status, 0);
-    }	
-
+	}
+	for ( i = 0; i < UINT_MAX; i++) {
+	}
 }
 
 

@@ -26,7 +26,9 @@ SOFTWARE.
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
+#include <termios.h>
 #include "gpio.h"
+#include <wiringPi.h>
 
 #define BCM2708_PERI_BASE_DEFAULT   0x20000000
 #define BCM2709_PERI_BASE_DEFAULT   0x3f000000
@@ -309,27 +311,49 @@ void cleanup(void)
 #define CP         11
 #define M          0
 
+char * pinname[] = {
+	"M", "HALT", "INT", "NMI", "CLK", "MREQ", "IORQ", "RESET", "CS_AD", "SO", "SI",
+	"CP", "WAIT", "RD", "REFSH", "M1", "BUSAK", "NONE", "BUSRQ", "WR", 
+"DB0", "DB1", "DB2", "DB3", "DB4", "DB5", "DB6", "DB7", "NONE", "NONE", "NONE" };	
+
 
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
 typedef char byte;
 typedef char bool;
+#define p printf
 
 #define false 0
 #define true 1
 
-#define GPIO_CLR(pin)  *(gpio_map+CLR_OFFSET) &= 1 << pin
-#define GPIO_SET(pin)  *(gpio_map+SET_OFFSET) &= 1 << pin
-#define GET_GPIO(g) (((*(gpio_map+PINLEVEL_OFFSET))&(1<<g))!=0?HIGH:LOW) // 0 if LOW, (1<<g) if HIGH
+#if 0
+#define GPIO_CLR(pin)  *(gpio_map+CLR_OFFSET) = 1 << pin
+#define GPIO_SET(pin)  *(gpio_map+SET_OFFSET) = 1 << pin
+#define GET_GPIO(g) ((*(gpio_map+PINLEVEL_OFFSET)&1<<g)!=0?HIGH:LOW) // 0 if LOW, (1<<g) if HIGH
+#define GET_GPIO8() (*(gpio_map+PINLEVEL_OFFSET)&0xff)
+#define SET_GPIO8(g) *(gpio_map+SET_OFFSET)=(g&0xff); *(gpio_map+CLR_OFFSET)=((~g)&0xff)
+#define INP_GPIO8() (*gpio_map &= 0xff000000)
+#define OUT_GPIO8() (*gpio_map = (*gpio_map & 0xff000000) | 0x249249)
 
-#define INP_GPIO(g) *(gpio_map+((g)/10)) &= ~(7<<(((g)%10)*3))|(1<<(((g)%10)*3))
-#define OUT_GPIO(g) *(gpio_map+((g)/10)) |=  (1<<(((g)%10)*3))
-#define GPIO_FN(g) 0
+#define INP_GPIO(g) *(gpio_map+((g)/10)) &= ~(7<<(((g)%10)*3))
+#define OUT_GPIO(g) *(gpio_map+((g)/10)) = *(gpio_map+((g)/10))& ~(7<<(((g)%10)*3)) | (1<<(((g)%10)*3))
 #define SET_GPIO_ALT(g,a) *(gpio_map+(((g)/10))) |= (((a)<=3?(a)+4:(a)==4?3:2)<<(((g)%10)*3))
+#define GPIO_FN(g) (*(gpio_map+((g)/10)) >> (((g)%10)*3) & 7)
 
 #define digitalWrite(g,s) {if (s==LOW) GPIO_CLR(g); else GPIO_SET(g);}
 #define pinMode(g,s) {if (s==OUTPUT) OUT_GPIO(g); else INP_GPIO(g);}
 #define digitalRead(g) GET_GPIO(g)
+
+#else
+#define GPIO_CLR(pin) digitalWrite(pin, LOW)
+#define GPIO_SET(pin) digitalWrite(pin, HIGH)
+#define GET_GPIO(pin) digitalRead(pin)
+#define GET_GPIO8() digitalRead(DB7)<<7 + digitalRead(DB6)<<6 + digitalRead(DB5)<<5 + digitalRead(DB4)<<4 + digitalRead(DB3)<<3 + digitalRead(DB2)<<2 + digitalRead(DB1)<<1 + digitalRead(DB0)
+#define SET_GPIO8(g) digitalWrite(DB7, g&(1<<7)>0); digitalWrite(DB6, g&(1<<6)>0); digitalWrite(DB5, g&(1<<5)>0); digitalWrite(DB4, g&(1<<4)>0); digitalWrite(DB3, g&(1<<3)>0); digitalWrite(DB2, g&(1<<2)>0); digitalWrite(DB1, g&(1<<1)>0); digitalWrite(DB0, g&1);
+#define INP_GPIO(pin) pinMode(pin, INPUT)
+#define OUT_GPIO(pin) pinMode(pin, OUTPUT)
+#define GPIO_FN(g) getAlt(g)
+#endif
 
 #include <time.h>
 int msleep(unsigned long milisec)
@@ -344,7 +368,35 @@ int msleep(unsigned long milisec)
   return 1;
 }
 
+int kbhit(void)
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+ 
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+ 
+  ch = getchar();
+ 
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+ 
+  if(ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+ 
+  return 0;
+}
+
 #define delay msleep
+
 
 // Read and return one ASCII hex value from a string
 byte hex(char *s){
@@ -354,6 +406,15 @@ byte hex(char *s){
     if (nibbleL>9) nibbleL -= 7;
     return (nibbleH << 4) | nibbleL;
 }
+
+// Read and return one ASCII hex value from a temp buffer given the index
+// of that hex number. This is used only to read Intel HEX format buffer.
+byte hexFromTemp(char *pTemp, int index)
+{
+    int start = (index*2)+1;
+    return hex(pTemp + start);
+}
+
 
 // Read and return one ASCII hex value from a temp buffer given the index
 // of that hex number. This is used only to read Intel HEX format buffer.
@@ -435,9 +496,9 @@ void printButton(int g)
 void ResetSimulationVars()
 {
     traceShowBothPhases = 0;// Show both phases of a clock cycle
-    traceRefresh = 0;       // Trace refresh cycles
+    traceRefresh = 1;       // Trace refresh cycles
     tracePause = -1;        // Pause for a keypress every so many clocks
-    stopAtClk = -1;         // Stop the simulation after this many clocks
+    stopAtClk = 40;         // Stop the simulation after this many clocks
     stopAtM1 = -1;          // Stop at a specific M1 cycle number
     stopAtHalt = 1;         // Stop when HALT signal gets active
     intAtClk = -1;          // Issue INT signal at that clock number
@@ -452,16 +513,15 @@ void ResetSimulationVars()
 // Issue a RESET sequence to Z80 and reset internal counters
 void DoReset()
 {
-	int i;
-    printf("\r\n:Starting the clock\r\n");
-    digitalWrite(RESET, LOW);    delay(10);
+    p("\r\n:Starting the clock\r\n");
+    digitalWrite(RESET, LOW);    delay(1);
     // Reset should be kept low for 3 full clock cycles
-    for( i=0; i<3; i++)
+    for(int i=0; i<3; i++)
     {
         digitalWrite(CLK, HIGH); delay(1);
         digitalWrite(CLK, LOW);  delay(1);
     }
-    printf(":Releasing RESET\r\n");
+    p(":Releasing RESET\r\n");
     digitalWrite(RESET, HIGH);   delay(1);
     // Do not count initial 2 clocks after the reset
     clkCount = -2;
@@ -558,7 +618,8 @@ void GetAddressFromAB()
 		digitalWrite(CP, LOW);
 		digitalWrite(CP, LOW);
 		digitalWrite(CP, LOW);
-		 x= (x << 1) | (digitalRead(SO)) ;
+		x = (x << 1) | (digitalRead(SO)) ;
+		//printf("%d", digitalRead(SO));
 		digitalWrite(CP, HIGH);
 	}
 	digitalWrite(CP, LOW);
@@ -588,7 +649,7 @@ void DumpState(bool suppress)
         // Select your character for tri-stated bus
         char abStr[4] = { "---" };
         char dbStr[3] = { "--" };
-        if (!abTristated) sprintf(abStr, "%03X", ab);
+        if (!abTristated) sprintf(abStr, "%04X", ab);
         if (!dbTristated) sprintf(dbStr, "%02X", db);
         if (T==1 && clkCountHi)
             printf("-----------------------------------------------------------+\r\n");
@@ -604,9 +665,10 @@ void DumpState(bool suppress)
 
 void loop()
 {
-	int i, j;
-//    delay(1); GPIO_SET(CLK); delay(1);
-	GPIO_SET(CLK);
+    //--------------------------------------------------------
+    // Clock goes high
+    //--------------------------------------------------------
+    delay(1); digitalWrite(CLK, HIGH); delay(1);
 
     clkCountHi = 1;
     clkCount++;
@@ -625,7 +687,7 @@ void loop()
     if (m1Count==stopAtM1)
     {
         sprintf(extraInfo, "Number of M1 cycles reached"), running = false;
-        printf("-----------------------------------------------------------+\r\n");
+        p("-----------------------------------------------------------+\r\n");
         goto control;
     }
     
@@ -636,13 +698,11 @@ void loop()
         // Simulate read from RAM
         if (!mreq && !rd)
         {
-            SetDataToDB(ram[ab & 0xFFFF]);
+            SetDataToDB(ram[ab & 0xFF]);
             if (!m1)
                 sprintf(extraInfo, "Opcode read from %03X -> %02X", ab, ram[ab & 0xFF]);
             else
                 sprintf(extraInfo, "Memory read from %03X -> %02X", ab, ram[ab & 0xFF]);
-			if (++ab % 0x1000 == 0)
-				printf("%04X\n",ab);
         }
         else
         // Simulate interrupt requesting a vector
@@ -657,7 +717,7 @@ void loop()
         // Simulate write to RAM
         if (!mreq && !wr)
         {
-            ram[ab & 0xFFFF] = db;
+            ram[ab & 0xFF] = db;
             sprintf(extraInfo, "Memory write to  %03X <- %02X", ab, db);
         }
 
@@ -687,18 +747,13 @@ void loop()
     // If the user wanted to pause simulation after a certain number of
     // clocks, handle it here. If the key pressed to continue was not Enter,
     // stop the simulation to issue that command
-    if (tracePause==tracePauseCount)
-    {
-        tracePauseCount = 0;
-    }  
 
     //--------------------------------------------------------
     // Clock goes low
     //--------------------------------------------------------
-    //delay(1); digitalWrite(CLK, LOW); delay(1);
-	digitalWrite(CLK, LOW);
-    
-	clkCountHi = 0;
+    delay(1); digitalWrite(CLK, LOW); delay(1);
+
+    clkCountHi = 0;
     if (traceShowBothPhases)
     {
         ReadControlState();
@@ -733,7 +788,7 @@ void loop()
 control:    
     if (!running)
     {
-        printf(":Simulation stopped: %s\r\n", extraInfo);
+        p(":Simulation stopped: %s\r\n", extraInfo);
         extraInfo[0] = 0;
         digitalWrite(CLK, HIGH);
         zint = nmi = busrq = wait = 1;
@@ -742,11 +797,10 @@ control:
         while(!running)
         {
             // Expect a command from the serial port
- //           if (Serial.available()>0)
+            if (kbhit())
             {
-                memset((void *)temp, 0, TEMP_SIZE);
-				gets(temp);
-                //Serial.readBytesUntil('\r', temp, TEMP_SIZE-1);
+                memset(temp, 0, TEMP_SIZE);
+                gets(temp);
 
                 // Option ":"  : this is not really a user option. This is used to
                 //               Intel HEX format values into the RAM buffer
@@ -754,18 +808,18 @@ control:
                 char *pTemp = temp;
                 while (*pTemp==':')
                 {
-                    byte bytes = hexFromTemprintf(pTemp, 0);
+                    byte bytes = hexFromTemp(pTemp, 0);
                     if (bytes>0)
                     {
-                        int address = (hexFromTemprintf(pTemp, 1)<<8) + hexFromTemprintf(pTemp, 2);
-                        byte recordType = hexFromTemprintf(pTemp, 3);
-                        printf("%04X:", address);
-                        for (i=0; i<bytes; i++)
+                        int address = (hexFromTemp(pTemp, 1)<<8) + hexFromTemp(pTemp, 2);
+                        byte recordType = hexFromTemp(pTemp, 3);
+                        p("%04X:", address);
+                        for (int i=0; i<bytes; i++)
                         {
-                            ram[(address + i) & 0xFF] = hexFromTemprintf(pTemp, 4+i);
-                            printf(" %02X", hexFromTemprintf(pTemp, 4+i));
+                            ram[(address + i) & 0xFF] = hexFromTemp(pTemp, 4+i);
+                            p(" %02X", hexFromTemp(pTemp, 4+i));
                         }
-                        printf("\r\n");
+                        p("\r\n");
                     }
                     pTemp += bytes*2 + 12;  // Skip to the next possible line of hex entry
                 }
@@ -809,101 +863,96 @@ control:
                         if (var==11) clearAtClk = value;
                         if (var==12) iorqVector = value & 0xFF;
                     }
-                    printf("------ Simulation variables ------\r\n");
-                    printf("#0  Trace both clock phases  = %d\r\n", traceShowBothPhases);
-                    printf("#1  Trace refresh cycles     = %d\r\n", traceRefresh);
-                    printf("#2  Pause for keypress every = %d\r\n", tracePause);
-                    printf("#3  Stop after clock #       = %d\r\n", stopAtClk);
-                    printf("#4  Stop after # M1 cycles   = %d\r\n", stopAtM1);
-                    printf("#5  Stop at HALT             = %d\r\n", stopAtHalt);
-                    printf("#6  Issue INT at clock #     = %d\r\n", intAtClk);
-                    printf("#7  Issue NMI at clock #     = %d\r\n", nmiAtClk);
-                    printf("#8  Issue BUSRQ at clock #   = %d\r\n", busrqAtClk);
-                    printf("#9  Issue RESET at clock #   = %d\r\n", resetAtClk);
-                    printf("#10 Issue WAIT at clock #    = %d\r\n", waitAtClk);
-                    printf("#11 Clear all at clock #     = %d\r\n", clearAtClk);
-                    printf("#12 Push IORQ vector #(hex)  = %2X\r\n", iorqVector);
+                    p("------ Simulation variables ------\r\n");
+                    p("#0  Trace both clock phases  = %d\r\n", traceShowBothPhases);
+                    p("#1  Trace refresh cycles     = %d\r\n", traceRefresh);
+                    p("#2  Pause for keypress every = %d\r\n", tracePause);
+                    p("#3  Stop after clock #       = %d\r\n", stopAtClk);
+                    p("#4  Stop after # M1 cycles   = %d\r\n", stopAtM1);
+                    p("#5  Stop at HALT             = %d\r\n", stopAtHalt);
+                    p("#6  Issue INT at clock #     = %d\r\n", intAtClk);
+                    p("#7  Issue NMI at clock #     = %d\r\n", nmiAtClk);
+                    p("#8  Issue BUSRQ at clock #   = %d\r\n", busrqAtClk);
+                    p("#9  Issue RESET at clock #   = %d\r\n", resetAtClk);
+                    p("#10 Issue WAIT at clock #    = %d\r\n", waitAtClk);
+                    p("#11 Clear all at clock #     = %d\r\n", clearAtClk);
+                    p("#12 Push IORQ vector #(hex)  = %2X\r\n", iorqVector);
                 }
                 // Option "m"  : dump RAM memory
                 if (temp[0]=='m' && temp[1]!='c')
                 {
                     // Dump the content of a RAM buffer
-                    printf("    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r\n");
-                    printf("   +-----------------------------------------------\r\n");
-                    for(i=0; i<16; i++)
+                    p("    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\r\n");
+                    p("   +-----------------------------------------------\r\n");
+                    for(int i=0; i<16; i++)
                     {
-                        printf("%02X |", i);
-                        for(j=0; j<16; j++)
+                        p("%02X |", i);
+                        for(int j=0; j<16; j++)
                         {
-                            printf("%02X ", ram[i*16+j]);
+                            p("%02X ", ram[i*16+j]);
                         }
-                        printf("\r\n");
+                        p("\r\n");
                     }
                 }
                 // Option "mc"  : clear RAM memory
                 if (temp[0]=='m' && temp[1]=='c')
                 {
                     memset(ram, 0, sizeof(ram));
-                    printf("RAM cleared\r\n");
+                    p("RAM cleared\r\n");
                 }
                 // Option "?"  : print help
                 if (temp[0]=='?' || temp[0]=='h')
                 {
-                    printf("s            - show simulation variables\r\n");
-                    printf("s #var value - set simulation variable number to a value\r\n");
-                    printf("sc           - clear simulation variables to their default values\r\n");
-                    printf("r            - restart the simulation\r\n");
-                    printf(":INTEL-HEX   - reload RAM buffer with a given data stream\r\n");
-                    printf("m            - dump the content of the RAM buffer\r\n");
-                    printf("mc           - clear the RAM buffer\r\n");
+                    p("s            - show simulation variables\r\n");
+                    p("s #var value - set simulation variable number to a value\r\n");
+                    p("sc           - clear simulation variables to their default values\r\n");
+                    p("r            - restart the simulation\r\n");
+                    p(":INTEL-HEX   - reload RAM buffer with a given data stream\r\n");
+                    p("m            - dump the content of the RAM buffer\r\n");
+                    p("mc           - clear the RAM buffer\r\n");
                 }
             }
         }
-    }	
-  //return 0;
- 
-} // main
+    }
+}
  
 
 void main(void)
 {
-	//wiringPiSetupGpio ();
-	setup();
-	
+	wiringPiSetupGpio ();
+	int a, b, i;
+	//setup();
+	ResetSimulationVars();  
 	for(int i=0; i< 28; i++)
 	{
 		INP_GPIO(i);
 		printf("%d", GET_GPIO(i));
 	}
 	printf("\n");
-	OUT_GPIO(INT); GPIO_SET(INT);
-	OUT_GPIO(NMI); GPIO_SET(NMI);
-	OUT_GPIO(CLK); GPIO_SET(CLK);
-	OUT_GPIO(WAIT); GPIO_SET(WAIT);
-	OUT_GPIO(BUSRQ); GPIO_SET(BUSRQ);
-	OUT_GPIO(RESET); GPIO_SET(RESET);
-	OUT_GPIO(SI); GPIO_SET(SI);
+    pinMode(CLK, OUTPUT);
+    digitalWrite(CLK, HIGH);
+    pinMode(INT, OUTPUT);
+    pinMode(NMI, OUTPUT);
+    pinMode(RESET, OUTPUT);
+    pinMode(BUSRQ, OUTPUT);
+    pinMode(WAIT, OUTPUT);
+    WriteControlPins();
+	OUT_GPIO(SI); GPIO_CLR(SI);
 	OUT_GPIO(CP); GPIO_SET(CP);
 	OUT_GPIO(CS_16); GPIO_SET(CS_16);
 	OUT_GPIO(M);  GPIO_SET(M);
-	ResetSimulationVars();  
-	WriteControlPins();
 	DoReset();
-	for(int i=0; i< 28; i++)
+#if 1
+	for(i = 0; i < 28; i++)
 	{
-		printf("%d:%d\n", i, GET_GPIO(i));
-	}	
-#if 0	
-	printf("\n");
-	for(int i=0; i< 28; i++)
-	{
-		printf("%d", GPIO_FN(i));
-	}	
+		b = GET_GPIO(i);
+		printf("GPIO%02d(%d).-%s-%s\n",i, b, pinname[i], GPIO_FN(i) == 0 ? "INPUT" : GPIO_FN(i) == 1 ? "OUTPUT" : "ALT");
+	}
 	printf("\n");
 	GetAddressFromAB();
 	printf("%04x", ab)	;
 	printf("\n");
 #endif
-	exit(0);
+	ram[0] = 0x30;
 	while(1) loop();
 }
