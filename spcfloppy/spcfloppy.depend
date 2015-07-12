@@ -1,0 +1,21 @@
+# depslib dependency file v1.0
+1436705223 source:c:\retro\spcfloppy\main.cpp
+	<iostream>
+	"Serial.h"
+
+1436684214 source:c:\retro\spcfloppy\src\serial.cpp
+	"Serial.h"
+
+1436684248 c:\retro\spcfloppy\include\serial.h
+	<windows.h>
+	<stdio.h>
+	<stdlib.h>
+
+1436687842 source:c:\retro\spcfloppy\fdd_sd725.c
+	<windows.h>
+	<stdio.h>
+	<stdlib.h>
+	"sd725.h"
+
+1436687758 c:\retro\spcfloppy\sd725.h
+
