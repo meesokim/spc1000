@@ -1,5 +1,5 @@
 #include <stdarg.h>
-void printf(char *fmt, ... ){
+void println(char *fmt, ... ){
     char buf[128]; // resulting string limited to 128 chars
     va_list args;
     va_start (args, fmt );
@@ -45,6 +45,9 @@ enum FDD_CMD {
 #define D6    20
 #define D7    21
 #define EXT1  3
+#define IORQ  2
+#define MREQ  10
+#define BUSAK 11
 
 #define SPC_ATN  PC7
 #define SPC_DAC  PC6
@@ -80,6 +83,7 @@ void out(byte addr, byte data)
   digitalWrite(D7, (data & 1 << 7));
   digitalWrite(RD, HIGH);
   digitalWrite(WR, HIGH);
+  digitalWrite(IORQ, HIGH);
   digitalWrite(EXT1, HIGH);
   pinMode(D0, OUTPUT);
   pinMode(D1, OUTPUT);
@@ -89,10 +93,14 @@ void out(byte addr, byte data)
   pinMode(D5, OUTPUT);
   pinMode(D6, OUTPUT);
   pinMode(D7, OUTPUT);
+  digitalWrite(EXT1, LOW);
+  digitalWrite(IORQ, LOW);
   digitalWrite(WR, LOW);
   delay(1);
   digitalWrite(EXT1, HIGH);
   digitalWrite(WR, HIGH);
+  digitalWrite(IORQ, HIGH);
+  println("out(%d),%02x\n", addr, data);
 }
 
 byte in(byte addr)
@@ -102,6 +110,7 @@ byte in(byte addr)
   digitalWrite(AD1, (addr & 2));
   digitalWrite(RD, HIGH);
   digitalWrite(WR, HIGH);
+  digitalWrite(IORQ, HIGH);
   digitalWrite(EXT1, HIGH);
   pinMode(D0, INPUT);
   pinMode(D1, INPUT);
@@ -112,12 +121,15 @@ byte in(byte addr)
   pinMode(D6, INPUT);
   pinMode(D7, INPUT);  
   digitalWrite(EXT1, LOW);
+  digitalWrite(IORQ, LOW);
   digitalWrite(RD, LOW);
   delay(1);
   b = digitalRead(D0) + digitalRead(D1)<<1 + digitalRead(D2)<<2 + digitalRead(D3)<<3 
     + digitalRead(D4)<<4 + digitalRead(D5)<<5 + digitalRead(D6)<<6 + digitalRead(D7)<<7;
   digitalWrite(EXT1, HIGH);
   digitalWrite(RD, HIGH);
+  digitalWrite(IORQ, HIGH);
+  println("in(%d)->%02x\n", addr, b);
   return b;
 }
 
@@ -198,6 +210,8 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(RESET, OUTPUT);
   pinMode(EXT1, OUTPUT);
+  pinMode(IORQ, OUTPUT);
+  pinMode(MREQ, OUTPUT);
   pinMode(RD, OUTPUT);
   pinMode(WR, OUTPUT);
   pinMode(AD0, OUTPUT);
@@ -210,12 +224,20 @@ void setup() {
   pinMode(D5, INPUT);
   pinMode(D6, INPUT);
   pinMode(D7, INPUT);
+  pinMode(EXT1, OUTPUT);
+  digitalWrite(EXT1, HIGH);
+  digitalWrite(IORQ, HIGH);
+  digitalWrite(MREQ, HIGH);
+  digitalWrite(RD, HIGH);
+  digitalWrite(WR, HIGH);
   digitalWrite(RESET, HIGH);
-  delay(1);
+  delay(10);
   digitalWrite(RESET, LOW);
+  Serial.begin(115200);
+  while(!Serial);  
+  Serial.println("SD725 initialing\n");
   sd_init();
-  while(Serial.available()==0);  
-  printf("SD725 initialized.\n");
+  Serial.println("SD725 initialized.\n");
 }
 
 void loop() {
@@ -224,9 +246,9 @@ void loop() {
   sd_read(1,0,0,1, buf);
   for(int i=0; i < 16; i++)
   {
-    printf("%04x:", i * 16);
+    println("%04x:", i * 16);
     for(int j=0; j < 16; j++)
-      printf("%02x ", buf[i * 16 + j]);
+      println("%02x ", buf[i * 16 + j]);
   }
- printf("\n");
+ println("\n");
 }
