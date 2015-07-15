@@ -1,0 +1,156 @@
+ASxxxx Linker V03.00 + NoICE + sdld,  page 1.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+.  .ABS.                            00000000    00000000 =           0. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00000000  .__.ABS.                           
+     00000000  l__BSS                          
+     00000000  l__CABS                         
+     00000000  l__DABS                         
+     00000000  l__GSINIT                       
+     00000000  l__HEADER                       
+     00000000  l__HEAP                         
+     00000000  l__HOME                         
+     00000000  l__INITIALIZED                  
+     00000000  l__INITIALIZER                  
+     00000000  s__CABS                         
+     00000000  s__DABS                         
+     00000000  s__HEADER                       
+     00000000  s__HEADER0                      
+     00000001  l__GSFINAL                      
+     00000006  l__HEADER0                      
+     00000F31  l__CODE                         
+     00001002  l__DATA                         
+     00007CE3  s__CODE                         
+     00009000  s__DATA                         
+     0000A002  s__GSFINAL                      
+     0000A002  s__GSINIT                       
+     0000A002  s__HOME                         
+     0000A002  s__INITIALIZED                  
+     0000A003  s__BSS                          
+     0000A003  s__HEAP                         
+     0000A003  s__INITIALIZER                  
+ASxxxx Linker V03.00 + NoICE + sdld,  page 2.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_CODE                               00007CE3    00000F31 =        3889. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00007CE3  _main                              main
+     00007CE3  _main_start                        main
+     00007D55  _main_end                          main
+     00007DCC  _dsk2dsk                           main
+     00007DCC  _dsk2dsk_start                     main
+     00007E1E  _dsk2dsk_end                       main
+     00007E4C  _cas2dsk                           main
+     00007E4C  _cas2dsk_start                     main
+     00007E9B  _cas2dsk_end                       main
+     00007ED9  _dsk2cas                           main
+     00007ED9  _dsk2cas_start                     main
+     00007F31  _dsk2cas_end                       main
+     00007F7A  _putchar                           iocs
+     00007F7A  _putchar_start                     iocs
+     00007F89  _getchar                           iocs
+     00007F89  _getchar_start                     iocs
+     00007F89  _putchar_end                       iocs
+     00007F97  _cas_load                          iocs
+     00007F97  _cas_load_start                    iocs
+     00007F97  _getchar_end                       iocs
+     00007FC1  _cas_load_end                      iocs
+     00007FC1  _cas_save                          iocs
+     00007FC1  _cas_save_start                    iocs
+     00007FE1  _cas_save_end                      iocs
+     00007FE1  _chkfdd                            sd725
+     00007FEF  _sd_init                           sd725
+     0000800D  _sd_read                           sd725
+     00008051  _sd_write                          sd725
+     00008092  _sd_format                         sd725
+     000080A8  _sd_drvstate                       sd725
+     000080B2  _sd_sendstate                      sd725
+     0000812E  _vprintf                           vprintf
+     0000812E  _vprintf_start                     vprintf
+     0000814E  _printf                            vprintf
+     0000814E  _printf_start                      vprintf
+     0000814E  _vprintf_end                       vprintf
+     0000816B  _printf_end                        vprintf
+     0000827A  __print_format                     printf_large
+     0000827A  __print_format_start               printf_large
+     00008BF9  __print_format_end                 printf_large
+     00008C04  _strlen                            
+     00008C13  __sdcc_call_hl                     
+ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_DATA                               00009000    00001002 =        4098. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00009000  _data                              main
+
+ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_GSINIT                             0000A002    00000000 =           0. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     0000A002  gsinit                             crt0spc
+
+ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_GSFINAL                            0000A002    00000001 =           1. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_HEADER0                            00000000    00000006 =           6. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
+
+Files Linked                              [ module(s) ]
+
+main.rel                                  [ main ]
+iocs.rel                                  [ iocs ]
+sd725.rel                                 [ sd725 ]
+crt0spc.rel                               [ crt0spc ]
+
+
+Libraries Linked                          [ object file ]
+
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ vprintf.rel ]
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ printf_large.rel ]
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ strlen.rel ]
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ crtcall.rel ]
+
+ASxxxx Linker V03.00 + NoICE + sdld,  page 8.
+
+User Base Address Definitions
+
+_CODE = 0x7ce3
+_DATA = 0x9000
+
+

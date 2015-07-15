@@ -1,0 +1,70 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 1.
+Hexadecimal [16-Bits]
+
+
+
+                              1 ;==============================================================================
+                              2 ;       Startup Code for SPC
+                              3 ;
+                              4 ;           crt0.s
+                              5 ;                                   blog.naver.com/mayhouse
+                              6 ;                                    Based on  Alteration by Piroyan.    Based on Crt0.s included in SDCC.
+                              7 ;==============================================================================
+                              8 
+                              9 		.module	crt0spc
+                             10 		.globl	_main
+                             11 
+                             12 	.area	_HEADER	(ABS)
+                             13 
+   7CDD                      14 	.org	0x7cdd		; 7cdd번지부터 프로그램끝주소와 시작주소가 들어간다. 6byte
+                             15 					;그러므로 소스는 8006번지 이후로 들어가면된다.
+                             16 					;혹은 원하는 주소로 수정하면된다.
+                             17 					;0x8000이면 --code-loc 0x8006
+                             18 					;0x7cdd이면 --code-loc 0x7ce3
+   7CDD                      19 start:
+   7CDD CD 00 00      [17]   20 	call	gsinit		; Initialise global variables
+   7CE0 C3 00 00      [10]   21 	jp		_main		; Jump to main()
+                             22 
+                             23 
+                             24 	; Ordering of segments for the linker.
+                             25 	.area	_HOME
+                             26 	.area	_CODE
+                             27 	.area	_GSINIT
+                             28 	.area	_GSFINAL
+                             29 
+                             30 	.area	_GSINIT
+   0000                      31 gsinit::
+                             32 
+                             33 	; Initialization code enters here. 
+                             34 
+                             35 	.area	_GSFINAL
+   0000 C9            [10]   36 	ret
+                             37 
+                             38 	.area	_DATA
+                             39 	.area	_BSS
+                             40 	.area	_HEAP
+                             41 	
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 2.
+Hexadecimal [16-Bits]
+
+Symbol Table
+
+    .__.$$$.=  2710 L   |     .__.ABS.=  0000 G   |     .__.CPU.=  0000 L
+    .__.H$L.=  0000 L   |     _main      **** GX  |   4 gsinit     0000 GR
+  2 start      7CDD R
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 3.
+Hexadecimal [16-Bits]
+
+Area Table
+
+   0 _CODE      size    0   flags    0
+   1 _HEADER    size    0   flags    8
+   2 _HEADER0   size    6   flags    8
+   3 _HOME      size    0   flags    0
+   4 _GSINIT    size    0   flags    0
+   5 _GSFINAL   size    1   flags    0
+   6 _DATA      size    0   flags    0
+   7 _BSS       size    0   flags    0
+   8 _HEAP      size    0   flags    0
+

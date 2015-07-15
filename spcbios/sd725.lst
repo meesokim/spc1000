@@ -1,0 +1,292 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 1.
+Hexadecimal [16-Bits]
+
+
+
+                              1 ;==============================================================================
+                              2 ;   Floppy Disk access code for SPC-1000
+                              3 ;
+                              4 ;           sd725.s
+                              5 ;                                   By meeso.kim
+                              6 ;==============================================================================
+                              7 
+                              8 	.module	sd725
+                              9 	.area	_CODE
+                             10 	
+                     0000    11 SDINIT		= 0
+                     0001    12 SDWRITE		= 1
+                     0002    13 SDREAD		= 2
+                     0003    14 SDSEND  	= 3
+                     0004    15 SDCOPY		= 4
+                     0005    16 SDFORMAT	= 5
+                     0006    17 SDSTATUS	= 6
+                     0007    18 SDDRVSTS	= 7
+                     0008    19 SDRAMTST	= 8
+                     0009    20 SDTRANS2	= 9
+                     000A    21 SDNOACT		= 0xA
+                     000B    22 SDTRANS1	= 0xB
+                     000C    23 SDRCVE		= 0xC
+                     000D    24 SDGO		= 0xD
+                     000E    25 SDLOAD		= 0xE
+                     000F    26 SDSAVE		= 0xF
+                     0010    27 SDLDNGO		= 0x10	
+                             28 		
+   0000                      29 _chkfdd::
+   0000 DD E5         [15]   30 	push ix
+   0002 DD 21 02 00   [14]   31 	ld ix,#2
+   0006 DD 39         [15]   32 	add ix,sp
+   0008 DD 7E 00      [19]   33 	ld a,(ix)
+                             34 	
+   000B DD E1         [14]   35 	pop ix
+   000D C9            [10]   36 	ret
+                             37 	
+   000E                      38 _sd_init::
+   000E                      39 CHECKFDD:
+   000E 06 C0         [ 7]   40 	LD	B,#0xC0         	
+   0010 0E 02         [ 7]   41   	LD	C,#0x02         
+   0012 AF            [ 4]   42    	XOR	A             	
+   0013 ED 79         [12]   43   	OUT	(C),A         	
+   0015 0E 00         [ 7]   44    	LD	C,#0         	
+   0017 ED 79         [12]   45    	OUT	(C),A         	
+   0019 16 00         [ 7]   46 	ld d, #SDINIT
+   001B CD 09 01      [17]   47 	call sendcmd
+   001E 16 07         [ 7]   48 	ld d, #SDDRVSTS
+   0020 CD 09 01      [17]   49 	call sendcmd
+   0023 CD 40 01      [17]   50 	call recvdata
+   0026 7A            [ 4]   51 	ld a, d
+   0027 E6 10         [ 7]   52 	and #0x10
+   0029 28 E3         [12]   53 	jr z, CHECKFDD
+   002B C9            [10]   54 	ret
+                             55 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 2.
+Hexadecimal [16-Bits]
+
+
+
+   002C                      56 _sd_read::
+   002C C5            [11]   57 	push bc
+   002D DD E5         [15]   58 	push ix
+   002F DD 21 06 00   [14]   59 	ld ix,#6
+   0033 DD 39         [15]   60 	add ix,sp
+   0035 16 02         [ 7]   61 	ld d, #SDREAD
+   0037 CD 09 01      [17]   62 	call sendcmd
+   003A DD 56 00      [19]   63 	ld d,0(ix)
+   003D CD 11 01      [17]   64 	call senddata
+   0040 DD 56 01      [19]   65 	ld d,1(ix)
+   0043 CD 11 01      [17]   66 	call senddata
+   0046 DD 56 02      [19]   67 	ld d,2(ix)
+   0049 CD 11 01      [17]   68 	call senddata
+   004C DD 56 03      [19]   69 	ld d,3(ix)
+   004F CD 11 01      [17]   70 	call senddata
+   0052 16 03         [ 7]   71 	ld d, #SDSEND
+   0054 CD 09 01      [17]   72 	call sendcmd
+   0057 DD 6E 04      [19]   73 	ld l,4(ix)
+   005A DD 66 05      [19]   74 	ld h,5(ix)
+   005D DD 46 00      [19]   75 	ld b,0(ix) 
+   0060 0E 00         [ 7]   76 	ld c,#0x0
+   0062                      77 RDLOOP:
+   0062 CD 40 01      [17]   78 	call recvdata
+   0065 72            [ 7]   79 	ld (hl), d
+   0066 23            [ 6]   80 	inc hl
+   0067 0B            [ 6]   81 	dec bc
+   0068 78            [ 4]   82 	ld  a, b
+   0069 B1            [ 4]   83 	or  c
+   006A 20 F6         [12]   84 	jr nz, RDLOOP
+   006C DD E1         [14]   85 	pop ix
+   006E C1            [10]   86 	pop bc
+   006F C9            [10]   87 	ret
+                             88 	
+   0070                      89 _sd_write::
+   0070 C5            [11]   90 	push bc
+   0071 DD E5         [15]   91 	push ix
+   0073 DD 21 06 00   [14]   92 	ld ix,#6
+   0077 DD 39         [15]   93 	add ix,sp
+   0079 16 01         [ 7]   94 	ld d, #SDWRITE
+   007B CD 09 01      [17]   95 	call sendcmd
+   007E DD 56 00      [19]   96 	ld d,0(ix)
+   0081 CD 11 01      [17]   97 	call senddata
+   0084 DD 56 01      [19]   98 	ld d,1(ix)
+   0087 CD 11 01      [17]   99 	call senddata
+   008A DD 56 02      [19]  100 	ld d,2(ix)
+   008D CD 11 01      [17]  101 	call senddata
+   0090 DD 56 03      [19]  102 	ld d,3(ix)
+   0093 CD 11 01      [17]  103 	call senddata
+   0096 DD 6E 04      [19]  104 	ld l,4(ix)
+   0099 DD 66 05      [19]  105 	ld h,5(ix)
+   009C DD 46 00      [19]  106 	ld b,0(ix)
+   009F 0E 00         [ 7]  107 	ld c,#0
+   00A1                     108 WRLOOP:	
+   00A1 56            [ 7]  109 	ld d,(hl)
+   00A2 C5            [11]  110 	push bc
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 3.
+Hexadecimal [16-Bits]
+
+
+
+   00A3 CD 11 01      [17]  111 	call senddata
+   00A6 C1            [10]  112 	pop bc
+   00A7 23            [ 6]  113 	inc hl
+   00A8 0B            [ 6]  114 	dec bc
+   00A9 78            [ 4]  115 	ld a, b
+   00AA B1            [ 4]  116 	or c
+   00AB 20 F4         [12]  117 	jr nz, WRLOOP
+   00AD DD E1         [14]  118 	pop ix
+   00AF C1            [10]  119 	pop bc
+   00B0 C9            [10]  120 	ret
+                            121 	
+   00B1                     122 _sd_format::
+   00B1 DD E5         [15]  123 	push ix
+   00B3 DD 21 04 00   [14]  124 	ld ix,#4
+   00B7 DD 39         [15]  125 	add ix,sp
+   00B9 16 05         [ 7]  126 	ld d, #SDFORMAT
+   00BB CD 09 01      [17]  127 	call sendcmd
+   00BE DD 56 00      [19]  128 	ld d,(ix)
+   00C1 CD 11 01      [17]  129 	call senddata
+   00C4 DD E1         [14]  130 	pop ix
+   00C6 C9            [10]  131 	ret
+                            132 	
+   00C7                     133 _sd_drvstate::
+   00C7 16 07         [ 7]  134 	ld d, #SDDRVSTS
+   00C9 CD 09 01      [17]  135 	call sendcmd
+   00CC CD 40 01      [17]  136 	call recvdata
+   00CF 6A            [ 4]  137 	ld l, d
+   00D0 C9            [10]  138 	ret
+                            139 	
+   00D1                     140 _sd_sendstate::
+   00D1 16 06         [ 7]  141 	ld d, #SDSTATUS
+   00D3 CD 09 01      [17]  142 	call sendcmd
+   00D6 CD 40 01      [17]  143 	call recvdata
+   00D9 6A            [ 4]  144 	ld l, d
+   00DA C9            [10]  145 	ret
+                            146 	
+   00DB                     147 _sd_load::
+   00DB E5            [11]  148 	push hl
+   00DC D5            [11]  149 	push de
+   00DD C5            [11]  150 	push bc
+   00DE 16 02         [ 7]  151 	ld 	d, #SDREAD
+   00E0 CD 09 01      [17]  152 	call sendcmd
+   00E3 54            [ 4]  153 	ld	d, h
+   00E4 CD 11 01      [17]  154 	call senddata
+   00E7 16 00         [ 7]  155 	ld	d, #0
+   00E9 CD 11 01      [17]  156 	call senddata
+   00EC E1            [10]  157 	pop hl
+   00ED 54            [ 4]  158 	ld	d, h
+   00EE CD 11 01      [17]  159 	call senddata
+   00F1 55            [ 4]  160 	ld  d, l
+   00F2 CD 11 01      [17]  161 	call senddata
+   00F5 16 03         [ 7]  162 	ld  d, #SDSEND
+   00F7 CD 09 01      [17]  163 	call sendcmd
+   00FA E1            [10]  164 	pop hl
+   00FB C1            [10]  165 	pop bc
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 4.
+Hexadecimal [16-Bits]
+
+
+
+   00FC 0E 00         [ 7]  166 	ld  c,#0
+   00FE                     167 RDLOOPx:
+   00FE CD 40 01      [17]  168 	call recvdata
+   0101 72            [ 7]  169 	ld (hl), d
+   0102 23            [ 6]  170 	inc hl
+   0103 0B            [ 6]  171 	dec bc
+   0104 78            [ 4]  172 	ld  a, b
+   0105 B1            [ 4]  173 	or  c
+   0106 20 F6         [12]  174 	jr nz, RDLOOPx
+   0108 C9            [10]  175 	ret	
+                            176 
+   0109                     177 sendcmd:
+   0109 06 C0         [ 7]  178     LD	B,#0xC0         	
+   010B 0E 02         [ 7]  179     LD	C,#0x02         	
+   010D 3E 80         [ 7]  180     LD	A,#0x80         	
+   010F ED 79         [12]  181     OUT	(C),A         	
+   0111                     182 senddata:	
+   0111 06 C0         [ 7]  183     LD	B,#0xC0         	
+   0113 0E 02         [ 7]  184     LD	C,#0x02         	
+   0115                     185 CHKRFD1:   	
+   0115 ED 78         [12]  186 	IN	A,(C)          	
+   0117 E6 02         [ 7]  187     AND	#0x02          	
+   0119 28 FA         [12]  188     JR	Z,CHKRFD1      	
+   011B 0E 02         [ 7]  189     LD	C,#0x02         	
+   011D AF            [ 4]  190     XOR	A             	
+   011E ED 79         [12]  191     OUT	(C),A         	
+   0120 0E 00         [ 7]  192     LD	C,#0x00         	
+   0122 ED 51         [12]  193     OUT	(C),D         	
+   0124 0E 02         [ 7]  194     LD	C,#0x02         	
+   0126 3E 10         [ 7]  195     LD	A,#0x10         	
+   0128 ED 79         [12]  196     OUT	(C),A         	
+   012A 0E 02         [ 7]  197     LD	C,#0x02         
+   012C                     198 CHKDAC2:   	
+   012C ED 78         [12]  199 	IN	A,(C)   
+   012E E6 04         [ 7]  200     AND	#0x04          	
+   0130 28 FA         [12]  201     JR	Z,CHKDAC2      	
+   0132 0E 02         [ 7]  202     LD	C,#0x02         
+   0134 AF            [ 4]  203     XOR	A             
+   0135 ED 79         [12]  204     OUT	(C),A         	
+   0137 0E 02         [ 7]  205     LD	C,#0x02         
+   0139                     206 CHKDAC3:   	
+   0139 ED 78         [12]  207 	IN	A,(C)          
+   013B E6 04         [ 7]  208     AND	#0x04          	
+   013D 20 FA         [12]  209     JR	NZ,CHKDAC3     	
+   013F C9            [10]  210     RET               
+                            211 	
+   0140                     212 recvdata:
+   0140 C5            [11]  213     PUSH	BC           
+   0141 0E 02         [ 7]  214     LD	C,#0x02         	
+   0143 06 C0         [ 7]  215     LD	B,#0xC0         	
+   0145 3E 20         [ 7]  216     LD	A,#0x20         	
+   0147 ED 79         [12]  217     OUT	(C),A         	
+   0149 0E 02         [ 7]  218     LD	C,#0x02         	
+   014B                     219 CHKDAV0:   	
+   014B ED 78         [12]  220 	IN	A,(C)          	
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 5.
+Hexadecimal [16-Bits]
+
+
+
+   014D E6 01         [ 7]  221     AND	#0x01          	
+   014F 28 FA         [12]  222     JR	Z,CHKDAV0      	
+   0151 0E 02         [ 7]  223     LD	C,#0x02         
+   0153 AF            [ 4]  224     XOR	A             	
+   0154 ED 79         [12]  225     OUT	(C),A         	
+   0156 0E 01         [ 7]  226     LD	C,#0x01         	
+   0158 ED 50         [12]  227     IN	D,(C)          	
+   015A 0E 02         [ 7]  228     LD	C,#0x02         	
+   015C 3E 40         [ 7]  229     LD	A,#0x40         	
+   015E ED 79         [12]  230     OUT	(C),A         
+   0160 0E 02         [ 7]  231     LD	C,#0x02         	
+   0162                     232 CHKDAV1:   	
+   0162 ED 78         [12]  233 	IN	A,(C)          	
+   0164 E6 01         [ 7]  234     AND	#0x01          	
+   0166 20 FA         [12]  235     JR	NZ,CHKDAV1     	
+   0168 0E 02         [ 7]  236     LD	C,#0x02         
+   016A AF            [ 4]  237     XOR	A             	
+   016B ED 79         [12]  238     OUT	(C),A         	
+   016D C1            [10]  239     POP	BC            	
+   016E C9            [10]  240     RET               	
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 6.
+Hexadecimal [16-Bits]
+
+Symbol Table
+
+    .__.$$$.=  2710 L   |     .__.ABS.=  0000 G   |     .__.CPU.=  0000 L
+    .__.H$L.=  0000 L   |   0 CHECKFDD   000E R   |   0 CHKDAC2    012C R
+  0 CHKDAC3    0139 R   |   0 CHKDAV0    014B R   |   0 CHKDAV1    0162 R
+  0 CHKRFD1    0115 R   |   0 RDLOOP     0062 R   |   0 RDLOOPx    00FE R
+    SDCOPY  =  0004     |     SDDRVSTS=  0007     |     SDFORMAT=  0005 
+    SDGO    =  000D     |     SDINIT  =  0000     |     SDLDNGO =  0010 
+    SDLOAD  =  000E     |     SDNOACT =  000A     |     SDRAMTST=  0008 
+    SDRCVE  =  000C     |     SDREAD  =  0002     |     SDSAVE  =  000F 
+    SDSEND  =  0003     |     SDSTATUS=  0006     |     SDTRANS1=  000B 
+    SDTRANS2=  0009     |     SDWRITE =  0001     |   0 WRLOOP     00A1 R
+  0 _chkfdd    0000 GR  |   0 _sd_drvs   00C7 GR  |   0 _sd_form   00B1 GR
+  0 _sd_init   000E GR  |   0 _sd_load   00DB GR  |   0 _sd_read   002C GR
+  0 _sd_send   00D1 GR  |   0 _sd_writ   0070 GR  |   0 recvdata   0140 R
+  0 sendcmd    0109 R   |   0 senddata   0111 R
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 7.
+Hexadecimal [16-Bits]
+
+Area Table
+
+   0 _CODE      size  16F   flags    0
+
