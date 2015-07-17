@@ -1,7 +1,7 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
 ; Version 3.4.0 #8981 (Apr  5 2014) (MINGW64)
-; This file was generated Tue Apr 14 22:25:18 2015
+; This file was generated Fri Jul 17 15:34:33 2015
 ;--------------------------------------------------------
 	.module main
 	.optsdcc -mz80
@@ -9,6 +9,7 @@
 ;--------------------------------------------------------
 ; Public variables in this module
 ;--------------------------------------------------------
+	.globl _dir
 	.globl _main
 	.globl _cas_save
 	.globl _cas_load
@@ -418,6 +419,70 @@ ___str_10:
 	.db 0x00
 ___str_11:
 	.ascii "CAS recording completed"
+	.db 0x0A
+	.db 0x00
+;main.c:83: void dir(char *pp)
+;	---------------------------------
+; Function dir
+; ---------------------------------
+_dir_start::
+_dir:
+	push	ix
+	ld	ix,#0
+	add	ix,sp
+;main.c:86: char *p = pp;
+	ld	c,4 (ix)
+	ld	b,5 (ix)
+;main.c:88: while(*p != 0 || p < pp + 256)
+	ld	hl,#0x0100
+	add	hl,bc
+	ex	de,hl
+00102$:
+	ld	a,(bc)
+	or	a, a
+	jr	NZ,00103$
+	ld	a,c
+	sub	a, e
+	ld	a,b
+	sbc	a, d
+	jr	NC,00105$
+00103$:
+;main.c:90: printf("%d.%s (%d)\n", i, p, *(p+15)*256);
+	ld	l, c
+	ld	h, b
+	push	bc
+	ld	bc, #0x000F
+	add	hl, bc
+	pop	bc
+	ld	a,(hl)
+	ld	l,a
+	rla
+	sbc	a, a
+	ld	h,l
+	ld	l,#0x00
+	push	bc
+	push	de
+	push	hl
+	push	bc
+	ld	hl,#0x0001
+	push	hl
+	ld	hl,#___str_12
+	push	hl
+	call	_printf
+	ld	hl,#8
+	add	hl,sp
+	ld	sp,hl
+	pop	de
+	pop	bc
+;main.c:91: p += 1;
+	inc	bc
+	jr	00102$
+00105$:
+	pop	ix
+	ret
+_dir_end::
+___str_12:
+	.ascii "%d.%s (%d)"
 	.db 0x0A
 	.db 0x00
 	.area _CODE

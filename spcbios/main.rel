@@ -1,5 +1,5 @@
 XL2
-H 9 areas 16 global symbols
+H 9 areas 19 global symbols
 M main
 O -mz80
 S _sd_write Ref0000
@@ -11,7 +11,7 @@ S _cas_save Ref0000
 S _sd_read Ref0000
 S _printf Ref0000
 S _getchar Ref0000
-A _CODE size 297 flags 0 addr 0
+A _CODE size 2EB flags 0 addr 0
 S _main Def0000
 S _dsk2cas Def01F6
 S _cas2dsk Def0169
@@ -20,10 +20,13 @@ S _dsk2dsk Def00E9
 S _dsk2cas_start Def01F6
 S _cas2dsk_start Def0169
 S _main_end Def0072
+S _dir Def0297
 S _dsk2cas_end Def024E
 S _cas2dsk_end Def01B8
 S _dsk2dsk_start Def00E9
+S _dir_start Def0297
 S _dsk2dsk_end Def013B
+S _dir_end Def02DF
 A _DATA size 1001 flags 0 addr 0
 S _data Def0000
 A _INITIALIZED size 0 flags 0 addr 0
@@ -228,4 +231,34 @@ R 00 00 00 00
 T 7E 02 43 41 53 20 72 65 63 6F 72 64 69 6E 67 20
 R 00 00 00 00
 T 8C 02 63 6F 6D 70 6C 65 74 65 64 0A 00
+R 00 00 00 00
+T 97 02
+R 00 00 00 00
+T 97 02
+R 00 00 00 00
+T 97 02 DD E5 DD 21 00 00 DD 39 DD 4E 04 DD 46 05
+R 00 00 00 00
+T A5 02 21 00 01 09 EB
+R 00 00 00 00
+T AA 02
+R 00 00 00 00
+T AA 02 0A B7 20 06 79 93 78 9A 30 28
+R 00 00 00 00
+T B4 02
+R 00 00 00 00
+T B4 02 69 60 C5 01 0F 00 09 C1 7E 6F 17 9F 65 2E
+R 00 00 00 00
+T C2 02 00 C5 D5 E5 C5 21 01 00 E5 21 DF 02 E5 CD
+R 00 00 00 00 00 0C 00 00
+T D0 02 00 00 21 08 00 39 F9 D1 C1 03 18 CE
+R 00 00 00 00 02 02 07 00
+T DC 02
+R 00 00 00 00
+T DC 02 DD E1 C9
+R 00 00 00 00
+T DF 02
+R 00 00 00 00
+T DF 02
+R 00 00 00 00
+T DF 02 25 64 2E 25 73 20 28 25 64 29 0A 00
 R 00 00 00 00

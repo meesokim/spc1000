@@ -7,12 +7,16 @@ Symbol Table
     .__.ABS.                                                    =  0000 G
     .__.CPU.                                                    =  0000 L
     .__.H$L.                                                    =  0000 L
+  1 _FInfo                                                         0001 GR
   0 _cas_load                                                      001D GR
   0 _cas_load_end                                                  0047 GR
   0 _cas_load_start                                                001D GR
   0 _cas_save                                                      0047 GR
   0 _cas_save_end                                                  0067 GR
   0 _cas_save_start                                                0047 GR
+  0 _cls                                                           0067 GR
+  0 _cls_end                                                       006B GR
+  0 _cls_start                                                     0067 GR
   0 _getchar                                                       000F GR
   0 _getchar_end                                                   001D GR
   0 _getchar_start                                                 000F GR
@@ -29,8 +33,8 @@ Hexadecimal [16-Bits]
 
 Area Table
 
-   0 _CODE                                      size   67   flags    0
-   1 _DATA                                      size    1   flags    0
+   0 _CODE                                      size   6B   flags    0
+   1 _DATA                                      size   13   flags    0
    2 _INITIALIZED                               size    0   flags    0
    3 _DABS                                      size    0   flags    8
    4 _HOME                                      size    0   flags    0

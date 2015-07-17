@@ -1,7 +1,7 @@
                               1 ;--------------------------------------------------------
                               2 ; File Created by SDCC : free open source ANSI-C Compiler
                               3 ; Version 3.4.0 #8981 (Apr  5 2014) (MINGW64)
-                              4 ; This file was generated Tue May 05 16:48:48 2015
+                              4 ; This file was generated Fri Jul 17 15:34:33 2015
                               5 ;--------------------------------------------------------
                               6 	.module iocs
                               7 	.optsdcc -mz80
@@ -9,120 +9,135 @@
                               9 ;--------------------------------------------------------
                              10 ; Public variables in this module
                              11 ;--------------------------------------------------------
-                             12 	.globl _getchar
-                             13 	.globl _putchar
-                             14 	.globl _cas_load
-                             15 	.globl _cas_save
-                             16 ;--------------------------------------------------------
-                             17 ; special function registers
+                             12 	.globl _cls
+                             13 	.globl _FInfo
+                             14 	.globl _putchar
+                             15 	.globl _getchar
+                             16 	.globl _cas_load
+                             17 	.globl _cas_save
                              18 ;--------------------------------------------------------
-                     0000    19 _ioport	=	0x0000
+                             19 ; special function registers
                              20 ;--------------------------------------------------------
-                             21 ; ram data
+                     0000    21 _ioport	=	0x0000
                              22 ;--------------------------------------------------------
-                             23 	.area _DATA
-   0000                      24 _io_val:
-   0000                      25 	.ds 1
-                             26 ;--------------------------------------------------------
-                             27 ; ram data
-                             28 ;--------------------------------------------------------
-                             29 	.area _INITIALIZED
+                             23 ; ram data
+                             24 ;--------------------------------------------------------
+                             25 	.area _DATA
+   0000                      26 _io_val:
+   0000                      27 	.ds 1
+   0001                      28 _FInfo::
+   0001                      29 	.ds 18
                              30 ;--------------------------------------------------------
-                             31 ; absolute external ram data
+                             31 ; ram data
                              32 ;--------------------------------------------------------
-                             33 	.area _DABS (ABS)
+                             33 	.area _INITIALIZED
                              34 ;--------------------------------------------------------
-                             35 ; global & static initialisations
+                             35 ; absolute external ram data
                              36 ;--------------------------------------------------------
-                             37 	.area _HOME
-                             38 	.area _GSINIT
-                             39 	.area _GSFINAL
-                             40 	.area _GSINIT
-                             41 ;--------------------------------------------------------
-                             42 ; Home
-                             43 ;--------------------------------------------------------
-                             44 	.area _HOME
-                             45 	.area _HOME
-                             46 ;--------------------------------------------------------
-                             47 ; code
-                             48 ;--------------------------------------------------------
-                             49 	.area _CODE
-                             50 ;iocs.c:5: void putchar(unsigned char c) 
-                             51 ;	---------------------------------
-                             52 ; Function putchar
-                             53 ; ---------------------------------
-   0000                      54 _putchar_start::
-   0000                      55 _putchar:
-                             56 ;iocs.c:17: __endasm;
-   0000 21 02 00      [10]   57 	ld hl,#2
-   0003 39            [11]   58 	add hl,sp
-   0004 7E            [ 7]   59 	ld a, (hl)
-   0005 FE 0A         [ 7]   60 	cp #0x0a
-   0007 20 02         [12]   61 	jr nz, next
-   0009 3E 0D         [ 7]   62 	ld a, #0x0d
-   000B                      63 	next:
-   000B CD 64 08      [17]   64 	call 0x0864
-   000E C9            [10]   65 	ret
-   000F                      66 _putchar_end::
-                             67 ;iocs.c:20: char getchar()
-                             68 ;	---------------------------------
-                             69 ; Function getchar
-                             70 ; ---------------------------------
-   000F                      71 _getchar_start::
-   000F                      72 _getchar:
-                             73 ;iocs.c:25: __endasm;
-   000F CD 62 0C      [17]   74 	call 0x0c62
-   0012 32r00r00      [13]   75 	ld (_io_val), a
-                             76 ;iocs.c:26: return io_val;
-   0015 FD 21r00r00   [14]   77 	ld	iy,#_io_val
-   0019 FD 6E 00      [19]   78 	ld	l,0 (iy)
-   001C C9            [10]   79 	ret
-   001D                      80 _getchar_end::
-                             81 ;iocs.c:29: char cas_load(unsigned char *data, int len)
-                             82 ;	---------------------------------
-                             83 ; Function cas_load
-                             84 ; ---------------------------------
-   001D                      85 _cas_load_start::
-   001D                      86 _cas_load:
-                             87 ;iocs.c:46: __endasm;
-   001D DD E5         [15]   88 	push ix
-   001F DD 21 04 00   [14]   89 	ld ix,#4
-   0023 DD 39         [15]   90 	add ix,sp
-   0025 DD 6E 00      [19]   91 	ld l,(ix)
-   0028 DD 66 01      [19]   92 	ld h,1(ix)
-   002B 22 AA 13      [16]   93 	ld (0x13aa), hl
-   002E DD 6E 02      [19]   94 	ld l,2(ix)
-   0031 DD 66 03      [19]   95 	ld h,3(ix)
-   0034 22 A8 13      [16]   96 	ld (0x13a8), hl
-   0037 CD 34 01      [17]   97 	call 0x0134
-   003A 32r00r00      [13]   98 	ld (_io_val), a
-   003D DD E1         [14]   99 	pop ix
-                            100 ;iocs.c:47: return io_val;
-   003F FD 21r00r00   [14]  101 	ld	iy,#_io_val
-   0043 FD 6E 00      [19]  102 	ld	l,0 (iy)
-   0046 C9            [10]  103 	ret
-   0047                     104 _cas_load_end::
-                            105 ;iocs.c:50: void cas_save(unsigned char *data, int len)
-                            106 ;	---------------------------------
-                            107 ; Function cas_save
-                            108 ; ---------------------------------
-   0047                     109 _cas_save_start::
-   0047                     110 _cas_save:
-                            111 ;iocs.c:66: __endasm;
-   0047 DD E5         [15]  112 	push ix
-   0049 DD 21 04 00   [14]  113 	ld ix,#4
-   004D DD 39         [15]  114 	add ix,sp
-   004F DD 6E 00      [19]  115 	ld l,(ix)
-   0052 DD 66 01      [19]  116 	ld h,1(ix)
-   0055 22 AA 13      [16]  117 	ld (0x13aa), hl
-   0058 DD 6E 02      [19]  118 	ld l,2(ix)
-   005B DD 66 03      [19]  119 	ld h,3(ix)
-   005E 22 A8 13      [16]  120 	ld (0x13a8), hl
-   0061 CD B6 00      [17]  121 	call 0x00b6
-   0064 DD E1         [14]  122 	pop ix
-                            123 ;iocs.c:67: return;	
-   0066 C9            [10]  124 	ret
-   0067                     125 _cas_save_end::
-                            126 	.area _CODE
-                            127 	.area _INITIALIZER
-                            128 	.area _CABS (ABS)
+                             37 	.area _DABS (ABS)
+                             38 ;--------------------------------------------------------
+                             39 ; global & static initialisations
+                             40 ;--------------------------------------------------------
+                             41 	.area _HOME
+                             42 	.area _GSINIT
+                             43 	.area _GSFINAL
+                             44 	.area _GSINIT
+                             45 ;--------------------------------------------------------
+                             46 ; Home
+                             47 ;--------------------------------------------------------
+                             48 	.area _HOME
+                             49 	.area _HOME
+                             50 ;--------------------------------------------------------
+                             51 ; code
+                             52 ;--------------------------------------------------------
+                             53 	.area _CODE
+                             54 ;iocs.c:6: void putchar(  char c) 
+                             55 ;	---------------------------------
+                             56 ; Function putchar
+                             57 ; ---------------------------------
+   0000                      58 _putchar_start::
+   0000                      59 _putchar:
+                             60 ;iocs.c:18: __endasm;
+   0000 21 02 00      [10]   61 	ld hl,#2
+   0003 39            [11]   62 	add hl,sp
+   0004 7E            [ 7]   63 	ld a, (hl)
+   0005 FE 0A         [ 7]   64 	cp #0x0a
+   0007 20 02         [12]   65 	jr nz, next
+   0009 3E 0D         [ 7]   66 	ld a, #0x0d
+   000B                      67 	next:
+   000B CD 64 08      [17]   68 	call 0x0864
+   000E C9            [10]   69 	ret
+   000F                      70 _putchar_end::
+                             71 ;iocs.c:21: char getchar()
+                             72 ;	---------------------------------
+                             73 ; Function getchar
+                             74 ; ---------------------------------
+   000F                      75 _getchar_start::
+   000F                      76 _getchar:
+                             77 ;iocs.c:26: __endasm;
+   000F CD 62 0C      [17]   78 	call 0x0c62
+   0012 32r00r00      [13]   79 	ld (_io_val), a
+                             80 ;iocs.c:27: return io_val;
+   0015 FD 21r00r00   [14]   81 	ld	iy,#_io_val
+   0019 FD 6E 00      [19]   82 	ld	l,0 (iy)
+   001C C9            [10]   83 	ret
+   001D                      84 _getchar_end::
+                             85 ;iocs.c:30: char cas_load(unsigned char *data, int len)
+                             86 ;	---------------------------------
+                             87 ; Function cas_load
+                             88 ; ---------------------------------
+   001D                      89 _cas_load_start::
+   001D                      90 _cas_load:
+                             91 ;iocs.c:47: __endasm;
+   001D DD E5         [15]   92 	push ix
+   001F DD 21 04 00   [14]   93 	ld ix,#4
+   0023 DD 39         [15]   94 	add ix,sp
+   0025 DD 6E 00      [19]   95 	ld l,(ix)
+   0028 DD 66 01      [19]   96 	ld h,1(ix)
+   002B 22 AA 13      [16]   97 	ld (0x13aa), hl
+   002E DD 6E 02      [19]   98 	ld l,2(ix)
+   0031 DD 66 03      [19]   99 	ld h,3(ix)
+   0034 22 A8 13      [16]  100 	ld (0x13a8), hl
+   0037 CD 34 01      [17]  101 	call 0x0134
+   003A 32r00r00      [13]  102 	ld (_io_val), a
+   003D DD E1         [14]  103 	pop ix
+                            104 ;iocs.c:48: return io_val;
+   003F FD 21r00r00   [14]  105 	ld	iy,#_io_val
+   0043 FD 6E 00      [19]  106 	ld	l,0 (iy)
+   0046 C9            [10]  107 	ret
+   0047                     108 _cas_load_end::
+                            109 ;iocs.c:51: void cas_save(unsigned char *data, int len)
+                            110 ;	---------------------------------
+                            111 ; Function cas_save
+                            112 ; ---------------------------------
+   0047                     113 _cas_save_start::
+   0047                     114 _cas_save:
+                            115 ;iocs.c:67: __endasm;
+   0047 DD E5         [15]  116 	push ix
+   0049 DD 21 04 00   [14]  117 	ld ix,#4
+   004D DD 39         [15]  118 	add ix,sp
+   004F DD 6E 00      [19]  119 	ld l,(ix)
+   0052 DD 66 01      [19]  120 	ld h,1(ix)
+   0055 22 AA 13      [16]  121 	ld (0x13aa), hl
+   0058 DD 6E 02      [19]  122 	ld l,2(ix)
+   005B DD 66 03      [19]  123 	ld h,3(ix)
+   005E 22 A8 13      [16]  124 	ld (0x13a8), hl
+   0061 CD B6 00      [17]  125 	call 0x00b6
+   0064 DD E1         [14]  126 	pop ix
+                            127 ;iocs.c:68: return;	
+   0066 C9            [10]  128 	ret
+   0067                     129 _cas_save_end::
+                            130 ;iocs.c:71: void cls()
+                            131 ;	---------------------------------
+                            132 ; Function cls
+                            133 ; ---------------------------------
+   0067                     134 _cls_start::
+   0067                     135 _cls:
+                            136 ;iocs.c:75: __endasm;
+   0067 CD D5 0A      [17]  137 	call 0xad5
+                            138 ;iocs.c:76: return;
+   006A C9            [10]  139 	ret
+   006B                     140 _cls_end::
+                            141 	.area _CODE
+                            142 	.area _INITIALIZER
+                            143 	.area _CABS (ABS)

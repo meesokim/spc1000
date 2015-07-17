@@ -25,6 +25,7 @@ SDGO		= 0xD
 SDLOAD		= 0xE
 SDSAVE		= 0xF
 SDLDNGO		= 0x10	
+CLR2		= 0xad5
 		
 _chkfdd::
 	push ix

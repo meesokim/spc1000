@@ -1,8 +1,9 @@
 #include "iocs.h"
+#include <stdio.h>
 
 static unsigned char io_val;
 
-void putchar(unsigned char c) 
+void putchar(  char c) 
 {
 	c;
 	__asm
@@ -66,3 +67,19 @@ void cas_save(unsigned char *data, int len)
 	__endasm;
 	return;	
 }
+
+void cls()
+{
+	__asm
+	call CLR2
+	__endasm;
+	return;
+}
+
+struct finfo {
+	char name[13];
+	int trk;
+	int sec;
+	unsigned char len256;
+} FInfo;
+

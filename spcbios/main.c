@@ -79,3 +79,15 @@ void dsk2cas()
 	}
     printf("CAS recording completed\n");
 }
+
+void dir(char *pp)
+{
+	unsigned char i = 1;
+	char *p = pp;
+//	= (FInfo *)pp;
+	while(*p != 0 || p < pp + 256)
+	{
+		printf("%d.%s (%d)\n", i, p, *(p+15)*256);
+		p += 1;
+	}	
+}

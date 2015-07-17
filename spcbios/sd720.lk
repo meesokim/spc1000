@@ -1,8 +1,8 @@
 -mjwx
 -i sd720.ihex
--b _CODE = 0x7ce3
+-b _CODE = 0xc000
 -b _DATA = 0x9000
--k C:\Program Files\SDCC\bin\..\lib\z80
+-k C:\Program Files\sdcc\bin\..\lib\z80
 -l z80
 main.rel
 iocs.rel

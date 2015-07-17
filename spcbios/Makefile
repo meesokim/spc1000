@@ -71,7 +71,8 @@ DEFL = -lrt
 endif
 
 CFLAGS	= -mz80 
-LDFLAGS	= -mz80 --code-loc 0x7ce3  --data-loc 0x9000 --no-std-crt0 
+#LDFLAGS	= -mz80 --code-loc 0x7ce3  --data-loc 0x9000 --no-std-crt0 
+LDFLAGS	= -mz80 --code-loc 0xc000  --data-loc 0x9000 --no-std-crt0 
 
 $(NAME): $(OBJ)
 	$(CC) $^ $(LDFLAGS) -o $@.ihex

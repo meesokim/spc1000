@@ -16,6 +16,7 @@ blog.naver.com/mayhouse
 #define MTBYTE		0x13a8
 #define MTADRS		0x13aa
 #define	_ASCGET		0x0c62
+#define CLR2		0xad5
 
 __sfr __banked __at 0 ioport;
 

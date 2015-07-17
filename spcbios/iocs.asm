@@ -1,7 +1,7 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
 ; Version 3.4.0 #8981 (Apr  5 2014) (MINGW64)
-; This file was generated Tue May 05 16:48:48 2015
+; This file was generated Fri Jul 17 15:34:33 2015
 ;--------------------------------------------------------
 	.module iocs
 	.optsdcc -mz80
@@ -9,8 +9,10 @@
 ;--------------------------------------------------------
 ; Public variables in this module
 ;--------------------------------------------------------
-	.globl _getchar
+	.globl _cls
+	.globl _FInfo
 	.globl _putchar
+	.globl _getchar
 	.globl _cas_load
 	.globl _cas_save
 ;--------------------------------------------------------
@@ -23,6 +25,8 @@ _ioport	=	0x0000
 	.area _DATA
 _io_val:
 	.ds 1
+_FInfo::
+	.ds 18
 ;--------------------------------------------------------
 ; ram data
 ;--------------------------------------------------------
@@ -47,13 +51,13 @@ _io_val:
 ; code
 ;--------------------------------------------------------
 	.area _CODE
-;iocs.c:5: void putchar(unsigned char c) 
+;iocs.c:6: void putchar(  char c) 
 ;	---------------------------------
 ; Function putchar
 ; ---------------------------------
 _putchar_start::
 _putchar:
-;iocs.c:17: __endasm;
+;iocs.c:18: __endasm;
 	ld hl,#2
 	add hl,sp
 	ld a, (hl)
@@ -64,27 +68,27 @@ _putchar:
 	call 0x0864
 	ret
 _putchar_end::
-;iocs.c:20: char getchar()
+;iocs.c:21: char getchar()
 ;	---------------------------------
 ; Function getchar
 ; ---------------------------------
 _getchar_start::
 _getchar:
-;iocs.c:25: __endasm;
+;iocs.c:26: __endasm;
 	call 0x0c62
 	ld (_io_val), a
-;iocs.c:26: return io_val;
+;iocs.c:27: return io_val;
 	ld	iy,#_io_val
 	ld	l,0 (iy)
 	ret
 _getchar_end::
-;iocs.c:29: char cas_load(unsigned char *data, int len)
+;iocs.c:30: char cas_load(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_load
 ; ---------------------------------
 _cas_load_start::
 _cas_load:
-;iocs.c:46: __endasm;
+;iocs.c:47: __endasm;
 	push ix
 	ld ix,#4
 	add ix,sp
@@ -97,18 +101,18 @@ _cas_load:
 	call 0x0134
 	ld (_io_val), a
 	pop ix
-;iocs.c:47: return io_val;
+;iocs.c:48: return io_val;
 	ld	iy,#_io_val
 	ld	l,0 (iy)
 	ret
 _cas_load_end::
-;iocs.c:50: void cas_save(unsigned char *data, int len)
+;iocs.c:51: void cas_save(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_save
 ; ---------------------------------
 _cas_save_start::
 _cas_save:
-;iocs.c:66: __endasm;
+;iocs.c:67: __endasm;
 	push ix
 	ld ix,#4
 	add ix,sp
@@ -120,9 +124,20 @@ _cas_save:
 	ld (0x13a8), hl
 	call 0x00b6
 	pop ix
-;iocs.c:67: return;	
+;iocs.c:68: return;	
 	ret
 _cas_save_end::
+;iocs.c:71: void cls()
+;	---------------------------------
+; Function cls
+; ---------------------------------
+_cls_start::
+_cls:
+;iocs.c:75: __endasm;
+	call 0xad5
+;iocs.c:76: return;
+	ret
+_cls_end::
 	.area _CODE
 	.area _INITIALIZER
 	.area _CABS (ABS)

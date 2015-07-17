@@ -1,22 +1,26 @@
 XL2
-H 9 areas D global symbols
+H 9 areas 11 global symbols
 M iocs
 O -mz80
 S .__.ABS. Def0000
-A _CODE size 67 flags 0 addr 0
+A _CODE size 6B flags 0 addr 0
 S _getchar_start Def000F
 S _getchar_end Def001D
 S _cas_load Def001D
 S _putchar Def0000
+S _cls Def0067
 S _cas_load_start Def001D
 S _putchar_start Def0000
 S _cas_save Def0047
 S _cas_load_end Def0047
 S _putchar_end Def000F
+S _cls_start Def0067
 S _cas_save_start Def0047
+S _cls_end Def006B
 S _cas_save_end Def0067
 S _getchar Def000F
-A _DATA size 1 flags 0 addr 0
+A _DATA size 13 flags 0 addr 0
+S _FInfo Def0001
 A _INITIALIZED size 0 flags 0 addr 0
 A _DABS size 0 flags 8 addr 0
 A _HOME size 0 flags 0 addr 0
@@ -27,6 +31,10 @@ A _CABS size 0 flags 8 addr 0
 T 00 00
 R 00 00 01 00
 T 00 00
+R 00 00 01 00
+T 01 00
+R 00 00 01 00
+T 01 00
 R 00 00 01 00
 T 00 00
 R 00 00 00 00
@@ -73,4 +81,12 @@ R 00 00 00 00
 T 62 00 B6 00 DD E1 C9
 R 00 00 00 00
 T 67 00
+R 00 00 00 00
+T 67 00
+R 00 00 00 00
+T 67 00
+R 00 00 00 00
+T 67 00 CD D5 0A C9
+R 00 00 00 00
+T 6B 00
 R 00 00 00 00

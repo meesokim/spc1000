@@ -11,6 +11,7 @@ Symbol Table
   0 ___str_1                                                       007D R
   0 ___str_10                                                      0265 R
   0 ___str_11                                                      027E R
+  0 ___str_12                                                      02DF R
   0 ___str_2                                                       008E R
   0 ___str_3                                                       00E5 R
   0 ___str_4                                                       013B R
@@ -25,6 +26,9 @@ Symbol Table
     _cas_load                                                      **** GX
     _cas_save                                                      **** GX
   1 _data                                                          0000 GR
+  0 _dir                                                           0297 GR
+  0 _dir_end                                                       02DF GR
+  0 _dir_start                                                     0297 GR
   0 _dsk2cas                                                       01F6 GR
   0 _dsk2cas_end                                                   024E GR
   0 _dsk2cas_start                                                 01F6 GR
@@ -42,13 +46,12 @@ Symbol Table
     _sd_read                                                       **** GX
     _sd_write                                                      **** GX
 
-
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 2.
 Hexadecimal [16-Bits]
 
 Area Table
 
-   0 _CODE                                      size  297   flags    0
+   0 _CODE                                      size  2EB   flags    0
    1 _DATA                                      size 1001   flags    0
    2 _INITIALIZED                               size    0   flags    0
    3 _DABS                                      size    0   flags    8
