@@ -1,0 +1,39 @@
+p6v123_64.zip
+http://papicom.net/p6v/arc/p6v123_64.zip
+폴더 열기 목록에서 삭제
+
+SDL-1.2.15.zip
+https://www.libsdl.org/release/SDL-1.2.15.zip
+폴더 열기 목록에서 삭제
+
+msys+7za+wget+svn+git+mercurial+cvs-rev11.7z
+http://jaist.dl.sourceforge.net/project/mingwbuilds/external-binary-packages/msys%2B7za%2Bwget%2Bsvn%2Bgit%2Bmercurial%2Bcvs-rev11.7z
+폴더 열기 목록에서 삭제
+
+Turbo C++ 4.0 Windows 7 Windows 8 64Bit Version.exe
+http://jaist.dl.sourceforge.net/project/turbocforwindows-9/Turbo%20C%2B%2B%204.0%20Windows%207%20Windows%208%2064Bit%20Version.exe
+폴더 열기 목록에서 삭제
+
+mingw-w64-install.exe
+http://nchc.dl.sourceforge.net/project/mingw-w64/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe
+폴더 열기 목록에서 삭제
+
+SDL-devel-1.2.15-mingw32.tar.gz
+http://www.libsdl.org/release/SDL-devel-1.2.15-mingw32.tar.gz
+폴더 열기 목록에서 삭제
+
+p6v123s.zip
+http://papicom.net/p6v/arc/p6v123s.zip
+폴더 열기 목록에서 삭제
+
+hex2cas-1.2.0.zip
+http://www.markn.org/contiki/hex2cas-1.2.0.zip
+폴더 열기 목록에서 삭제
+
+NEC_PC_6001_TOSEC_2012_04_23.zip
+https://ia801605.us.archive.org/3/items/NEC_PC_6001_TOSEC_2012_04_23/NEC_PC_6001_TOSEC_2012_04_23.zip
+폴더 열기 목록에서 삭제
+
+Amiga Developer CD v1.1 - May 1996 (1996)(Schatztruhe)[!].iso
+https://ia600309.us.archive.org/28/items/amiga-developer-cd-v1_1/Amiga%20Developer%20CD%20v1.1%20-%20May%201996%20(1996)(Schatztruhe)[!].iso
+폴더 열기 목록에서 삭제
