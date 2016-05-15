@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="SPCEMUL" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Win32 Release">
+				<Option output="Release/SPCEMUL" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="Release" />
+				<Option object_output="Release" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-W" />
+					<Add option="-fexceptions" />
+					<Add option="-DWIN32" />
+					<Add option="-DNDEBUG" />
+					<Add option="-D_CONSOLE" />
+					<Add option="-D_MBCS" />
+					<Add option="-D_AFXDLL" />
+					<Add directory="include/SDL" />
+				</Compiler>
+				<Linker>
+					<Add option="-mwindows" />
+					<Add directory="lib" />
+				</Linker>
+			</Target>
+			<Target title="Win32 Debug">
+				<Option output="Debug/SPCEMUL" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="Debug" />
+				<Option object_output="Debug" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option projectCompilerOptionsRelation="2" />
+				<Compiler>
+					<Add option="-pg" />
+					<Add option="-g" />
+					<Add option="-W" />
+					<Add option="-fexceptions" />
+					<Add option="-DWIN32" />
+					<Add option="-D_DEBUG" />
+					<Add option="-D_CONSOLE" />
+					<Add option="-D_MBCS" />
+					<Add option="-D_AFXDLL" />
+					<Add directory="include" />
+					<Add directory="include/SDL" />
+				</Compiler>
+				<Linker>
+					<Add option="-pg -lgmon" />
+					<Add option="-mconsole" />
+					<Add directory="lib" />
+					<Add directory="../../../lang/mingw/lib" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-DMINGW" />
+		</Compiler>
+		<Linker>
+			<Add library="mingw32" />
+			<Add library="SDLmain" />
+			<Add library="SDL" />
+			<Add library="SDL_image" />
+			<Add library="SDL_ttf" />
+		</Linker>
+		<Unit filename="AY8910.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="Debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="MC6847.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="Z80SPC.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="include/AY8910.h" />
+		<Unit filename="include/Codes.h" />
+		<Unit filename="include/CodesCB.h" />
+		<Unit filename="include/CodesED.h" />
+		<Unit filename="include/CodesXCB.h" />
+		<Unit filename="include/CodesXX.h" />
+		<Unit filename="include/DiskChoose.h" />
+		<Unit filename="include/MC6847.h" />
+		<Unit filename="include/Tables.h" />
+		<Unit filename="include/Z80.h" />
+		<Unit filename="include/common.h" />
+		<Unit filename="include/printer.h" />
+		<Unit filename="include/spckey.h" />
+		<Unit filename="include/stretch.h" />
+		<Unit filename="menus.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="menus.h" />
+		<Unit filename="spcmain.cpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

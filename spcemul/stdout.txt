@@ -1,0 +1,43 @@
+The following line in the INI file is ignored:
+	FRAMESKIP = 0
+../disk
+system.dsk
+disk1=../disk/system.dsk
+data.dsk
+disk2=../disk/data.dsk
+../cas
+[SPC-1000 Emulator V1.2 (2014.04.22)]
+
+Written by ionique (K.-H. Sihn).
+Thanks to zanny, loderunner, zzapuno, kosmo, mayhouse.
+contact: http://blog.naver.com/ionique
+
+This emulator uses Z-80 and AY-3-8910 emulation from Marat Fayzullin.
+Find more about them at http://fms.komkon.org/
+
+Brief usage of keyboard:
+F7 : exit
+F8 : cassette PLAY button
+F9 : cassette REC button
+F10: cassette STOP button
+F11: PC-compatible keyboard layout (IOCS change, by zanny)
+F12: Reset (keeping tape position)
+Scroll Lock: Turbo mode
+TAB: LOCK key
+PgUp/PgDn: Save/Load current status
+
+For other settings, see SPCEMUL.INI
+This program is freeware, provided with no warranty.
+The author takes no responsibility for any damage or legal issue
+caused by using this program.
+Set 640x480 at 16 bits-per-pixel mode
+Symbol table loading
+format-1(0,0,0,0)
+framebuffer=29f4c68
+SDLSurface=29f4bf0
+BitsPerPixel=16
+Audio Open successed
+PC:FB09, DE:FB00, HL:FB00, BC:0500
+PC:FB14, DE:0000, HL:0000, BC:7B00
+PC:FF48, DE:7C4E, HL:FF90, BC:0050
+color=14
