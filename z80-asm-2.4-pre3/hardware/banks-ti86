@@ -1,0 +1,32 @@
+#type  id  log2  filename
+   r   00   14   ti83_rom0.bin
+   r   01   14   ti83_rom1.bin
+   r   02   14   ti83_rom2.bin
+   r   03   14   ti83_rom3.bin
+   r   04   14   ti83_rom4.bin
+   r   05   14   ti83_rom5.bin
+   r   06   14   ti83_rom6.bin
+   r   07   14   ti83_rom7.bin
+   r   08   14   ti83_rom8.bin
+   r   09   14   ti83_rom9.bin
+   r   0A   14   ti83_romA.bin
+   r   0B   14   ti83_romB.bin
+   r   0C   14   ti83_romC.bin
+   r   0D   14   ti83_romD.bin
+   r   0E   14   ti83_romE.bin
+   r   0F   14   ti83_romF.bin
+   +   40   14   -
+   +   41   14   -
+   +   42   14   -
+   +   43   14   -
+   +   44   14   -
+   +   45   14   -
+   +   46   14   -
+   +   47   14   -
+#addr  port mask  ids
+ 0000    -   00   00 
+ 4000    5   4F   00,01,02,03,04,05,06,07,08,09,0A,0B,0C,0D,0E,0F,
+                  40,41,42,43,44,45,46,47
+ 8000    6   4F   00,01,02,03,04,05,06,07,08,09,0A,0B,0C,0D,0E,0F,
+                  40,41,42,43,44,45,46,47
+ C000    -   00   40

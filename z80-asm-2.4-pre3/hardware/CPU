@@ -1,0 +1,16 @@
+8 bytes for:    B,C,D,E,H,L,F,A
+
+8 bytes for:    B',C',D',E',H',L',F',A'
+ 
+8 bytes for:    IX, IY, SP, PC
+
+1 byte for:     (PC)    (*last* loaded instruction byte)
+
+2 bytes for:    R, I
+
+1 byte for:     4 bits:  IFF0,IFF1,IFF2, HALT-pin-status
+                2 bit:   IM (interrupt mode)
+                1 bit:   NMI-flipflop
+                1 bit:   stray DD/FD code
+
+4 bytes for:    tick counter  (unsigned long)

@@ -1,0 +1,18 @@
+#type  id  log2  filename
+   r   00   14   pc1600_rom0.bin
+   r   01   14   pc1600_rom1.bin
+   r   02   14   pc1600_rom2.bin
+   r   03   14   pc1600_rom3.bin
+   r   04   14   pc1600_rom4.bin
+   r   05   14   pc1600_rom5.bin
+   r   06   14   pc1600_rom6.bin
+   r   07   14   pc1600_rom7.bin
+   r   10   14   pc1600_rom3b.bin
+   -   xx   14   -
+#addr  port mask  ids
+  xx    61    4   10,03
+4000    49   0E   00,01,02,03,04,05,06,07
+8000    49   70   00,01,02,03,04,05,06,07
+
+
+# PORT 28  selects a bank into 0x8000-0xBFFF,  bank 2+3 changable

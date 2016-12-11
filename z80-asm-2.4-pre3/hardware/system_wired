@@ -1,0 +1,21 @@
+/***  two parameter variables are accessable:  the just activated
+      cpu_control_pin p (see enum cpu_control_pin {...}) and its value level
+***/
+#ifdef  Z80_CTC
+   if (p == m1)
+      set_ctc_pin(ctc_m1,level);
+   if (p == reset)
+      set_ctc_pin(ctc_reset,level);
+   if (p == iorq  &&  cpu_pin[wr]  &&  is_ctc_port(ADDRESS&255) )
+      set_ctc_pin(ctc_rd,!level);
+#endif
+#ifdef  PORT_BUFFER
+#endif
+#ifdef  SSL_ZDS
+   if (p == m1 && level)
+      trigger_ssl();
+   if (p == reset && level)
+      reset_ssl_trigger();
+   if (p == iorq  &&  cpu_pin[wr]  &&  is_ssl_port(ADDRESS&255)  &&  level)
+      set_ssl_trigger();
+#endif

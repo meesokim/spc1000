@@ -1,0 +1,65 @@
+Only in this directory  hardware  further auxilary programs may be maintained.
+If z80-mon is running, the files .CPU and --- in the case hardware/port_buffer
+is linked to z80-mon --- .Z80_ports are updated by z80-mon.
+Asynchronly other tasks/threads may use these files to read the Z80-CPU status
+via .CPU or even exchange data with the Z80-CPU or other hardware
+components via .Z80_ports . The following first five example programs
+demonstrate this technique using this two interface files.
+
+In contrast the five last example sources are linked into z80-mon if this
+is enabled in the Makefile. They represent true real-world hardware which runs
+synchroniously with the z80-mon. Typically necessary calls are included via
+#defines in  z80-mon.c  ,  hardware/system_wired  ,  hardware/includes  and
+perhaps in  hardware/quartz.c .
+In  z80-mon.c  look at reset_cpu() also to initialize your special hardware if
+necessary.
+The file  hardware/includes  contains all necessary include files for  z80-cpu.c
+and  z80-mon.c .
+The file  hardware/system_wired  is appended at the end of the function
+ set_cpu_pin  in z80-cpu.c for directly wired hardware.
+In  hardware/quartz.c  the single clock ticks can be observed by your hardware!
+Moreover the whole data-, address- and controlbus is accessable by including
+ z80-cpu.h  in your special hardware emulation. Use the cpu-pins  busrq  and
+  busack to get/check bus control. To manipulate the busses put your code
+into  hardware/bus_masters (don't forget to release bus_req if finished!).
+
+
+Firstly there are two example implementations of buffered port usage:
+
+   * hardware_clock  uses ports 0x1c, 0x1d, 0x1e, 0x1f
+     to write the current time in seconds elapsed since z80 system start.
+     to these four ports (lower bytes to lower ports)
+
+   * lcd_display  uses ports 0x0a and 0x0b and stdout
+     and runs in an ascii-terminal with 4*8+1 lines and  2*6*20 columns
+
+Secondly, two auxilary programs to maintain the ports:
+
+   * make_ports  create the file Z80_PORTS and initialze these to 0
+
+   * port_io  is a simple user interface to read or write a port
+
+Thirdly, a program to monitor the cpu online:
+  
+   * monitor_cpu  displays all data inside the CPU in real time
+
+Lastly an example of a bank layout file (from TI-86 pocket computer):
+
+   * banks-ti86 defines 16 ROM banks and 8 RAM banks on port 0x05 and 0x06.
+
+
+Finally, there are different hardware circuits for Z80-Systems directly wired:
+  
+   * a quartz (the internal oscillator is a bit faked :)
+
+   * a port_buffer buffering the last value for each port (to enable asychcron
+     access by external programs)
+   * a daisy_chain for interrupt queueing of different hardware components
+
+   * a simple logic analyzer to observe the Z80-CPU pins with tick resolution
+
+   * a Z80-CTC: you should improve and debugg it [synchronized with quartz] :)
+
+
+Have fun,
+2005-06-10

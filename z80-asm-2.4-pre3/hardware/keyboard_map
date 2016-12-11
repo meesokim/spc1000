@@ -1,0 +1,151 @@
+# the first two entries never maps to a character
+00       no key
+0e       Unknown char to key map
+#  Alt-key is a modifyer setting the highest bit of key code
+    
+10  1B   Escape
+#1f  11   F1
+#2f  12   F2
+#3f  13   F3
+#4f  14   F4
+#5f  15   F5
+#6f  16   F6
+#7f  17   F7
+#8f  18   F8
+#9f  1C   F9
+#af  1D   F10
+#bf  1E   F11
+#cf  1F   F12
+
+20  ^   
+01  1   
+02  2   
+03  3   
+04  4   
+05  5   
+06  6   
+07  7   
+08  8   
+09  9   
+0a  0   
+0b  ß   
+0c  ´   
+0d  08   BackSpace
+    
+30  °   
+11  !   
+12  "   
+13  §   
+14  $   
+15  %   
+16  &   
+17  /   
+18  (   
+19  )   
+1a  =   
+1b  ?   
+1c  `   
+    
+40  07   Tab
+21  q   
+22  w   
+23  e   
+24  r   
+25  t   
+26  z   
+27  u   
+28  i   
+29  o   
+2a  p   
+2b  ü   
+2c  +   
+2d  [   
+2e  ]   
+    
+50  0B   BackTab
+31  Q   
+32  W   
+33  E   
+34  R   
+35  T   
+36  Z   
+37  U   
+38  I   
+39  O   
+3a  P   
+3b  Ü   
+3c  *   
+3d  {   
+3e  }   
+    
+60  @   
+41  a   
+42  s   
+43  d   
+44  f   
+45  g   
+46  h   
+47  j   
+48  k   
+49  l   
+4a  ö   
+4b  ä   
+4c  #   
+4d  0D   Return
+4e  \   
+    
+70  ~   
+51  A   
+52  S   
+53  D   
+54  F   
+55  G   
+56  H   
+57  J   
+58  K   
+59  L   
+5a  Ö   
+5b  Ä   
+5c  '   
+5d       Unused (Shift Return)
+5e  |    
+    
+61  <   
+62  y   
+63  x   
+64  c   
+65  v   
+66  b   
+67  n   
+68  m   
+69  ,   
+6a  .   
+6b  -   
+6c  05   Insert  Einfügen
+6d  0E   Home  Pos 1
+6e  04   Page up Bild hoch
+    
+71  >   
+72  Y   
+73  X   
+74  C   
+75  V   
+76  B   
+77  N   
+78  M   
+79  ;   
+7a  :   
+7b  _   
+7c  06   Delete  Entfernen
+7d  0F   End     Ende
+7e  0C   Page down  Bild runter
+    
+1d       Ctrl
+1e  20   Space
+    
+0f  0A   Cursor down
+df  01   Cursor up
+ef  02   Cursor left
+ff  03   Cursor right
+    
+    

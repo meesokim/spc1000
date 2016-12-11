@@ -1,0 +1,21 @@
+#ifndef __ZDS_PORTS_H
+#define __ZDS_PORTS_H
+
+/* SIO B Data */
+#define TRM_DATA	0xe5
+
+/* SIO B Control */
+#define TRM_CTRL	0xe7
+
+/* NMI-Trigger for Single Step */
+#define SSL_PORT	0xee
+
+/* Floppy Motorport */
+#define FLP_MOT		0xd2
+
+/* Terminal Device
+   /dev/tty12 for SuSE, Novell
+   /dev/tty6  for Knoppix */
+#define TERM	"/dev/tty12"
+
+#endif
