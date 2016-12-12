@@ -79,7 +79,7 @@ compile.o: compile.c asm.h execute_token regs.h regs_token
 
 expression.o: expression.c asm.h asm_token
 
-hash.o: hash.c asm.h expression.h
+hash.o: hash.c asm.h expression.h 
 
 asm.o: asm.c asm_interface.h instr.h z80-cpu.h hash.h compile.h execute_token \
        expression.h regs.h regs_token asm_token z80-global

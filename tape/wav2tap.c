@@ -59,8 +59,8 @@ int main(int argc,char **argv)
 //		exit(1);
 //	}
 	//initscr();
-	col = 80;//getmaxx(stdscr);
-	width = 
+	col = 80;//getmaxx(stdscr); 
+	mni = mni0 = 0;
 	//endwin();
 	printf("Channels:%d, Freq=%d, Sampling=%d\n", sample_riff.channels, sample_riff.freq, sample_riff.byte_per_sample);	
 	//exit(0);
@@ -106,13 +106,16 @@ int main(int argc,char **argv)
 	for (;;) {
 		b1 = getdata(in);
 		//printf("%d\n", b1);
-		ww = col/2+(float)b1/(1<<(sample_riff.byte_per_sample*8-1))*col/2; 
-		if (ww > 80) ww = 80;
-		//printf("%d", b1);
-		for(s = 0; s < ww; s++)
-			putc(' ', stdout);
-		printf("*\n");
-		if (b0 <= 0 && b1 > 0)
+		if (0)
+		{
+			ww = col/2+(float)b1/(1<<(sample_riff.byte_per_sample*8-1))*col/2; 
+			if (ww > 80) ww = 80;
+			printf("%d", idx);
+			for(s = 0; s < ww; s++)
+				putc(' ', stdout);
+			printf("*");
+		}
+		if (b0 <= 0 && b1 > 0  && min < 0 - height * 0.05)
 		{
 			up = 1;
 			down = 0;
@@ -123,25 +126,26 @@ int main(int argc,char **argv)
 			t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
 			if (max - min > height/3)
 			{
-				if (gap > 18 & gap < 30)
+				if (gap >= 18 & gap < 30)
 				{
 					v = 0;
-					fprintf(out, "0");
+					fputc('0', out);
 					x ++;
 				} else if (gap > 30)
 				{
 					v = 1;
+					fputc('1', out);
 					x ++;
 				}
 				else
 				{
 					v = -1;
 				}
-				printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
+				//printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 			}
 			max = b1;
 		}
-		else if (b0 > 0 && b1 <= 0)
+		else if (b0 > 0 && b1 <= 0 && min < 0 - height * 0.05)
 		{
 			down = 1;
 			up = 0;
@@ -197,13 +201,17 @@ int main(int argc,char **argv)
 		}
 		max = (max < b1 ? b1 : max);
 		mxi = (max < b1 ? idx : mxi);
-		min = (min > b1 ? b1 : min);
-		mni = (min > b1 ? idx : mni);
-
+		if (min > b1)
+		{
+			min = b1;
+			mni = idx;
+			//printf("MIN");
+		}
 		high += up;
 		low += down;
 		idx++;
 		b0 = b1;
+		//printf("\n");
 		if (feof(in))
 			break;			
 	}

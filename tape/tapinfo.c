@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 		printf ("usage: %s tap_filename\n", argv[0]);
 		return 1;
 	}
-	strict = 0;
+	strict = 10;
 	IN = fopen(argv[1], "rb");
 	if (!IN) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
