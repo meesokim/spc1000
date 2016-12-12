@@ -9,8 +9,9 @@
 	version 1.2: revised for spc-1000 wav file.
 */
 
-
+#include <ncursesw/ncurses.h>
 #include <stdio.h>
+#include <unistd.h>
 
 void exit(int);
 
@@ -38,13 +39,18 @@ int getshort(FILE *);
 int getint(FILE *);
 int (*getdata)(FILE *);
 
+
 int main(int argc,char **argv)
 {	
 	unsigned start,end,byte,v;
-	int min, max, idx, level, imin, imax, height;
+	int min, max, idx0, idx, level, imin, imax, height, width;
 	int b0, b1, b2, s0, s1, count, high, low, up, down, x, pos, mxi, mni, mxi0, mni0, gap, m2i;
 	float t;
-	if (argc<3) { printf("Wav2tap special Simon\nUsage: wav2tap file.wav file.tap\n",argv[0]); exit(1);}
+	int s, row, col, ww;
+	
+	s = strlen(argv[0]);
+	while(*(argv[0]+s)!='/'&&*(argv[0]+s)!='\\'&&s>=0)s--;
+	if (argc<3) { printf("wap2tap special Simon\nUsage: %s file.wav file.tap\n",argv[0]+s+1); exit(1);}
 	in=fopen(argv[1],"rb");
 	if (in==NULL) { printf("Unable to open WAV file\n"); exit(1);}
 	fread(&sample_riff,sizeof(sample_riff),1,in);
@@ -52,7 +58,12 @@ int main(int argc,char **argv)
 //		printf("Invalid WAV format: should be 4800 Hz, 8-bit, mono\n");
 //		exit(1);
 //	}
+	//initscr();
+	col = 80;//getmaxx(stdscr);
+	width = 
+	//endwin();
 	printf("Channels:%d, Freq=%d, Sampling=%d\n", sample_riff.channels, sample_riff.freq, sample_riff.byte_per_sample);	
+	//exit(0);
 	switch(sample_riff.byte_per_sample)
 	{
 		case 1:
@@ -95,25 +106,40 @@ int main(int argc,char **argv)
 	for (;;) {
 		b1 = getdata(in);
 		//printf("%d\n", b1);
+		ww = col/2+(float)b1/(1<<(sample_riff.byte_per_sample*8-1))*col/2; 
+		if (ww > 80) ww = 80;
+		//printf("%d", b1);
+		for(s = 0; s < ww; s++)
+			putc(' ', stdout);
+		printf("*\n");
 		if (b0 <= 0 && b1 > 0)
 		{
 			up = 1;
 			down = 0;
 			high = 0;
-			max = b1;
 			mxi0 = mxi;
 			mxi = idx;
 			gap = mni - mni0;
 			t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
-			if (gap > 20 & gap < 30)
+			if (max - min > height/3)
 			{
-				//fprintf(out, "0");
-				printf("%d @%d:%02.5f, h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max, gap, m2i);
-			} else if (gap > 35)
-			{
-				//fprintf(out, "1");
-				printf("%d @%d:%02.5f, h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max, gap, m2i);
+				if (gap > 18 & gap < 30)
+				{
+					v = 0;
+					fprintf(out, "0");
+					x ++;
+				} else if (gap > 30)
+				{
+					v = 1;
+					x ++;
+				}
+				else
+				{
+					v = -1;
+				}
+				printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 			}
+			max = b1;
 		}
 		else if (b0 > 0 && b1 <= 0)
 		{
@@ -121,20 +147,23 @@ int main(int argc,char **argv)
 			up = 0;
 			low = 0;
 			gap = mni - mni0;
-			m2i = idx - mni;
-			if (max - min > 5000)
+			m2i = idx - idx0;
+			/*
+			if (max - min > height/3)
 			{
 				t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
-				if (m2i > 30 || (high >= 14 && (max - min) > 18000) || high > 15)
+				if (m2i > 27 || (high >= 14 && (max - min) > height/2) || high > 15)
 				{
-					x ++;
 					v = 1;
 					fprintf(out, "1");
+					printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
+					x ++;
 				}
 				else if (m2i > 20 || high <= 20 && high >= 5)
 				{
 					v = 0;
 					fprintf(out, "0");
+					printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
 					x ++;
 				}
 				else 
@@ -150,6 +179,7 @@ int main(int argc,char **argv)
 					printf("%d @%d:%02.5f, h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max, gap, m2i);
 				}
 			}
+			*/
 			min = b0;
 			if (gap > 10 && gap < 30)
 			{
@@ -163,6 +193,7 @@ int main(int argc,char **argv)
 			}
 			mni0 = mni;
 			mni = idx;
+			idx0 = idx;
 		}
 		max = (max < b1 ? b1 : max);
 		mxi = (max < b1 ? idx : mxi);
@@ -184,8 +215,8 @@ int main(int argc,char **argv)
 int getbyte(FILE *f)
 {
 	unsigned char a;
-	a = getc(f);
-	return a;
+	a = getc(f) ;
+	return ((int)a) - 0x80;
 }
 int getshort(FILE *f)
 {
