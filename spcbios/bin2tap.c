@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         fprintf(stdout,"Can't open input file\n");
 		exit(1);
 	}
-	if (stricmp(argv[1] + strlen(argv[1]) - 3, "ihx") == 0 || stricmp(argv[1] + strlen(argv[1]) - 5, "ihex"))
+	if (strcasecmp(argv[1] + strlen(argv[1]) - 3, "ihx") == 0 || strcasecmp(argv[1] + strlen(argv[1]) - 5, "ihex"))
 	{
 		parseIHEX(fpin);
 	}
