@@ -32,7 +32,7 @@ int getByte(FILE *in)
 	}
 	if (fgetc(in) != '1')
 	{
-		printf(":check bit error(%ld)!\n", ftell(in));
+		printf("%02x=>check bit error(%ld)!\n", v, ftell(in));
 		if (strict)
 			exit(0);
 	}
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 		printf ("usage: %s tap_filename\n", argv[0]);
 		return 1;
 	}
-	strict = 10;
+	strict = 0;
 	IN = fopen(argv[1], "rb");
 	if (!IN) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
@@ -119,8 +119,8 @@ int dump(int len) {
 		length++;
 		printf("%02x ", v);
 	}
-	csum1 += getByte(IN);
 	csum1 += getByte(IN) << 8;
+	csum1 += getByte(IN);
 	if (d == 128) 
 	{
 		head = (HEADER *) b;
@@ -129,14 +129,14 @@ int dump(int len) {
 		printf("Length: %04xh\n", head->size);
 		printf("Loading address: %04xh\n", head->load);
 		printf("Checksum: %04xh (%04xh)\n", csum1, csum);
-		printf("Header Size: %d\n", d-1);
+		printf("Header Size: %d\n", d);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
 		return head->size;
 	}
 	else
 	{
-		printf("Body Loading..\n");
+		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh)\n", csum1, csum);		
 	}

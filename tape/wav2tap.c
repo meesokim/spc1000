@@ -115,89 +115,105 @@ int main(int argc,char **argv)
 				putc(' ', stdout);
 			printf("*");
 		}
-		if (b0 <= 0 && b1 > 0  && min < 0 - height * 0.05)
+		if (b0 <= 0 && b1 > 0)
 		{
-			up = 1;
-			down = 0;
-			high = 0;
-			mxi0 = mxi;
-			mxi = idx;
-			gap = mni - mni0;
-			t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
-			if (max - min > height/3)
+			if (min < 0 - height * 0.05)
 			{
-				if (gap >= 18 & gap < 30)
-				{
-					v = 0;
-					fputc('0', out);
-					x ++;
-				} else if (gap > 30)
-				{
-					v = 1;
-					fputc('1', out);
-					x ++;
-				}
-				else
-				{
-					v = -1;
-				}
-				//printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
-			}
-			max = b1;
-		}
-		else if (b0 > 0 && b1 <= 0 && min < 0 - height * 0.05)
-		{
-			down = 1;
-			up = 0;
-			low = 0;
-			gap = mni - mni0;
-			m2i = idx - idx0;
-			/*
-			if (max - min > height/3)
-			{
+				up = 1;
+				down = 0;
+				high = 0;
+				mxi0 = mxi;
+				mxi = idx;
+				gap = mni - mni0;
 				t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
-				if (m2i > 27 || (high >= 14 && (max - min) > height/2) || high > 15)
+				if (max - min > height/3)
 				{
-					v = 1;
-					fprintf(out, "1");
-					printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
-					x ++;
+					if (gap >= 18 & gap < 30)
+					{
+						v = 0;
+						fputc('0', out);
+						x ++;
+					} else if (gap > 30)
+					{
+						v = 1;
+						fputc('1', out);
+						x ++;
+					}
+					else
+					{
+						v = -1;
+					}
+					printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 				}
-				else if (m2i > 20 || high <= 20 && high >= 5)
-				{
-					v = 0;
-					fprintf(out, "0");
-					printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
-					x ++;
-				}
-				else 
-				{
-					v = -1;
-					//printf("max=%d, min=%d, height=%d, width=%d, high=%d, min2this=%d\n", max, min, max - min, gap, high, m2i);
-//					printf("%d fpos time=%d:%02.5f, h=%d, min=%d, max=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max);
-//					exit(0);
-				}
-				if (x > (pos - 32) && x <= pos + 1)
-				{
-					//printf("max=%d, min=%d, height=%d, error=%d\n", max, min, max - min, high);
-					printf("%d @%d:%02.5f, h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max, gap, m2i);
-				}
+				max = b1;
 			}
-			*/
-			min = b0;
-			if (gap > 10 && gap < 30)
+			else
 			{
-				//fprintf(out, "0");
-			} else if (gap > 33)
-			{
-				//fprintf(out, "1");
-			} else
-			{
-				//printf("min to min:%d\n", mni - mni0);
+				v = -2;
+				printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 			}
-			mni0 = mni;
-			mni = idx;
-			idx0 = idx;
+		}
+		else if (b0 > 0 && b1 <= 0)
+		{
+			if (min < 0 - height * 0.05)
+			{
+				down = 1;
+				up = 0;
+				low = 0;
+				gap = mni - mni0;
+				m2i = idx - idx0;
+				/*
+				if (max - min > height/3)
+				{
+					t = (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample;
+					if (m2i > 27 || (high >= 14 && (max - min) > height/2) || high > 15)
+					{
+						v = 1;
+						fprintf(out, "1");
+						printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
+						x ++;
+					}
+					else if (m2i > 20 || high <= 20 && high >= 5)
+					{
+						v = 0;
+						fprintf(out, "0");
+						printf("%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, m2i);
+						x ++;
+					}
+					else 
+					{
+						v = -1;
+						//printf("max=%d, min=%d, height=%d, width=%d, high=%d, min2this=%d\n", max, min, max - min, gap, high, m2i);
+	//					printf("%d fpos time=%d:%02.5f, h=%d, min=%d, max=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max);
+	//					exit(0);
+					}
+					if (x > (pos - 32) && x <= pos + 1)
+					{
+						//printf("max=%d, min=%d, height=%d, error=%d\n", max, min, max - min, high);
+						printf("%d @%d:%02.5f, h=%d, min=%d, max=%d, mingap=%d, min2this=%d\n", v, ((int)t)/60, t-((int)t)/60*60, high, min, max, gap, m2i);
+					}
+				}
+				*/
+				min = b0;
+				if (gap > 10 && gap < 30)
+				{
+					//fprintf(out, "0");
+				} else if (gap > 33)
+				{
+					//fprintf(out, "1");
+				} else
+				{
+					//printf("min to min:%d\n", mni - mni0);
+				}
+				mni0 = mni;
+				mni = idx;
+				idx0 = idx;
+			}
+			else
+			{
+				v= -3;
+				printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
+			}
 		}
 		max = (max < b1 ? b1 : max);
 		mxi = (max < b1 ? idx : mxi);
