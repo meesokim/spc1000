@@ -4,11 +4,13 @@ LDFLAGS= -lncurses
 WAV2TAP=wav2tap
 TAPINFO=tapinfo
 APPLETAPE=apple1basic-decode
+MMZX81=mmzx81
 
 all:
 	make $(WAV2TAP)
 	make $(TAPINFO)
 	make $(APPLETAPE)
+	make $(MMZX81)
 
 clean:
 	rm -f $(WAV2TAP) $(TAPINFO) *.exe *.o
@@ -24,3 +26,8 @@ $(TAPINFO): $(TAPINFO).o
 $(APPLETAPE).o: $(APPLETAPE).c
 $(APPLETAPE): $(APPLETAPE).o
 	$(CC) -o $(APPLETAPE) $(APPLETAPE).o
+
+$(MMZX81).o: $(MMZX81).cpp
+$(MMZX81): $(MMZX81).o
+	$(CXX) -o $(MMZX81) $(MMZX81).o
+
