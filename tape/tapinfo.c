@@ -22,6 +22,7 @@ char strict;
 
 int dump();
 int fgetc2(FILE *f);
+int error = 0;
 
 int getByte(FILE *in)
 {
@@ -32,10 +33,13 @@ int getByte(FILE *in)
 	}
 	if (fgetc(in) != '1')
 	{
-		printf("%02x=>check bit error(%ld)!\n", v, ftell(in));
+		//printf("%02x=>check bit error(%ld)!\n", v, ftell(in));
+		error = 1;
 		if (strict)
 			exit(0);
 	}
+	else
+		error = 0;
 	if (feof(in))
 		exit(0);
 	return v;
@@ -66,7 +70,7 @@ int main(int argc, char **argv) {
 	
 	while (1)
 	{
-		length = dump(length);
+		dump(length);
 		if (length < 0)
 			break;
 	}	
@@ -108,7 +112,7 @@ int dump(int len) {
 	int length = 0;
 	if (tag() != 0)
 		return -1;
-	if (len == 0)
+	//if (len == 0)
 		len = 128;
 	while(len-->0) {
 		v = getByte(IN);
@@ -117,13 +121,14 @@ int dump(int len) {
 		if (length % 16 == 0)
 			printf("\n%04x:", length);
 		length++;
-		printf("%02x ", v);
+		printf("%02x%c", v, error == 0 ? ' ' : '*');
 	}
 	csum1 += getByte(IN) << 8;
 	csum1 += getByte(IN);
 	if (d == 128) 
 	{
 		head = (HEADER *) b;
+		head->name[16] = 0;
 		printf("\n\nName: %s\n", head->name);
 		printf("Type: %s\n", head->type == 1 ? "Machine(1)" : "Basic(0)");
 		printf("Length: %04xh\n", head->size);

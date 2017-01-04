@@ -1,0 +1,61 @@
+Version 1.3.1 (2013/04/20)
+--------------------------
+Fixes:
+* Fixed a bug in a8cas-convert. When user provided an invalid value to a
+  command-line parameter, the program silently ignored the parameter instead of
+  warning the user.
+
+Version 1.3.0 (2011/09/24)
+--------------------------
+New features:
+* Changed the build system from Cmake to Autotools.
+* Added a new option, --silence-level. When reading from a sound file, this
+  value controls level of signal's amplitude under which all signal will be
+  ignored and read as logical 1.
+
+Version 1.2.0 (2010/04/18)
+--------------------------
+New features:
+* Added the --version option to a8cas-convert. a8cas-info now also displays
+  version number.
+Changes:
+* Simplified the command-line options in correlation to the updated liba8cas
+  1.2.0 interface. The options --std-header-deviation and
+  --nonstd-header-deviation are replaced by --header-deviaiton, and the option
+  --nonstd-header-length is renamed to --header-length.
+* Migrated the project to the CMake build system.
+
+Version 1.1.0 (2010/04/09)
+--------------------------
+New features:
+* A bunch of new command-line options: --std-header-deviation,
+  --bit-deviation, --stop-bit-deviation, --nonstd-header-length,
+  --nonstd-header-deviation, --baudrate-deviation for use when writing
+  to CAS/HEX/RAW from sound files. The options adjust new parameters available
+  in liba8cas 1.1.0.
+
+Version 1.0.0 (2010/03/01)
+--------------------------
+First stable release.
+
+New features:
+* New option -r in a8cas-convert - allows to open a "raw" file (BAS, XEX) for
+  reading. (Without -r a "raw" file is not recognised as a valid file).
+* Error mesasages are now a bit more descriptive.
+
+Version 0.2.2 (2010/02/20)
+--------------------------
+New features:
+* a8cas-info now displays whether a file is seekable by blocks or samples.
+
+Version 0.2.1 (2010/01/21)
+--------------------------
+* Fixed some minor errors. Adjusted to work with liba8cas 0.4.0.
+
+Version 0.2.0 (2010/01/11)
+--------------------------
+* Compiled successfully on MS Windows.
+
+Version 0.1.0 (2010/01/07)
+--------------------------
+First public release.

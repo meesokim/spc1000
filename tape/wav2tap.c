@@ -33,7 +33,7 @@ struct {
 
 int sync_ok=0;
 int offset,pos;
-FILE *in, *out;
+FILE *in, *out, *out2;
 int getbyte(FILE *);
 int getshort(FILE *);
 int getint(FILE *);
@@ -47,11 +47,14 @@ int main(int argc,char **argv)
 	int b0, b1, b2, s0, s1, count, high, low, up, down, x, pos, mxi, mni, mxi0, mni0, gap, m2i;
 	float t;
 	int s, row, col, ww;
+	char outfile[256];
 	
 	s = strlen(argv[0]);
 	while(*(argv[0]+s)!='/'&&*(argv[0]+s)!='\\'&&s>=0)s--;
 	if (argc<3) { printf("wap2tap special Simon\nUsage: %s file.wav file.tap\n",argv[0]+s+1); exit(1);}
 	in=fopen(argv[1],"rb");
+	sprintf(outfile, "out-%s", argv[1]);
+	out2=fopen(outfile, "wb");
 	if (in==NULL) { printf("Unable to open WAV file\n"); exit(1);}
 	fread(&sample_riff,sizeof(sample_riff),1,in);
 //	if (sample_riff.channels!=1 || sample_riff.freq!=4800 || sample_riff.byte_per_sample!=1) {
@@ -59,6 +62,7 @@ int main(int argc,char **argv)
 //		exit(1);
 //	}
 	//initscr();
+	fwrite(&sample_riff,sizeof(sample_riff),1,out2);
 	col = 80;//getmaxx(stdscr); 
 	mni = mni0 = 0;
 	//endwin();
@@ -70,16 +74,19 @@ int main(int argc,char **argv)
 			getdata = getbyte;
 			level = 0x80;
 			height = 1 << (8 - 1);
+			low = 0;
 			break;
 		case 2:
 			getdata = getshort;
 			level = 0;
 			height = 1 << (16 - 1);
+			low = - height - 1;
 			break;
 		case 4:
 			getdata = getint;
 			level = 0;
 			height = 1 << (32 - 1);
+			low = - height - 1;
 			break;
 		default:
 			break;
@@ -105,6 +112,17 @@ int main(int argc,char **argv)
 		up = 1;
 	for (;;) {
 		b1 = getdata(in);
+		if (b1 >= 0)
+		{
+			fputc(0xff, out2);
+			fputc(0x7f, out2);
+		}
+		else
+		{
+			fputc(0x00, out2);
+			fputc(0x80, out2);
+		}
+		if (b1 >= 0) 
 		//printf("%d\n", b1);
 		if (0)
 		{
@@ -143,14 +161,14 @@ int main(int argc,char **argv)
 					{
 						v = -1;
 					}
-					printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
+					//printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 				}
 				max = b1;
 			}
 			else
 			{
 				v = -2;
-				printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
+				//printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 			}
 		}
 		else if (b0 > 0 && b1 <= 0)
@@ -212,7 +230,7 @@ int main(int argc,char **argv)
 			else
 			{
 				v= -3;
-				printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
+				//printf("\n%d @%d:%02.5f(%ld), h=%d, min=%d, max=%d, mingap=%d(%d,%d), min2this=%d", v, ((int)t)/60, t-((int)t)/60*60, x, high, min, max, gap, mni, mni0, m2i);
 			}
 		}
 		max = (max < b1 ? b1 : max);
@@ -231,7 +249,7 @@ int main(int argc,char **argv)
 		if (feof(in))
 			break;			
 	}
-	printf("fpos=%f\n", (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample);
+	//printf("fpos=%f\n", (float)(ftell(in)-sizeof(sample_riff))/sample_riff.freq/sample_riff.byte_per_sample);
 	
 	return 0;
 }

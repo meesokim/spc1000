@@ -1,0 +1,130 @@
+a8cas-tools, a collection of tools for manipulating tapes for Atari 8-bit
+computers, using liba8cas.
+Version 1.3.1
+Copyright (c) 2010-2013 Tomasz Krasuski (krotki (at) poczta.onet.pl)
+A8CAS homepage: http://a8cas.sourceforge.net/
+
+This package contains sources of two tools that use liba8cas to manipulate
+tapes used by Atari 8-bit computers.
+
+1. a8cas-info
+Usage: a8cas-info <filename>
+
+This program takes a file containing an Atari tape (sound file, or CAS/HEX/FSK)
+and displays basic information about it:
+- file's format
+- tape description (not for sound files)
+- number of blocks
+- sample rate (only for sound files).
+
+2. a8cas-convert
+Usage: a8cas-convert [-?|--help] [-v|--version] [-s|--samplerate=integer]
+                     [-f|--format=c|f|h|s|r] [-d|--desc=string] [-r|--raw]
+                     [--header-length=integer] [--header-deviation=float]
+                     [--bit-deviation=float] [--stop-bit-deviation=float]
+                     [--bit-timeshift=float] [--baudrate-deviation=float]
+                     [--silence-level=float]
+                     <IN_file> <OUT_file>
+
+This program can be used to convert tape files between formats (a replacement
+for WAV2CAS/CAS2WAV) and edit a tape file's description. <IN_file> and
+<OUT_file> are the source tape file that is being read and the created tape
+file, respectively. <IN_file> and <OUT_file> cannot be the same file.
+
+Options:
+-s, --samplerate=integer     When creating a sound file (option -fs), set its
+                             sample rate. The default is 44100.
+-f, --format=c|f|h|s|r       Set format of the output file. The letters mean
+                             CAS, HEX, FSK, WAV sound file, and raw file,
+                             respectively. The default output format is CAS.
+-d, --desc=string            Set the tape image's description. Not applicable
+                             for WAV output files.
+-r, --raw                    Indicate that the input file is raw bytes.
+-v, --version                Show the version number and exit.
+-?, --help                   Show help on options and exit.
+
+The following options adjust various parameters that are used in encoding
+a sound file into CAS/HEX/raw format:
+--header-length=integer (even value not less than 10)
+    When reading a new block of data, the block's baudrate must be guessed.
+    a standard block of data starts with a sequence of 20 alternating 0-1
+    signals of equal length, which is used to determine the block's baudrate.
+    There also exist tapes with non-standard blocks, that do not start with
+    this 20-signal header; however their baudrate also can be determined.
+    The --header-length parameter defines number of starting signals that will
+    be examined in order to guess each block's baudrate. Its default value is
+    20, corresponding to headers in standard blocks. It can be enlarged if
+    a block's baudrate is determined incorrectly or the block is not recognised
+    at all. Generally the higher number of examined signals, the higher
+    accuracy of the guessed baudrate; however setting it higher means larger
+    memory usage (adding 1 to the parameter's value increases memory usage by
+    ~12 bytes), and it also slows down the encoding process (although probably
+    very slightly).
+--header-deviation=float (between 0.0 and 1.0)
+    This parameter affects the process of guessing the baudrate. It sets the
+    maximum error bounds in which length of each starting signal must fit. The
+    value is relative to a bit length. The default is 0.5 - it means that
+    each starting bit can be at most 0.5x shorter or 1.5x longer than the
+    "ideal" bit length. Set it lower to allow more precise recognition of
+    blocks in high-quality tapes. Set it higher to allow processing of
+    low-quality tapes, allowing more records to be recognised as data blocks.
+--bit-deviation=float (between 0.0 and 0.5)
+    After successfully recognising a block of bytes (and its baudrate), each
+    signal's length must fit within specific bounds, defined by this
+    parameter. The default value of 0.25 means that recognition of a block will
+    stop when a signal is encountered with length that deviates more than 25%
+    from the block's predicted bit length. Set this value higher to allow more
+    success with low-quality tapes. Setting the value lower might be useful
+    when processing a tape with blocks that change their baudrate mid-way as
+    a means of copy protection - it will allow to recognise the point of
+    baudrate change more precisely.
+--stop-bit-deviation=float (min.0.0)
+    This parameter has similar meaning to --bit-deviation, only it adjusts only
+    the boundary for stop bits (bits that mark end of each byte). The default
+    value is 10000, which means that stop bit lengths are pretty much
+    unrestricted. Set the value higher to allow more success with low-quality
+    tapes. Set it lower (f.e. 0.1 or 0.3) to more precisely encode blocks with
+    baudrate changing mid-way.
+--bit-timeshift=float (between 0.0 and 1.0)
+    This parameter sets the "timeshift" for recognising bytes in a block. The
+    default is 0.5. Generally it should be used when a block is recognised
+    straight till its end but there's a checksum error - adjusting the value
+    a bit (f.e. to 0.4, 0.6 etc.) might help to decode the block and achieve
+    a good checksum.
+--baudrate-deviation=float (higher than 0.0)
+    Baudrates of consecutive blocks are not constant; they differ slightly
+    due to small changes in tape speed. This parameter sets the threshold under
+    which such small changes are ignored. The default value of 0.05 means that
+    when the baudrate changes by less than 5%, the change will be ignored (and
+    a "baud" chunk will not be written in a CAS/HEX file). Set the value lower
+    when a converted tape fails to load due to having a copy protection that
+    relies on recognising smaller baudrate changes.
+--silence-level=float (between 0.0 and 1.0)
+    When reading from a sound file, this option sets a level under which all
+    signal will be ignored and treated as logical 1, or MARK. The higher the
+    value, the more noise will be ignored. Set it too high and genuine data
+    signal will start to be ignored, too. The default is 0.005.
+
+Common use-cases:
+- convert a sound file to CAS
+a8cas-convert "Star Raiders.ogg" "Star Raiders.cas"
+
+- create a HEX file for debugging the tape's errors
+a8cas-convert "Star Raiders.ogg" -fh "Star Raiders.hex"
+
+- convert a CAS file to WAV
+a8cas-convert "Star Raiders.cas" -fs "Star Raiders.wav"
+
+- Add or edit descriptions to a tape image
+a8cas-convert -d"Star Raiders (START+OPTION)" "Star Raiders.cas" "Star Raiders-copy.cas"
+
+- Convert a tape containing an Atari DOS binary file, to a raw binary file
+a8cas-convert "tape with binary file.cas" -fr "binary.xex"
+
+- Convert an Atari BASIC file to a tape image
+a8cas-convert --raw program.bas tape.cas
+
+This software is released under GNU General Public Licence ver. 2. See COPYING
+for details.
+See AUTHORS for information on the software's authors.
+See INSTALL for instructions on compiling and installing these tools.
