@@ -70,7 +70,8 @@ int main(int argc, char **argv) {
 	
 	while (1)
 	{
-		dump(length);
+		length = dump(length);
+		printf("length=%d\n", length);
 		if (length < 0)
 			break;
 	}	
@@ -79,7 +80,6 @@ int main(int argc, char **argv) {
 int fgetc2(FILE *f)
 {
 	int i = fgetc(f);
-	//printf("%c", i);
 	return i;
 }
 
@@ -98,7 +98,7 @@ int tag() {
 				c1 = c2 = c0 = 0;
 		}
 		cc = c;
-//		if (c2 == 2)	printf("c0=%d,c1=%d,c2=%d\n", c0, c1, c2);
+			if (c2 == 2)	printf("c0=%d,c1=%d,c2=%d\n", c0, c1, c2);
 	}
 	if (fgetc2(IN) == EOF)
 		return -1;
@@ -112,16 +112,19 @@ int dump(int len) {
 	int length = 0;
 	if (tag() != 0)
 		return -1;
-	//if (len == 0)
+	printf("tag\n");
+		//if (len == 0)
 		len = 128;
 	while(len-->0) {
 		v = getByte(IN);
 		csum += getChecksum(v);
 		b[d++] = v;
+#if 1
 		if (length % 16 == 0)
 			printf("\n%04x:", length);
 		length++;
 		printf("%02x%c", v, error == 0 ? ' ' : '*');
+#endif		
 	}
 	csum1 += getByte(IN) << 8;
 	csum1 += getByte(IN);

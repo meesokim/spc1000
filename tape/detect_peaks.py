@@ -7,7 +7,7 @@ __license__ = "MIT"
 
 
 def detect_peaks(x, mph=None, mpd=1, threshold=0, edge='rising',
-                 kpsh=False, valley=False, show=False, ax=None):
+                 kpsh=False, valley=False, show=False, ax=None, cut=0, check=None, strs=None):
 
     """Detect peaks in data based on their amplitude and other features.
 
@@ -138,12 +138,12 @@ def detect_peaks(x, mph=None, mpd=1, threshold=0, edge='rising',
             x[indnan] = np.nan
         if valley:
             x = -x
-        _plot(x, mph, mpd, threshold, edge, valley, ax, ind)
+        _plot(x, mph, mpd, threshold, edge, valley, ax, ind, cut, check, strs)
 
     return ind
 
 
-def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
+def _plot(x, mph, mpd, threshold, edge, valley, ax, ind, cut, check, strs):
     """Plot results of the detect_peaks function, see its help."""
     try:
         import matplotlib.pyplot as plt
@@ -161,7 +161,7 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
                     label='%d %s' % (ind.size, label))
             ax.legend(loc='best', framealpha=.5, numpoints=1)
         ax.set_xlim(-.02*x.size, x.size*1.02-1)
-        ymin, ymax = x[np.isfinite(x)].min(), x[np.isfinite(x)].max()
+        ymin, ymax = x[np.isfinite(x)].min() * 10, x[np.isfinite(x)].max() * 10
         yrange = ymax - ymin if ymax > ymin else 1
         ax.set_ylim(ymin - 0.1*yrange, ymax + 0.1*yrange)
         ax.set_xlabel('Data #', fontsize=14)
@@ -170,4 +170,15 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
         ax.set_title("%s (mph=%s, mpd=%d, threshold=%s, edge='%s')"
                      % (mode, str(mph), mpd, str(threshold), edge))
         # plt.grid()
+        ax.plot((x.size-cut,x.size-cut),(20,-20),'k-');
+        if check is not None:
+            for i in range(0, np.size(check)):
+                if strs[i] == '0':
+                    c = '.'
+                elif strs[i] == '1':
+                    c = '|'
+                else:
+                    c = ''
+                if c != '':
+                    ax.plot(check[i],-20,c)
         plt.show()
