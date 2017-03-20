@@ -69,7 +69,8 @@ def generate_tap(wavefile):
         if nchannels > 1:
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 2000
+        if samplewidth == 2:    
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
         ind = zero_crossing(msdata)
@@ -120,12 +121,11 @@ def generate_tap(wavefile):
 if __name__ == '__main__':
     import wave
     import sys
-    if len(sys.argv) != 2:
+    if len(sys.argv) == 1:
         print("Usage: %s infile" % sys.argv[0])
         raise SystemExit(1)
 
     wf = wave.open(sys.argv[1])
-    wf.setpos(490000)
     print ("sample width = ", wf.getsampwidth())
     print ("frame rates = ", wf.getframerate())
     byte_stream = generate_tap(wf)

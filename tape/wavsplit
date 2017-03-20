@@ -1,0 +1,2 @@
+#!/bin/bash
+/c/python27/python $0.py $1

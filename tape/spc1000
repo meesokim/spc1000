@@ -1,0 +1,2 @@
+#!/bin/bash
+~/mame/mess -rompath /d/retro/roms $0 -cass $1 -window
