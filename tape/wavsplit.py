@@ -62,14 +62,15 @@ if __name__ == '__main__':
                 noise0 = noise
         elif nosound == 1:
             print ("no sound   to:", tt0.join(' ' + ms), noise0, str((moment - starttime)*1000/framerate))
-            if wf2 is not None and (moment - starttime)*1000/framerate >= 500:
+            if wf2 is not None and (moment - starttime)*1000/framerate >= 500 and (moment - rectime)/framerate > 20:
                 wf2.close()
                 wf2 = None
 
             nosound = 0
             if wf2 is None:
                 splitno += 1
-                print ("%s%d.wav" % (filename,  splitno))
+                print ("%s-%d.wav" % (filename,  splitno))
+                rectime = moment
                 wf2 = wave.open("%s-%d.wav" % (filename,  splitno), "w")
                 wf2.setparams((nchannels, sampwidth, framerate, nframes, comptype, compname))
             if wf2 is not None:
