@@ -27,7 +27,9 @@ if __name__ == '__main__':
     #wf2.setparams((1, sampwidth, framerate, nframes, comptype, compname))
     nosound = 0
     frms = framerate / 10
+	starttime = 0
     while True:
+		moment = wf.tell()
         ms = str((wf.tell() % framerate) * 10 / framerate)
         tt = time.strftime('%H:%M:%S.', time.gmtime(wf.tell()/framerate)) 
         tt0 = time.strftime('%H:%M:%S.', time.gmtime((wf.tell()-frms)/framerate))
@@ -48,6 +50,9 @@ if __name__ == '__main__':
             if nosound == 0:
                 print ("no sound from:", tt.join(' ' + ms), noise)
                 nosound = 1
+				endtime = moment
+				if starttime > -1:
+					writewave(wf, starttime, endtime, )
             else:
                 noise0 = noise
         elif nosound == 1:
@@ -55,5 +60,6 @@ if __name__ == '__main__':
             nosound = 0
         else: 
             noise0 = noise;
+			if starttime != 0
      #       print ("sound:", tt.join(' ' + ms), noise, )
         #wf2.writeframes(struct.pack('h'*(len(monoframes)), *monoframes))
