@@ -57,12 +57,19 @@ int getChecksum(int v)
 int main(int argc, char **argv) {
 
 	int length = 0;
+	int pos = 0;
 	if (argc < 2) {
 		printf ("usage: %s tap_filename\n", argv[0]);
 		return 1;
+	} else if (argc == 3) {
+		pos = atoi(argv[2]);
 	}
 	strict = 0;
 	IN = fopen(argv[1], "rb");
+	if (pos != 0) {
+		fseek(IN, pos, SEEK_SET);
+		
+	}
 	if (!IN) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
@@ -79,7 +86,10 @@ int main(int argc, char **argv) {
 
 int fgetc2(FILE *f)
 {
-	int i = fgetc(f);
+	int i;
+	do {
+		i = fgetc(f);
+	while (i == '0' || i == '1');
 	return i;
 }
 
@@ -113,7 +123,7 @@ int dump(int len) {
 	if (tag() != 0)
 		return -1;
 	printf("tag\n");
-		//if (len == 0)
+	if (len == 0)
 		len = 128;
 	while(len-->0) {
 		v = getByte(IN);

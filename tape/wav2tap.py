@@ -47,6 +47,12 @@ def zero_crossing(data):
     a = np.where(signs==-1)
     signs = np.delete(signs, a)
     signs = np.delete(signs, np.where(signs[1:]-signs[:-1] < 14))
+    return signs[0]
+    
+def zero_check(data):
+    signs = np.sign(data)
+    signs[signs == 0] = 1
+    signs = np.where(np.diff(signs)==2)[0]
     return signs
     
 # Generate a sequence representing sign bits
@@ -62,7 +68,7 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
-        frames = bytearray(wavefile.readframes(800))
+        frames = bytearray(wavefile.readframes(2000))
         if not frames:
             break
         # Extract most significant bytes from left-most audio channel
@@ -70,53 +76,61 @@ def generate_tap(wavefile):
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
         if samplewidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 - 2
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
-        ind = zero_crossing(msdata)
+        ind = zero_check(msdata)
+        nozero = 0
         if len(ind) > 3:
-			det = 0
-			strs = np.chararray(len(ind))  
-			for i in range(1,len(ind)-1):
-				x = msdata[ind[i-1]:ind[i]]
-				w = ind[i] - ind[i-1]
-				area = np.sum(np.abs(x))
-				mn = np.min(x)
-				mx = np.max(x)
-				r = np.argmin(msdata[ind[i]:ind[i+1]])+ind[i]
-				l = np.argmin(msdata[ind[i-1]:ind[i]])+ind[i-1]
-				lw = r - l
-				if lw > 16 and lw < 31:
-					s = '0'
-				elif lw > 30 and lw < 56:
-					s = '1'
-				else:
-					s = '*'
-					det = 0
-				if s == '*':
-					print (s, w, area, mn, mx, lw, l+pos, r+pos, end='')
-				else:
-					print (s, end='')
-				strs[i] = s
-			rev = len(msdata) - ind[-3] + 5
-			if det > 0:
-				d = np.arange(len(msdata))
-				_, ax = plt.subplots(1, 1, figsize=(8, 4))
-				ax.plot(msdata, 'b', lw=1)
-				ax.plot((l,l),(20,-20), 'k-', linestyle='--')
-				ax.plot((r,r),(20,-20), 'k-', linestyle='--')
-				ax.plot(ind[i], -20, )
-				ax.set_ylim(-20,20)
-				for i in range(1,len(ind)):
-					if strs[i] == '1':
-						ax.plot(ind[i], -10, '|')
-					elif strs[i] == '0':
-						ax.plot(ind[i], -10, '.')
-					elif strs[i] == '*':
-						ax.plot(ind[i], -10, '*')
-					#print (strs[i])
-				ax.set_title('output')
-				plt.show()
+            det = 0
+            strs = np.chararray(len(ind))  
+            str = []
+            for i in range(0,len(ind)-1):
+                w = 1
+                while msdata[ind[i]] < msdata[ind[i]+w]:
+                    w = w + 1
+                if w > 0:
+                    x = msdata[ind[i]:ind[i]+w]
+                    area = np.sum(np.abs(x))
+                    mx = np.max(x)
+                    if w > 6 and w < 17:
+                        s = '0'
+                    elif w > 16:
+                        s = '1'
+                    else:
+                        s = '*'
+                        det = 1
+                    #if s == '*':
+                    #    print (s, w, area, mx, end='')
+                    #else:
+                    #print (s, end='')
+                    if s != '0':
+                        nozero = 1
+                    str.append(s)
+                    strs[i] = s
+            rev = len(msdata) - ind[-1] + 5
+            if ''.join(str) != '0' * len(str):
+                for s in str:
+                    yield s
+
+            if det > 0 and nozero != 0:
+                d = np.arange(len(msdata))
+                _, ax = plt.subplots(1, 1, figsize=(8, 4))
+                ax.plot(msdata, 'b', lw=1)
+                #ax.plot((l,l),(20,-20), 'k-', linestyle='--')
+                #ax.plot((r,r),(20,-20), 'k-', linestyle='--')
+                ax.plot(ind[i], -20, )
+                ax.set_ylim(-20,20)
+                for i in range(1,len(ind)):
+                    if strs[i] == '1':
+                        ax.plot(ind[i], -10, '|')
+                    elif strs[i] == '0':
+                        ax.plot(ind[i], -10, '.')
+                    elif strs[i] == '*':
+                        ax.plot(ind[i], -10, '*')
+                    #print (strs[i])
+                ax.set_title('output')
+                plt.show()
 
 if __name__ == '__main__':
     import wave
@@ -138,4 +152,4 @@ if __name__ == '__main__':
             break
         for c in byte_stream:
             print (c,end='')
-        
+            sys.stdout.flush()        
