@@ -47,9 +47,14 @@ if __name__ == '__main__':
             lframes = msdata[::2]
             rframes = msdata[1::2]
             msdata = lframes/2 + rframes/2
+        if sampwidth == 2:    
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 - 2
+        else:
+            msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) - 2            
         noise = int(np.average(np.abs(msdata)))
-        mx = len(np.where(msdata > 16384 * 0.3))
-        if noise < 16384 * 0.2 and mx < 15:
+        print (noise, ' ',end='')
+        mx = len(np.where(msdata > 4))
+        if noise < 10:
             if nosound == 0:
                 starttime = wf.tell()
                 print ("no sound from:", tt.join(' ' + ms), noise)
@@ -61,10 +66,14 @@ if __name__ == '__main__':
             else:
                 noise0 = noise
         elif nosound == 1:
-            print ("no sound   to:", tt0.join(' ' + ms), noise0, str((moment - starttime)*1000/framerate))
-            if wf2 is not None and (moment - starttime)*1000/framerate >= 500 and (moment - rectime)/framerate > 20:
+            d = (moment - starttime)*1000/framerate
+            print ("no sound   to:", tt0.join(' ' + ms), noise0, str(d) )
+            if wf2 is not None and d  >= 1400 and (moment - rectime)/framerate > 20:
                 wf2.close()
+                print ("wf2.close()", d)
                 wf2 = None
+            else:
+                print (d)
 
             nosound = 0
             if wf2 is None:

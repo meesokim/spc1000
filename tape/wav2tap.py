@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/mingw32/bin/python
 # kcs_decode.py
 #
 # Author : David Beazley (http://www.dabeaz.com)
@@ -87,7 +87,10 @@ def generate_tap(wavefile):
             str = []
             for i in range(0,len(ind)-1):
                 w = 1
-                while msdata[ind[i]] < msdata[ind[i]+w]:
+                s = ''
+                if i == ind[-2]:
+                    print (i)
+                while ind[i]+w < len(msdata) and msdata[ind[i]] < msdata[ind[i]+w]:
                     w = w + 1
                 if w > 0:
                     x = msdata[ind[i]:ind[i]+w]
@@ -97,17 +100,18 @@ def generate_tap(wavefile):
                         s = '0'
                     elif w > 16:
                         s = '1'
-                    else:
+                    elif w > 6:
                         s = '*'
                         det = 1
-                    #if s == '*':
-                    #    print (s, w, area, mx, end='')
-                    #else:
-                    #print (s, end='')
-                    if s != '0':
-                        nozero = 1
-                    str.append(s)
-                    strs[i] = s
+                    if s != '':
+                        if s == '*':
+                            print (s, w, area, mx, end='')
+                        else:
+                            print (s, end='')
+                        if s != '0':
+                            nozero = 1
+                        str.append(s)
+                        strs[i] = s
             rev = len(msdata) - ind[-1] + 5
             if ''.join(str) != '0' * len(str):
                 for s in str:
@@ -151,5 +155,7 @@ if __name__ == '__main__':
         if not byte_stream:
             break
         for c in byte_stream:
+            if c == '':
+                break
             print (c,end='')
             sys.stdout.flush()        
