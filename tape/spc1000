@@ -1,2 +1,2 @@
 #!/bin/bash
-~/mame/mess -rompath /d/retro/roms $0 -cass $1 -window
+~/mame/mess -rompath /d/retro/roms:/f/downloads/mame/roms $0 -cass $1 -window

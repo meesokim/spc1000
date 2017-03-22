@@ -31,6 +31,7 @@ if __name__ == '__main__':
     starttime = -1
     splitno = 0
     wf2 = None
+    rectime = 0
     while True:
         moment = wf.tell()
         ms = str((wf.tell() % framerate) * 10 / framerate)
@@ -48,29 +49,31 @@ if __name__ == '__main__':
             rframes = msdata[1::2]
             msdata = lframes/2 + rframes/2
         if sampwidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 - 2
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 256 - 2
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) - 2            
         noise = int(np.average(np.abs(msdata)))
-        print (noise, ' ',end='')
+        #print (noise, ' ',end='')
         mx = len(np.where(msdata > 4))
         if noise < 10:
             if nosound == 0:
                 starttime = wf.tell()
                 print ("no sound from:", tt.join(' ' + ms), noise)
                 nosound = 1
-				#endtime = moment
+                if wf2 is not None:
+                    wf2.writeframes(frames)
+                #endtime = moment
                 #splitno += 1
-				#if starttime > -1:
-                #	writewave(wf, starttime, endtime, "%s%d" % (filename,  splitno))
+                #if starttime > -1:
+                #   writewave(wf, starttime, endtime, "%s%d" % (filename,  splitno))
             else:
                 noise0 = noise
         elif nosound == 1:
             d = (moment - starttime)*1000/framerate
-            print ("no sound   to:", tt0.join(' ' + ms), noise0, str(d) )
-            if wf2 is not None and d  >= 1400 and (moment - rectime)/framerate > 20:
+            print ("no sound   to:", tt0.join(' ' + ms), noise0, str(d),  (moment - rectime)/framerate)
+            if wf2 is not None and d  >= 500 and (moment - rectime)/framerate > 20:
                 wf2.close()
-                print ("wf2.close()", d)
+                #print ("wf2.close()", d)
                 wf2 = None
             else:
                 print (d)

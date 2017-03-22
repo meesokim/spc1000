@@ -76,7 +76,7 @@ def generate_tap(wavefile):
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
         if samplewidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 - 2
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 / 1.5
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
         ind = zero_check(msdata)
@@ -96,11 +96,11 @@ def generate_tap(wavefile):
                     x = msdata[ind[i]:ind[i]+w]
                     area = np.sum(np.abs(x))
                     mx = np.max(x)
-                    if w > 6 and w < 17:
+                    if w > 6 and w < 20 and area < 200:
                         s = '0'
-                    elif w > 16:
+                    elif w > 19:
                         s = '1'
-                    elif w > 6:
+                    else:
                         s = '*'
                         det = 1
                     if s != '':
