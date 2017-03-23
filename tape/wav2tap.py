@@ -68,7 +68,7 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
-        frames = bytearray(wavefile.readframes(2000))
+        frames = bytearray(wavefile.readframes(8000))
         if not frames:
             break
         # Extract most significant bytes from left-most audio channel
@@ -76,7 +76,7 @@ def generate_tap(wavefile):
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
         if samplewidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) / 1000 / 1.5
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) /1000.0
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
         ind = zero_check(msdata)
@@ -90,28 +90,40 @@ def generate_tap(wavefile):
                 s = ''
                 if i == ind[-2]:
                     print (i)
-                while ind[i]+w < len(msdata) and msdata[ind[i]] < msdata[ind[i]+w]:
+                while ind[i]+w < len(msdata) and msdata[ind[i]] <= msdata[ind[i]+w]:
                     w = w + 1
-                if w > 0:
-                    x = msdata[ind[i]:ind[i]+w]
-                    area = np.sum(np.abs(x))
-                    mx = np.max(x)
-                    if w > 6 and w < 20 and area < 200:
-                        s = '0'
-                    elif w > 19:
+                y = ind[i+1] - ind[i]
+                x = msdata[ind[i]:ind[i+1]]
+                h = np.max(x)
+                area = int(np.sum(np.abs(x)))
+                mx = np.max(x)
+                if y > 18 and area > 100 and y > 10 and y < 45:
+                    if msdata[ind[i]+18] > 0 and w >= 17 and y > 24:
                         s = '1'
+                    elif msdata[ind[i]+18] < 0 and w <= 18 and y < 35:
+                        s = '0'
                     else:
                         s = '*'
-                        det = 1
-                    if s != '':
-                        if s == '*':
-                            print (s, w, area, mx, end='')
-                        else:
-                            print (s, end='')
-                        if s != '0':
-                            nozero = 1
-                        str.append(s)
-                        strs[i] = s
+                    c = '1' if msdata[ind[i]+18] >= 0 else '0'
+                    if c != s:
+                        print ( "_%c %c %2d %2d %5.2f %5.2f %d" % (c, s, w, y, np.min(x), np.max(x), area))
+#                        if w > 12 and w < 26:
+#                            s = '0'
+#                        elif w > 30 and w < 50:
+#                            s = '1'
+#                        else:
+#                            s = '*'
+                        #det = 1
+                     
+#                if s != '':
+#                    if s == '*':
+#                        print (s, w, area)
+#                        else:
+#                            print (s, end='')
+                    if s != '0':
+                        nozero = 1
+                str.append(s)
+                strs[i] = s
             rev = len(msdata) - ind[-1] + 5
             if ''.join(str) != '0' * len(str):
                 for s in str:
@@ -146,6 +158,7 @@ if __name__ == '__main__':
     wf = wave.open(sys.argv[1])
     print ("sample width = ", wf.getsampwidth())
     print ("frame rates = ", wf.getframerate())
+    print ("channels = ", wf.getnchannels())
     byte_stream = generate_tap(wf)
     # Output the byte stream in 80-byte chunks
     outf = sys.stdout
