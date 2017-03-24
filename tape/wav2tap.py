@@ -80,21 +80,28 @@ def generate_tap(wavefile):
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
         x = np.where(msdata[1:-1] - msdata[0:-2]>=0,1,-1)
+        y = np.zeros(len(x))
         mx = np.zeros(len(x))
-        for i in range(10, len(x)-10):
-            mx[i] = np.max(msdata[i-10:i+10]) if msdata[i] > 0 else np.min(msdata[i-10:i+10])
+        p = 1
+        for i in range(12, len(x)-12):
+            mx[i] = np.max(msdata[i-12:i+12]) if msdata[i] > 0 else np.min(msdata[i-12:i+12])
+        for i in range(0, len(y)):
+            if msdata[i] == mx[i]:
+                if msdata[i] > 0:
+                    p = -1
+                else:
+                    p = 1
+            y[i] = p
         p = -1 
         cnt = 0
         max = 0
         hw = np.max(msdata)
-        for i in range(0,len(x)):
-            if x[i] != p and mx[i] != msdata[i]:   
-                x[i] = p
                 
         min = 20
         rev = 0
+        p = y[0]
         for i in range(0,len(x)):
-            if x[i] > 0 and p < 0:
+            if y[i] > 0 and p < 0:
                 rev = len(x) - i
                 if cnt < min:
                     min = cnt
@@ -104,12 +111,14 @@ def generate_tap(wavefile):
                 cnt = 1
             else:
                 cnt = cnt + 1
-            p = x[i]
+            p = y[i]
         print ("max=",max, "min=", min, "rev=", rev)
         if min < 12:
             _, ax = plt.subplots(1, 1, figsize=(16, 8))
             ax.plot(x*10, 'b', lw=1)
+            ax.plot(y*20, 'r', lw=1)
             ax.plot(msdata, 'k', lw=1)
+            ax.plot(mx, 'c', lw=1)
             plt.show()            
         
 
