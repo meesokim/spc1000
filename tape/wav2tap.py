@@ -68,7 +68,7 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
-        frames = bytearray(wavefile.readframes(8000))
+        frames = bytearray(wavefile.readframes(800))
         if not frames:
             break
         # Extract most significant bytes from left-most audio channel
@@ -76,86 +76,53 @@ def generate_tap(wavefile):
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
         if samplewidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) /1000.0
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) /100.0
         else:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
-        ind = zero_check(msdata)
-        nozero = 0
-        if len(ind) > 3:
-            det = 0
-            strs = np.chararray(len(ind))  
-            str = []
-            for i in range(0,len(ind)-1):
-                w = 1
-                s = ''
-                if i == ind[-2]:
-                    print (i)
-                while ind[i]+w < len(msdata) and msdata[ind[i]] <= msdata[ind[i]+w]:
-                    w = w + 1
-                y = ind[i+1] - ind[i]
-                x = msdata[ind[i]:ind[i+1]]
-                h = np.max(x)
-                area = int(np.sum(np.abs(x)))
-                mx = np.max(x)
-                if y > 18 and area > 100 and y > 10 and y < 45:
-                    if msdata[ind[i]+18] > 0 and w >= 17 and y > 24:
-                        s = '1'
-                    elif msdata[ind[i]+18] < 0 and w <= 18 and y < 35:
-                        s = '0'
-                    else:
-                        s = '*'
-                    c = '1' if msdata[ind[i]+18] >= 0 else '0'
-                    if c != s:
-                        print ( "_%c %c %2d %2d %5.2f %5.2f %d" % (c, s, w, y, np.min(x), np.max(x), area))
-#                        if w > 12 and w < 26:
-#                            s = '0'
-#                        elif w > 30 and w < 50:
-#                            s = '1'
-#                        else:
-#                            s = '*'
-                        #det = 1
-                     
-#                if s != '':
-#                    if s == '*':
-#                        print (s, w, area)
-#                        else:
-#                            print (s, end='')
-                    if s != '0':
-                        nozero = 1
-                str.append(s)
-                strs[i] = s
-            rev = len(msdata) - ind[-1] + 5
-            if ''.join(str) != '0' * len(str):
-                for s in str:
-                    yield s
-
-            if det > 0 and nozero != 0:
-                d = np.arange(len(msdata))
-                _, ax = plt.subplots(1, 1, figsize=(8, 4))
-                ax.plot(msdata, 'b', lw=1)
-                #ax.plot((l,l),(20,-20), 'k-', linestyle='--')
-                #ax.plot((r,r),(20,-20), 'k-', linestyle='--')
-                ax.plot(ind[i], -20, )
-                ax.set_ylim(-20,20)
-                for i in range(1,len(ind)):
-                    if strs[i] == '1':
-                        ax.plot(ind[i], -10, '|')
-                    elif strs[i] == '0':
-                        ax.plot(ind[i], -10, '.')
-                    elif strs[i] == '*':
-                        ax.plot(ind[i], -10, '*')
-                    #print (strs[i])
-                ax.set_title('output')
-                plt.show()
+        x = np.where(msdata[1:-1] - msdata[0:-2]>=0,1,-1)
+        mx = np.zeros(len(x))
+        for i in range(10, len(x)-10):
+            mx[i] = np.max(msdata[i-10:i+10]) if msdata[i] > 0 else np.min(msdata[i-10:i+10])
+        p = -1 
+        cnt = 0
+        max = 0
+        hw = np.max(msdata)
+        for i in range(0,len(x)):
+            if x[i] != p and mx[i] != msdata[i]:   
+                x[i] = p
+                
+        min = 20
+        rev = 0
+        for i in range(0,len(x)):
+            if x[i] > 0 and p < 0:
+                rev = len(x) - i
+                if cnt < min:
+                    min = cnt
+                print (cnt, end=' ')
+                if cnt > max:
+                    max = cnt
+                cnt = 1
+            else:
+                cnt = cnt + 1
+            p = x[i]
+        print ("max=",max, "min=", min, "rev=", rev)
+        if min < 12:
+            _, ax = plt.subplots(1, 1, figsize=(16, 8))
+            ax.plot(x*10, 'b', lw=1)
+            ax.plot(msdata, 'k', lw=1)
+            plt.show()            
+        
 
 if __name__ == '__main__':
     import wave
     import sys
-    if len(sys.argv) == 1:
+    if len(sys.argv) < 2:
         print("Usage: %s infile" % sys.argv[0])
         raise SystemExit(1)
 
     wf = wave.open(sys.argv[1])
+    if len(sys.argv) > 2:
+        wf.setpos(int(sys.argv[2]))
     print ("sample width = ", wf.getsampwidth())
     print ("frame rates = ", wf.getframerate())
     print ("channels = ", wf.getnchannels())
