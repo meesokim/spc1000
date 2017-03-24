@@ -23,6 +23,9 @@ import pylab
 import matplotlib.pyplot as plt
 import array
 
+st = np.ndarray(100, dtype=int)
+st[0:100] = 0
+
 def hyst(x, th_lo, th_hi, initial = False):
     hi = x >= th_hi
     lo_or_hi = (x <= th_lo) | hi
@@ -68,7 +71,7 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
-        frames = bytearray(wavefile.readframes(800))
+        frames = bytearray(wavefile.readframes(8000))
         if not frames:
             break
         # Extract most significant bytes from left-most audio channel
@@ -86,12 +89,15 @@ def generate_tap(wavefile):
         for i in range(12, len(x)-12):
             mx[i] = np.max(msdata[i-12:i+12]) if msdata[i] > 0 else np.min(msdata[i-12:i+12])
         for i in range(0, len(y)):
-            if msdata[i] == mx[i]:
-                if msdata[i] > 0:
-                    p = -1
-                else:
-                    p = 1
-            y[i] = p
+            if abs(mx[i]) > 50:
+                if msdata[i] == mx[i]: 
+                    if msdata[i] > 0:
+                        p = -1
+                    else:
+                        p = 1                
+                y[i] = p
+            else:
+                y[i] = 0
         p = -1 
         cnt = 0
         max = 0
@@ -100,19 +106,21 @@ def generate_tap(wavefile):
         min = 20
         rev = 0
         p = y[0]
+
         for i in range(0,len(x)):
             if y[i] > 0 and p < 0:
                 rev = len(x) - i
                 if cnt < min:
                     min = cnt
-                print (cnt, end=' ')
+                #yield cnt
+                if cnt < 100 and cnt > 15:
+                    st[cnt] = st[cnt] + 1
                 if cnt > max:
                     max = cnt
                 cnt = 1
             else:
                 cnt = cnt + 1
             p = y[i]
-        print ("max=",max, "min=", min, "rev=", rev)
         if min < 12:
             _, ax = plt.subplots(1, 1, figsize=(16, 8))
             ax.plot(x*10, 'b', lw=1)
@@ -148,3 +156,4 @@ if __name__ == '__main__':
                 break
             print (c,end='')
             sys.stdout.flush()        
+    print (st)
