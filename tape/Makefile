@@ -11,8 +11,7 @@ all: $(WAV2TAP) $(TAPINFO) $(APPLETAPE) $(MMZX81)
 clean:
 	rm -f $(WAV2TAP)1 $(TAPINFO) *.exe *.o
 
-$(WAV2TAP).o: $(WAV2TAP).c
-$(WAV2TAP): $(WAV2TAP).o
+$(WAV2TAP):
 	$(CC) -g -O2 -o $(WAV2TAP)1 $(WAV2TAP).o $(LDFLAGS)
 
 $(TAPINFO).o: $(TAPINFO).c

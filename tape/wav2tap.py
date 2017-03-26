@@ -71,7 +71,7 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
-        frames = bytearray(wavefile.readframes(8000))
+        frames = bytearray(wavefile.readframes(400))
         if not frames:
             break
         # Extract most significant bytes from left-most audio channel
@@ -89,7 +89,7 @@ def generate_tap(wavefile):
         for i in range(12, len(x)-12):
             mx[i] = np.max(msdata[i-12:i+12]) if msdata[i] > 0 else np.min(msdata[i-12:i+12])
         for i in range(0, len(y)):
-            if abs(mx[i]) > 50:
+            if abs(mx[i]) > 20:
                 if msdata[i] == mx[i]: 
                     if msdata[i] > 0:
                         p = -1
@@ -98,36 +98,62 @@ def generate_tap(wavefile):
                 y[i] = p
             else:
                 y[i] = 0
-        p = -1 
+        p = 1
         cnt = 0
         max = 0
         hw = np.max(msdata)
-                
+        #flg = np.where(y[13:-12]-y[12:-13]<-1)
+        val = np.ndarray((100,2))        
         min = 20
         rev = 0
         p = y[0]
-
-        for i in range(0,len(x)):
-            if y[i] > 0 and p < 0:
-                rev = len(x) - i
+        error = 0
+        p = np.sign (y[11])
+        num = 0;
+        for i in range(12,len(x)-12):
+            if y[i] < 0:
+                if p >= 0:
+                    cnt = 0
+                else:
+                    cnt = cnt + 1
+            elif y[i] > 0 and p < 0:
+                rev = len(x) - i + 12
                 if cnt < min:
                     min = cnt
-                #yield cnt
+                if cnt > 7 and cnt < 16:
+                    yield 0
+                elif cnt > 18 and cnt < 33:
+                    yield 1
+                else:
+                    error = 1
+                    if cnt <= 8:
+                        yield '@'
+                    elif cnt > 15 and cnt < 19:
+                        yield '#'
+                    else:
+                        yield '|'
+                #print (cnt)
+                val[num] = (i, cnt)
+                num = num + 1
                 if cnt < 100 and cnt > 15:
                     st[cnt] = st[cnt] + 1
                 if cnt > max:
                     max = cnt
                 cnt = 1
-            else:
-                cnt = cnt + 1
             p = y[i]
-        if min < 12:
-            _, ax = plt.subplots(1, 1, figsize=(16, 8))
+#        print (st, min, rev)
+        if error == 1 and num < 4:
+            _, ax = plt.subplots(1, 1, figsize=(12, 6))
             ax.plot(x*10, 'b', lw=1)
-            ax.plot(y*20, 'r', lw=1)
+            ax.plot(y*20, 'r', lw=2)
             ax.plot(msdata, 'k', lw=1)
             ax.plot(mx, 'c', lw=1)
-            plt.show()            
+            ax.set_title('%d' % pos)
+            if num > 0:
+                for x, v in val[0:num-1]:
+                    ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
+            #plt.show()
+            plt.savefig("f%d.png" % (pos))            
         
 
 if __name__ == '__main__':
@@ -138,7 +164,7 @@ if __name__ == '__main__':
         raise SystemExit(1)
 
     wf = wave.open(sys.argv[1])
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 2 and sys.argv[2] != '':
         wf.setpos(int(sys.argv[2]))
     print ("sample width = ", wf.getsampwidth())
     print ("frame rates = ", wf.getframerate())

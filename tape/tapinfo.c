@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "console.h"
 
 FILE *IN = NULL;
+FILE *TAP = NULL;
 
 word offset = 0x0,
      fs = 0x0,
@@ -23,18 +25,47 @@ char strict;
 int dump();
 int fgetc2(FILE *f);
 int error = 0;
+int num = 0;
+
+void writefile(FILE *OUT, byte *b, int len, int csum)
+{
+	b[len] = (csum >> 8) & 0xff;
+	b[len+1] = csum & 0xff;
+	if (OUT != NULL){
+		if (len == 128)
+			fprintf(OUT, "1111111111111111111111111111111111111111000000000000000000000000000000000000000011");
+		else
+			fprintf(OUT, "111111111111111111110000000000000000000011");
+		for(int i = 0; i < len+2; i++) 
+		{
+			for(int j = 7; j >= 0; j--)
+				if (b[i] & (1<<j))
+					fprintf(OUT, "1");
+				else
+					fprintf(OUT, "0");
+			fprintf(OUT, "1");
+		}
+		for(int i = 0; i < 200; i++)
+			fprintf(OUT, "0");
+	}
+}
 
 int getByte(FILE *in)
 {
 	int v, i;
+	char c;
 	v = 0;
 	for(i = 0; i < 8; i++) {
 		v += (fgetc2(in) == '1' ? 1 << (7-i) : 0);
 	}
-	if (fgetc(in) != '1')
+	c = fgetc2(in);
+	if (c != '1' && c != '#')
 	{
 		//printf("%02x=>check bit error(%ld)!\n", v, ftell(in));
-		error = 1;
+		if (c == '#')
+			error = 2;
+		else 
+			error = 1;
 		if (strict)
 			exit(0);
 	}
@@ -74,7 +105,6 @@ int main(int argc, char **argv) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
 	}//if
-	
 	while (1)
 	{
 		length = dump(length);
@@ -82,6 +112,8 @@ int main(int argc, char **argv) {
 		if (length < 0)
 			break;
 	}	
+	if (TAP)
+		fclose(TAP);
 }
 
 int fgetc2(FILE *f)
@@ -89,7 +121,15 @@ int fgetc2(FILE *f)
 	int i;
 	do {
 		i = fgetc(f);
-	while (i == '0' || i == '1');
+		//printf("%c", i);
+		if (i == '|')
+			i = '1';
+		else if (i == '@')
+			i = '0';
+		if (feof(f))
+			break;
+	} while (i != '0' && i != '1' && i != '#');
+	
 	return i;
 }
 
@@ -110,19 +150,22 @@ int tag() {
 		cc = c;
 			if (c2 == 2)	printf("c0=%d,c1=%d,c2=%d\n", c0, c1, c2);
 	}
+	printf("position=%ld\n", ftell(IN));
 	if (fgetc2(IN) == EOF)
 		return -1;
 	return 0;
 }
 int dump(int len) {
 	HEADER *head;
+	char filename[1024];
+	char name[16];
+	char c = 0;
 	int d = 0, v = 0;
 	int csum = 0;
 	int csum1 = 0;
 	int length = 0;
 	if (tag() != 0)
 		return -1;
-	printf("tag\n");
 	if (len == 0)
 		len = 128;
 	while(len-->0) {
@@ -133,7 +176,7 @@ int dump(int len) {
 		if (length % 16 == 0)
 			printf("\n%04x:", length);
 		length++;
-		printf("%02x%c", v, error == 0 ? ' ' : '*');
+		printf("%02x%c", v, error == 0 ? ' ' : error == 1 ? '*' : '#' );
 #endif		
 	}
 	csum1 += getByte(IN) << 8;
@@ -143,13 +186,40 @@ int dump(int len) {
 		head = (HEADER *) b;
 		head->name[16] = 0;
 		printf("\n\nName: %s\n", head->name);
+		for(int i = 0; i < 16; i++) 
+		{
+			printf("1");
+			for(int j = 7; j >= 0; j--)
+				if (head->name[i] & (1<<j))
+					printf("1");
+				else
+					printf("0");
+		}
+		printf("\n");
 		printf("Type: %s\n", head->type == 1 ? "Machine(1)" : "Basic(0)");
 		printf("Length: %04xh\n", head->size);
 		printf("Loading address: %04xh\n", head->load);
-		printf("Checksum: %04xh (%04xh)\n", csum1, csum);
+		printf("Checksum: %04xh (%04xh calcualted, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 		printf("Header Size: %d\n", d);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
+		for(int i = 15; i >= 0; i--)
+		{
+			c = head->name[i];
+			if (c == '\"')
+				c = '\'';
+			else if (c == '>')
+				c = '_';
+			else if (c == '=')
+				c = '_';
+			name[i] = c <= '~' && c >= ' ' ? c : 0; 
+		}
+		sprintf(filename, "%d_%s.tap", ++num, name);
+		if (TAP)
+			fclose(TAP);
+		TAP = fopen(filename, "w+");
+		printf ("file:%s=%x\n",filename, (int)TAP);
+		writefile(TAP, b, d, csum);
 		return head->size;
 	}
 	else
@@ -157,6 +227,7 @@ int dump(int len) {
 		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh)\n", csum1, csum);		
+		writefile(TAP, b, d, csum);
 	}
 	return 0;
 }
