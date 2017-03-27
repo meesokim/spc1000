@@ -26,6 +26,7 @@ int dump();
 int fgetc2(FILE *f);
 int error = 0;
 int num = 0;
+int split = 0;
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
 {
@@ -92,8 +93,10 @@ int main(int argc, char **argv) {
 	if (argc < 2) {
 		printf ("usage: %s tap_filename\n", argv[0]);
 		return 1;
-	} else if (argc == 3) {
+	} else if (argc > 2) {
 		pos = atoi(argv[2]);
+		if (*argv[2] == '-' || (argc > 3 && *argv[3] == '-'))
+			split = 1;
 	}
 	strict = 0;
 	IN = fopen(argv[1], "rb");
@@ -108,7 +111,7 @@ int main(int argc, char **argv) {
 	while (1)
 	{
 		length = dump(length);
-		printf("length=%d\n", length);
+		//printf("length=%d\n", length);
 		if (length < 0)
 			break;
 	}	
@@ -164,6 +167,7 @@ int dump(int len) {
 	int csum = 0;
 	int csum1 = 0;
 	int length = 0;
+	int pos = ftell(IN);
 	if (tag() != 0)
 		return -1;
 	if (len == 0)
@@ -186,6 +190,7 @@ int dump(int len) {
 		head = (HEADER *) b;
 		head->name[16] = 0;
 		printf("\n\nName: %s\n", head->name);
+		#if 0
 		for(int i = 0; i < 16; i++) 
 		{
 			printf("1");
@@ -196,11 +201,13 @@ int dump(int len) {
 					printf("0");
 		}
 		printf("\n");
+		#endif
 		printf("Type: %s\n", head->type == 1 ? "Machine(1)" : "Basic(0)");
 		printf("Length: %04xh\n", head->size);
 		printf("Loading address: %04xh\n", head->load);
-		printf("Checksum: %04xh (%04xh calcualted, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
+		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 		printf("Header Size: %d\n", d);
+		printf("File Position: %d\n", pos);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
 		for(int i = 15; i >= 0; i--)
@@ -215,19 +222,23 @@ int dump(int len) {
 			name[i] = c <= '~' && c >= ' ' ? c : 0; 
 		}
 		sprintf(filename, "%d_%s.tap", ++num, name);
-		if (TAP)
-			fclose(TAP);
-		TAP = fopen(filename, "w+");
-		printf ("file:%s=%x\n",filename, (int)TAP);
-		writefile(TAP, b, d, csum);
+		if (split)
+		{
+			if (TAP)
+				fclose(TAP);
+			TAP = fopen(filename, "w+");
+			printf ("file:%s=%x\n",filename, (int)TAP);
+			writefile(TAP, b, d, csum);
+		}
 		return head->size;
 	}
 	else
 	{
 		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
-		printf("Checksum: %04xh (%04xh)\n", csum1, csum);		
-		writefile(TAP, b, d, csum);
+		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));		
+		if (TAP)
+			writefile(TAP, b, d, csum);
 	}
 	return 0;
 }
