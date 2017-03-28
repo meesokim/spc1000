@@ -153,7 +153,7 @@ int tag() {
 		cc = c;
 			if (c2 == 2)	printf("c0=%d,c1=%d,c2=%d\n", c0, c1, c2);
 	}
-	printf("position=%ld\n", ftell(IN));
+	//printf("position=%ld\n", ftell(IN));
 	if (fgetc2(IN) == EOF)
 		return -1;
 	return 0;
@@ -207,7 +207,7 @@ int dump(int len) {
 		printf("Loading address: %04xh\n", head->load);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 		printf("Header Size: %d\n", d);
-		printf("File Position: %d\n", pos);
+		printf("File Position: %d\n\n", pos);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
 		for(int i = 15; i >= 0; i--)
@@ -221,11 +221,11 @@ int dump(int len) {
 				c = '_';
 			name[i] = c <= '~' && c >= ' ' ? c : 0; 
 		}
-		sprintf(filename, "%d_%s.tap", ++num, name);
 		if (split)
 		{
 			if (TAP)
 				fclose(TAP);
+			sprintf(filename, "%d_%s.tap", ++num, name);
 			TAP = fopen(filename, "w+");
 			printf ("file:%s=%x\n",filename, (int)TAP);
 			writefile(TAP, b, d, csum);

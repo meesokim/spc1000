@@ -6,12 +6,13 @@ TAPINFO=tapinfo
 APPLETAPE=apple1basic-decode
 MMZX81=mmzx81
 
-all: $(WAV2TAP) $(TAPINFO) $(APPLETAPE) $(MMZX81)
+all: $(WAV2TAP)1 $(TAPINFO) $(APPLETAPE) $(MMZX81)
 
 clean:
 	rm -f $(WAV2TAP)1 $(TAPINFO) *.exe *.o
 
-$(WAV2TAP):
+$(WAV2TAP).o: $(WAV2TAP).c
+$(WAV2TAP)1: $(WAV2TAP).o
 	$(CC) -g -O2 -o $(WAV2TAP)1 $(WAV2TAP).o $(LDFLAGS)
 
 $(TAPINFO).o: $(TAPINFO).c
