@@ -181,6 +181,10 @@ int dump(int len) {
 			printf("\n%04x:", length);
 		length++;
 		printf("%02x%c", v, error == 0 ? ' ' : error == 1 ? '*' : '#' );
+		if (error == 1)
+		{
+			printf("-%d-", ftell(IN));
+		}
 #endif		
 	}
 	csum1 += getByte(IN) << 8;
