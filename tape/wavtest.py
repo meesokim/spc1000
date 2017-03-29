@@ -40,7 +40,7 @@ if __name__ == '__main__':
         draw = False
         if rev > 0:
             f.setpos(f.tell()-rev)     
-        rawdata = bytearray(f.readframes(2000))
+        rawdata = bytearray(f.readframes(1200))
         nframes = nframes + len(rawdata)/samples
         if nframes > frames:
             break
@@ -61,8 +61,11 @@ if __name__ == '__main__':
         c = np.zeros(len(b)).astype(int)
         k = 0
         for i in range(1,len(b)):
-           c[k] = np.argmax(np.absolute(msdata[b[i-1]:b[i]])) + b[i-1]
-           k = k + 1
+            if msdata[b[i-1]+1] - msdata[b[i-1]] > 0:
+                c[k] = np.argmax(msdata[b[i-1]:b[i]]) + b[i-1]
+            else:
+                c[k] = np.argmin(msdata[b[i-1]:b[i]]) + b[i-1]
+            k = k + 1
         m = normalized(msdata,0)[0]
         c1 = c[1:-1]-c[0:-2]
         c2 = np.zeros(len(b)).astype(int)
@@ -71,11 +74,12 @@ if __name__ == '__main__':
         c2[0] = c[0]
         j = 1
         for i in range(1, len(c1)):
-            if c1[i] > 4 and c1[i] < 60:
+            if (abs(msdata[c[i]]) > 20 and c1[i-1] > 3 and c1[i-1] < 60):
                 c2[j] = c[i]
                 j = j + 1
-        c2[j] = c[len(c1)]
+        c2[j] = c[len(c1)-1]
         c2 = np.resize(c2, j+1)
+        c3 = c
         c = c2
         #if any(b1<6):
         #print ("*",b[1:-1]-b[0:-2])
@@ -87,10 +91,12 @@ if __name__ == '__main__':
         d2 = c[2:-1:2]-c[0:-3:2]
         d3 = d+d2
         e = msdata[c[2:-1:2]]-msdata[c[1:-2:2]]
-        g = d>12
+        g = d>11
         if len(c) > 3:
             for i in range(0,len(d)):
-                g[i] = False if d2[i] < 30 and d[i] >12 else g[i]
+                g[i] = False if d2[i] < 30 and d[i] >10 else g[i]
+                if d[i] == 11 and d2[i] > 30:
+                    g[i] = True
             if any(d==13) or any(d2==14) or any(d2==15):
                 draw = False
             if any(g) == True:
@@ -111,15 +117,19 @@ if __name__ == '__main__':
             if any(g) == True:
                 print (s,end='')
                 length = length + len(g)
-                if length > 7439-80:
+                if length > 128279-200:
                     draw = False
+#                    print (' ')
+#                    print (c3)
+#                    print (c1)
             sys.stdout.flush()
             if draw == True:
                 #print (b[1:-1]-b[0:-2])
                 _, ax = pylab.subplots(1, 1, figsize=(16, 6)) 
                 ax.plot(msdata)
-                ax.plot(b, msdata[b], '1')
+                ax.plot(b, msdata[b], 'o')
                 ax.plot(c, msdata[c], '*')
+                ax.plot(c3, msdata[c3], '-')
                 ind = c[2:-1:2]
                 for i in range(0,len(ind)):
                     ax.text(ind[i]-d[i]/2, 0, '%d' % g[i], ha='center', va='bottom')
