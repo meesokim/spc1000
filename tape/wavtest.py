@@ -29,9 +29,14 @@ if __name__ == '__main__':
     print ("sample width=", samples)
     print ("frames =", frames)
     nframes = 0
+    pos = 0
     if len(sys.argv) > 2:
-        f.setpos(int(sys.argv[2]))
-        nframes = int(sys.argv[2])/samples
+        pos = int(sys.argv[2])
+        if (pos > 0):
+            f.setpos(int(pos))
+            nframes = int(pos)/samples
+        else:
+            pos = -pos
     rev = 0
     st = np.zeros(100).astype(int)
     n = 0
@@ -66,7 +71,7 @@ if __name__ == '__main__':
             else:
                 c[k] = np.argmin(msdata[b[i-1]:b[i]]) + b[i-1]
             k = k + 1
-        m = normalized(msdata,0)[0]
+        msdata = msdata - ((np.max(msdata[c])+np.min(msdata[c]))/2)    
         c1 = c[1:-1]-c[0:-2]
         c2 = np.zeros(len(b)).astype(int)
         k = 0
@@ -74,7 +79,7 @@ if __name__ == '__main__':
         c2[0] = c[0]
         j = 1
         for i in range(1, len(c1)):
-            if (abs(msdata[c[i]]) > 20 and c1[i-1] > 3 and c1[i-1] < 60):
+            if (abs(msdata[c[i]]) > 10 and c1[i-1] > 3 and c1[i-1] < 60):
                 c2[j] = c[i]
                 j = j + 1
         c2[j] = c[len(c1)-1]
@@ -117,8 +122,8 @@ if __name__ == '__main__':
             if any(g) == True:
                 print (s,end='')
                 length = length + len(g)
-                if length > 128279-200:
-                    draw = False
+                if pos > 0 and length > pos-200:
+                    draw = True
 #                    print (' ')
 #                    print (c3)
 #                    print (c1)
