@@ -7,12 +7,13 @@ import numpy as np
 import pylab
 import matplotlib.pyplot as plt
 import array
+import scipy.signal as sps
 
 
 if __name__ == '__main__':
     import wave
     import sys
-    if len(sys.argv) != 3:
+    if len(sys.argv) < 2 or sys.argv[1] == '':
         print("Usage: %s infile outfile" % sys.argv[0])
         raise SystemExit(1)
 
@@ -23,14 +24,30 @@ if __name__ == '__main__':
     print ("frame rates = ", framerate)
     print ("channels = ", nchannels)
     print ("nframes = ", nframes)
-    wf2.setparams((1, sampwidth, framerate, nframes, comptype, compname))
+    if nchannels == 1 and framerate <= 8000:
+        print ("no changes.")
+        exit()
+    div = 16000. / framerate
+    wf2.setparams((1, 1, 16000, nframes, comptype, compname))
     while True:
         frames = bytearray(wf.readframes(32000))
         if len(frames) == 0:
             break
 #        print (len(frames))
-        msdata = np.array(struct.unpack('h'*(len(frames)/2), frames))
-        lframes = msdata[::2]
-        rframes = msdata[1::2]
-        monoframes = lframes/2 + rframes/2
-        wf2.writeframes(struct.pack('h'*(len(monoframes)), *monoframes))
+        if sampwidth == 2:
+            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames))
+            #msdata = sps.resample(np.fromstring(frames, np.uint8, nroutsamples)
+#            print (msdata[0:10])
+            msdata = np.uint8((msdata/256.+128))
+#            print (msdata[0:20])
+        else:
+            msdata = np.array(struct.unpack('c'*(len(frames)/2), frames))
+            #msdata = sps.resample(np.fromstring(frames, np.uint8, nroutsamples)
+        if nchannels == 2:
+            lframes = msdata[::2]
+            rframes = msdata[1::2]
+            msdata = lframes/2 + rframes/2
+        outdata = np.uint8(sps.resample(msdata, int(round(len(msdata) * div))))    
+#        print (msdata[0:20])
+        #        exit()
+        wf2.writeframes(outdata.copy(order='C'))

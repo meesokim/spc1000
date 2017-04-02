@@ -27,6 +27,7 @@ int fgetc2(FILE *f);
 int error = 0;
 int num = 0;
 int split = 0;
+int fpos = 0;
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
 {
@@ -62,13 +63,14 @@ int getByte(FILE *in)
 	c = fgetc2(in);
 	if (c != '1' && c != '#')
 	{
-		//printf("%02x=>check bit error(%ld)!\n", v, ftell(in));
 		if (c == '#')
 			error = 2;
 		else 
 			error = 1;
-		if (strict)
+		if (strict) {
+			printf("%02x=>check bit error(%ld)!\n", v, fpos);
 			exit(0);
+		}
 	}
 	else
 		error = 0;
@@ -90,19 +92,25 @@ int main(int argc, char **argv) {
 
 	int length = 0;
 	int pos = 0;
+	IN = 0;
 	if (argc < 2) {
-		printf ("usage: %s tap_filename\n", argv[0]);
-		return 1;
+		IN = stdin;
+		if (getchar() < 0)
+		{
+			printf ("usage: %s tap_filename\n", argv[0]);
+			return 1;
+		}
 	} else if (argc > 2) {
 		pos = atoi(argv[2]);
 		if (*argv[2] == '-' || (argc > 3 && *argv[3] == '-'))
 			split = 1;
+	} else if (argc <= 2) {
 	}
-	strict = 0;
-	IN = fopen(argv[1], "rb");
+	strict = 1;
+	if (IN == 0)
+		IN = fopen(argv[1], "rb");
 	if (pos != 0) {
 		fseek(IN, pos, SEEK_SET);
-		
 	}
 	if (!IN) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
@@ -124,6 +132,7 @@ int fgetc2(FILE *f)
 	int i;
 	do {
 		i = fgetc(f);
+		fpos++;
 		//printf("%c", i);
 		if (i == '|')
 			i = '1';

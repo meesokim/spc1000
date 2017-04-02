@@ -63,7 +63,7 @@ if __name__ == '__main__':
        # b = np.where(np.abs(np.sign(msdata[1:-1]-0.1)-np.sign(msdata[0:-2]+0.1))>1)[0]+1
         e = np.sign(msdata[1:-1]*msdata[0:-2])
         b = np.where(np.diff(np.signbit(msdata)))[0]
-        c = np.zeros(len(b)).astype(int)
+        c = np.zeros(len(b)+1).astype(int)
         k = 0
         for i in range(1,len(b)):
             if msdata[b[i-1]+1] - msdata[b[i-1]] > 0:
@@ -71,21 +71,41 @@ if __name__ == '__main__':
             else:
                 c[k] = np.argmin(msdata[b[i-1]:b[i]]) + b[i-1]
             k = k + 1
-        msdata = msdata - ((np.max(msdata[c])+np.min(msdata[c]))/2)    
+        msdata = msdata - ((np.max(msdata[c])+np.min(msdata[c]))/2)
+        b = np.where(np.diff(np.signbit(msdata)))[0]
+        b1 = np.zeros(len(b)+100).astype(int)
+#        for i in range(0, len(b1)):
+            
         c1 = c[1:-1]-c[0:-2]
-        c2 = np.zeros(len(b)).astype(int)
+        c2 = np.zeros(len(b)+100).astype(int)
         k = 0
         k = c[0]
         c2[0] = c[0]
         j = 1
         for i in range(1, len(c1)):
-            if (abs(msdata[c[i]]) > 10 and c1[i-1] > 3 and c1[i-1] < 60):
+            if (msdata[c[i-1]]*msdata[c[i+1]] >=0 or abs(msdata[c[i]]) > 10) and c1[i-1] > 4 and c1[i-1] < 60:
+                if (abs(msdata[c[i]]-msdata[c[i-1]])>30 and abs(msdata[c[i+1]]-msdata[c[i]])>30):
+                    c2[j] = c[i]
+                    j = j + 1
+            elif (c1[i-1] == 4 and msdata[c[i]] * msdata[c[i-1]] < 0):
                 c2[j] = c[i]
                 j = j + 1
         c2[j] = c[len(c1)-1]
         c2 = np.resize(c2, j+1)
         c3 = c
         c = c2
+        num = 0
+        mc = np.diff(msdata[c])
+        c1 = c[1:-1]-c[0:-2]
+        for i in range(0, len(c)-4):
+            if msdata[c[i+1]] - msdata[c[i]] > 30 and c1[i] > 4:
+                if  (c[i] + (c[i+1] - c[i]) / 2 + 18 < len(msdata)):
+                    b1[num] = c[i] + (c[i+1] - c[i]) / 2
+                    num = num + 1
+        b1 = np.resize(b1, num)
+#        print (c, b1, len(msdata))
+        if len(b1) > 0:
+            g1 = msdata[b1+18] > 0
         #if any(b1<6):
         #print ("*",b[1:-1]-b[0:-2])
         #print ("*",e)
@@ -97,7 +117,7 @@ if __name__ == '__main__':
         d3 = d+d2
         e = msdata[c[2:-1:2]]-msdata[c[1:-2:2]]
         g = d>11
-        if len(c) > 3:
+        if len(c) > 3 and len(b1) > 0:
             for i in range(0,len(d)):
                 g[i] = False if d2[i] < 30 and d[i] >10 else g[i]
                 if d[i] == 11 and d2[i] > 30:
@@ -112,34 +132,42 @@ if __name__ == '__main__':
                 endl = c[-4]
             if any(d<5):
                 draw = False
+            endl = b1[-1] + 5
             rev = len(msdata)-endl
             for i in d3:
                 if i < 100:
                     st[i] = st[i] + 1
             #print (d)
             #print (e)
-            s = ''.join(chr(i+ord('0')) for i in g*1)
-            if any(g) == True:
+            s = ''.join(chr(i+ord('0')) for i in g1*1)
+            if any(g1) == True:
                 print (s,end='')
-                length = length + len(g)
-                if pos > 0 and length > pos-200:
+                length = length + len(g1)
+                if pos > 0 and length > pos-200 or (pos == -1 and s == '1'*len(s)):
                     draw = True
-#                    print (' ')
-#                    print (c3)
-#                    print (c1)
+                    #print (c1)
+                    #print (' ')
+                    #print (c3)
+                    #print (c1)
+            #else:
+            #    print ('*',end='')
             sys.stdout.flush()
             if draw == True:
                 #print (b[1:-1]-b[0:-2])
                 _, ax = pylab.subplots(1, 1, figsize=(16, 6)) 
                 ax.plot(msdata)
-                ax.plot(b, msdata[b], 'o')
+                #ax.plot(b, msdata[b], 'o')
                 ax.plot(c, msdata[c], '*')
-                ax.plot(c3, msdata[c3], '-')
+                ax.plot(c3, msdata[c3], '|')
+                ax.plot(b1, msdata[b1], "*")
                 ind = c[2:-1:2]
                 for i in range(0,len(ind)):
+                    if (len(g1)>i):
+                        ax.text(ind[i]-d[i]/2, 30, '%d' % g1[i], ha='center', va='bottom')
                     ax.text(ind[i]-d[i]/2, 0, '%d' % g[i], ha='center', va='bottom')
                     ax.text(ind[i]-d[i]/2, -50, '%d' % d[i], ha='center', va='bottom')
                     ax.text(ind[i]-d2[i]/2, -100, '%d' % d2[i], ha='center', va='bottom')
+                    ax.text(ind[i]-d2[i]/2, -150, '%d' % mc[i], ha='center', va='bottom')
                 ax.plot((c[2:-1:2],c[1:-2:2]),(0,0),'k-')
                 ax.plot((endl,endl),(100,-100),'c-')
                 pylab.show()
