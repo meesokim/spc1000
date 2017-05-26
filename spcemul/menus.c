@@ -901,7 +901,7 @@ void select_tapfile() {
 
 	print_string(spcsdl.mscr,"Choose the TAPE file to load",-1,32,13,0);
 
-	filename=select_file("../cas",FILETYPE_TAP_SPC);
+	filename=select_file("../tape",FILETYPE_TAP_SPC);
 
 	if(filename==NULL) { // Aborted
 		clean_screen();

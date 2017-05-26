@@ -11,13 +11,13 @@ dlname='../bin/SDL.dll'
 library_names='libSDL.dll.a'
 
 # The name of the static archive.
-old_library=''
+old_library='libSDL.a'
 
 # Linker flags that can not go in dependency_libs.
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -luser32 -lgdi32 -lwinmm -ldxguid'
+dependency_libs=' -liconv -luser32 -lgdi32 -lwinmm -ldxguid'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/usr/local/cross-tools/i686-w64-mingw32/lib'
+libdir='/usr/local/lib'

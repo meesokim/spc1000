@@ -79,7 +79,7 @@ endif
 
 CFLAGS		+= $(DEFS) -I/mingw/include/SDL -I/usr/include/SDL -I/usr/local/include/SDL -Iinclude -Iinclude/SDL 
 
-LDFLAGS		+= $(DEFL) -lSDLmain -lSDL -lSDL_image -lSDL_ttf -lstdc++
+LDFLAGS		+= $(DEFL) -static -lSDLmain -lSDL_image -lSDL_ttf -lstdc++ -lSDL.dll
 
 $(NAME): $(OBJ)
 	$(CC) $^ $(LDFLAGS) -o $@

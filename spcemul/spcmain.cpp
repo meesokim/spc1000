@@ -596,7 +596,7 @@ int CasRead(CassetteTape *cas)
 	if (t > (cas->rdVal ? LTONE : STONE))
 	{
 		cas->rdVal = ReadVal();
-		//printf("%d",cas->rdVal);
+		printf("%d %d\n",spcsys.cycles-cas->lastTime, cas->rdVal);
 		cas->lastTime = spcsys.cycles;
 		t = (spcsys.cycles - cas->lastTime) >> 5;		
 	}
@@ -765,7 +765,8 @@ void OutZ80(register word Port,register byte Value)
 		{
 			fcno = 0;
 			FCLOSE(spconf.rfp);
-			sprintf((char *)spconf.current_tap, "..\\cas\\%s.tap", dfile);
+			sprintf((char *)spconf.current_tap, "..\\tape\\%s.tap", dfile);
+			printf("%s\n", (char *)spconf.current_tap);
             if (OpenTapeFile() < 0)
                 return;
             spcsys.cas.button = CAS_PLAY;
@@ -778,7 +779,7 @@ void OutZ80(register word Port,register byte Value)
 		{
 			fcno = 0;
 			FCLOSE(spconf.wfp);
-			sprintf((char *)spconf.current_tap, "..\\cas\\%s.tap", dfile);
+			sprintf((char *)spconf.current_tap, "..\\tape\\%s.tap", dfile);
             if (SaveAsTapeFile() < 0)
                 return;
             spcsys.cas.button = CAS_REC;
@@ -1097,12 +1098,13 @@ byte InZ80(register word Port)
 //                }
 				if (spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
 				{
-//					if (CasRead(&spcsys.cas) == 1)
-					if (ReadVal() == 1)
+					if (CasRead(&spcsys.cas) == 1)
+//					if (ReadVal() == 1)
 						retval |= 0x80; // high
 					else
 						retval &= 0x7f; // low
 					//printf("%d", retval & 0x80 ? 1 : 0);
+					printf("c:%d\n", spcsys.cycles);
 				}
 				if (spcsys.cas.motor)
 					retval &= (~(0x40)); // 0 indicates Motor On
@@ -1870,8 +1872,8 @@ void InitSDL()
         spcsdl.flag |= SDL_FULLSCREEN;
         close(fbfd);
     }
-	if (spconf.fullscreen)
-		spcsdl.flag |= SDL_FULLSCREEN;
+//	if (spconf.fullscreen)
+//		spcsdl.flag |= SDL_FULLSCREEN;
 	SDL_WM_SetCaption("SPC-1000 emulator", NULL);
     spcsdl.emul = SDL_SetVideoMode(spconf.rw, spconf.rh, spconf.bpp, spcsdl.flag );
     if (!spcsdl.emul)
@@ -1925,8 +1927,8 @@ int main(int argc, char* argv[])
     SDL_Thread *thread;
     int         threadReturnValue;
 	FILE *fp;	// for reading ROM file
-	//freopen("CON", "w", stdout);
-    //freopen("CON", "w", stderr);
+	freopen("CON", "w", stdout);
+    freopen("CON", "w", stderr);
 
 	loadROM("spcall.rom");
     //memcpy(spcsys.ROM + 32768, spcsys.ROM, 32768);
@@ -2022,7 +2024,7 @@ int ExecuteThread(void *data)
 		{
 			tick++;		// advance spc tick by 1 msec
 			spcsys.tick += (TURBO + 1);
-			R->ICount += I_PERIOD_TURBO;	// re-init counter (including compensation)
+			R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
 
 			if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
 			{
