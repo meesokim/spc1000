@@ -72,10 +72,17 @@
 #define wRFD 0x02
 #define wDAV 0x01
 
+
+static const char FromKernel[] = "kernel";
+
 CSpinLock spinlock;
 
 CKernel::CKernel (void)
+:	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+	m_Timer (&m_Interrupt),
+	m_Logger (m_Options.GetLogLevel (), &m_Timer)
 {
+
 }
 
 CKernel::~CKernel (void)
@@ -84,7 +91,28 @@ CKernel::~CKernel (void)
 
 boolean CKernel::Initialize (void)
 {
-	return TRUE;
+	boolean bOK = TRUE;
+	
+	if (bOK)
+	{
+		bOK = m_Screen.Initialize ();
+	}
+
+	if (bOK)
+	{
+		bOK = m_Logger.Initialize (&m_Screen);
+	}
+
+	if (bOK)
+	{
+		bOK = m_Interrupt.Initialize ();
+	}
+
+	if (bOK)
+	{
+		bOK = m_Timer.Initialize ();
+	}	
+	return bOK;		
 }
 #define GPIO (read32 (ARM_GPIO_GPLEV0))
 #define GPIO_CLR(x) write32 (ARM_GPIO_GPCLR0, x)
@@ -95,7 +123,7 @@ TShutdownMode CKernel::Run (void)
 	spinlock.Acquire();
 	// flash the Act LED 10 times and click on audio (3.5mm headphone jack)
 	unsigned int a, addr, wr, datain, dataout, cmd;
-	unsigned char buffer[256*256], cflag;
+	unsigned char buffer[256*256], cflag, blocks, drive, tracks, sectors, dataread, argv;
 	unsigned char *tmpbuf;
 	int cmd_params[] = {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0};
 	int params[10], p, q;
@@ -107,7 +135,10 @@ TShutdownMode CKernel::Run (void)
 	fdd[0] = f;
 	datain = 0;
 	dataout = 0;
+	dataread = 0;
 	cflag = p = q = 0;
+	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	m_Logger.Write (FromKernel, LogNotice, "SPC-1000 Extension");	
 	GPIO_CLR(0xff);
 	memset(buffer, 0, 256*256);
 	while(1)
@@ -145,30 +176,56 @@ TShutdownMode CKernel::Run (void)
 								if (!(cflag & wDAC))
 								{
 									cflag |= wDAC;
-									params[p] = datain;
-									if (p == 0)
+									
+									if (p == 0) 
+									{
 										cmd = datain;
-									if (cmd_params[cmd] == p)
+										argv = cmd_params[cmd];
+									}
+									else if (argv >= p)
+										params[p] = datain;
+									if (argv <= p)
 									{
 										q = 0;
-										p = 0;
 										switch (cmd)
 										{
 											case SDINIT:
 				//								printf("SD initialized\n");
 												buffer[0] = 100;
 												break;
-											case SDDRVSTS:
-												buffer[0] = 0x3f;
+											case SDWRITE:
+												blocks = params[1];
+												drive = params[2];
+												tracks = params[3];
+												sectors = params[4];
+												tmpbuf = fdd[drive];
+												if (p > argv)
+													tmpbuf[p - argv] = datain;
 												break;
 											case SDREAD:
 												tmpbuf = fdd[params[2]];
 												memcpy(buffer, tmpbuf+(params[3] * 16 + (params[4]-1))*256, 256 * params[1]);
 												break;
+											case SDSEND:
+												dataread = buffer[p];
+												break;
+											case SDCOPY:
+												memcpy(fdd[params[5]]+(params[6] * 16 + (params[7]-1))*256, fdd[params[2]]+(params[3]*16+(params[4]-1))*256, 256 * params[1]);
+												break;
+											case SDSTATUS:
+												buffer[0] = 0xc0;
+												break;
+											case SDDRVSTS:
+												buffer[0] = 0xff;
+												break;
 											default:
 												buffer[0] = cmd;
 												break;
 										}
+									}
+									else if (cmd == SDWRITE)
+									{
+										
 									}
 								}									
 								break;
@@ -181,7 +238,8 @@ TShutdownMode CKernel::Run (void)
 								break;
 							case rRFD: // 0x20 --> 0x01
 								cflag |= wDAV;
-								dataout = buffer[q];
+								dataout = dataread;
+								p++;
 								break;
 							case 0: // 0x00 --> 0x00
 								if (cflag & wDAC)
