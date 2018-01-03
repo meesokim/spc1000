@@ -75,14 +75,13 @@
 
 static const char FromKernel[] = "kernel";
 
-CSpinLock spinlock;
 
 CKernel::CKernel (void)
-:	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
-	m_Timer (&m_Interrupt),
-	m_Logger (m_Options.GetLogLevel (), &m_Timer)
+//:	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+//	m_Timer (&m_Interrupt),
+//	m_Logger (m_Options.GetLogLevel (), &m_Timer)
 {
-
+	m_ActLED.Blink (5);	// show we are alive
 }
 
 CKernel::~CKernel (void)
@@ -95,23 +94,23 @@ boolean CKernel::Initialize (void)
 	
 	if (bOK)
 	{
-		bOK = m_Screen.Initialize ();
+		//bOK = m_Screen.Initialize ();
 	}
 
 	if (bOK)
 	{
-		bOK = m_Logger.Initialize (&m_Screen);
+		//bOK = m_Logger.Initialize (&m_Screen);
 	}
 
 	if (bOK)
 	{
-		bOK = m_Interrupt.Initialize ();
+		//bOK = m_Interrupt.Initialize ();
 	}
 
 	if (bOK)
 	{
-		bOK = m_Timer.Initialize ();
-	}	
+		//bOK = m_Timer.Initialize ();
+	} 
 	return bOK;		
 }
 #define GPIO (read32 (ARM_GPIO_GPLEV0))
@@ -120,26 +119,27 @@ boolean CKernel::Initialize (void)
 
 TShutdownMode CKernel::Run (void)
 {
-	spinlock.Acquire();
 	// flash the Act LED 10 times and click on audio (3.5mm headphone jack)
-	unsigned int a, addr, wr, datain, dataout, cmd;
-	unsigned char buffer[256*256], cflag, blocks, drive, tracks, sectors, dataread, argv;
-	unsigned char *tmpbuf;
-	int cmd_params[] = {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0};
-	int params[10], p, q;
-	unsigned char* fdd[3];
-	unsigned char f[] = {0x11,0x7,0xcb,0xcd,0xf3,0x07,0xc9,0x48,0x65,0x6c,0x6c,0x20,0x77,0x6f,0x72,0x6c,0x64,0x21,0x00};	
-	write32 (ARM_GPIO_GPFSEL0, 0x249249);
-	write32 (ARM_GPIO_GPFSEL0+4, 0);
-	write32 (ARM_GPIO_GPFSEL0+8, 0);
+	int a, addr, wr, datain, dataout, data3, cmd, readsize, data0;
+	int diskbuf[258*256], buffer[256*256], cflag, blocks, drive, tracks, sectors;
+	int *tmpbuf;
+	int params[10], p, q, argv;
+	int* fdd[3];
+	int f[256] = {0x11,0x7,0xcb,0xcd,0xf3,0x07,0xc9,0x48,0x65,0x6c,0x6c,0x20,0x77,0x6f,0x72,0x6c,0x64,0x21,0x00};	
+	int foo[] {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0};
 	fdd[0] = f;
 	datain = 0;
 	dataout = 0;
-	dataread = 0;
-	cflag = p = q = 0;
-	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	m_Logger.Write (FromKernel, LogNotice, "SPC-1000 Extension");	
+	cflag = p = q = data0 = cmd = data3 = 0;
+	CSpinLock spinlock;
+//	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+//	m_Logger.Write (FromKernel, LogNotice, "SPC-1000 Extension");	
+	spinlock.Acquire();
+	write32 (ARM_GPIO_GPFSEL0, 0x249249);
+	write32 (ARM_GPIO_GPFSEL0+4, 0);
+	write32 (ARM_GPIO_GPFSEL0+8, 0);
 	GPIO_CLR(0xff);
+	spinlock.Release();
 	memset(buffer, 0, 256*256);
 	while(1)
 	{
@@ -155,12 +155,21 @@ TShutdownMode CKernel::Run (void)
 					{
 						datain = a;
 					}
+					else
+					{
+						spinlock.Acquire();
+						GPIO_CLR(0xff);
+						GPIO_SET(data0);
+						spinlock.Release();
+					}
 					break;
 				case 1:
 					if (!wr)
 					{
+						spinlock.Acquire();
 						GPIO_CLR(0xff);
 						GPIO_SET(dataout);
+						spinlock.Release();
 					}
 					break;
 				case 2:
@@ -180,10 +189,13 @@ TShutdownMode CKernel::Run (void)
 									if (p == 0) 
 									{
 										cmd = datain;
-										argv = cmd_params[cmd];
+										data0 = foo[datain];
+										argv = data0;
 									}
-									else if (argv >= p)
+									else if (data0 >= p)
 										params[p] = datain;
+									dataout = cmd;
+									data3 = p;
 									if (argv <= p)
 									{
 										q = 0;
@@ -204,10 +216,11 @@ TShutdownMode CKernel::Run (void)
 												break;
 											case SDREAD:
 												tmpbuf = fdd[params[2]];
-												memcpy(buffer, tmpbuf+(params[3] * 16 + (params[4]-1))*256, 256 * params[1]);
+												readsize = 256 * params[1];
+												memcpy(diskbuf, tmpbuf+(params[3] * 16 + (params[4]-1))*256, readsize);
 												break;
 											case SDSEND:
-												dataread = buffer[p];
+												memcpy(buffer, diskbuf, readsize);
 												break;
 											case SDCOPY:
 												memcpy(fdd[params[5]]+(params[6] * 16 + (params[7]-1))*256, fdd[params[2]]+(params[3]*16+(params[4]-1))*256, 256 * params[1]);
@@ -229,24 +242,26 @@ TShutdownMode CKernel::Run (void)
 									}
 								}									
 								break;
+							case rRFD: // 0x20 --> 0x01
+								cflag |= wDAV;
+								break;
 							case rDAC: // 0x40 --> 0x00
 								if (cflag & wDAV)
 								{
-									q++;
 									cflag &= ~wDAV;
+									q++;
+									data3 = q;
 								}
-								break;
-							case rRFD: // 0x20 --> 0x01
-								cflag |= wDAV;
-								dataout = dataread;
-								p++;
 								break;
 							case 0: // 0x00 --> 0x00
 								if (cflag & wDAC)
 								{
 									cflag &= ~wDAC;
 									p++;
+									dataout = p;
 								}
+								else if (cflag & wDAV)
+									dataout = buffer[q];
 								break;
 							default:
 								break;
@@ -254,8 +269,19 @@ TShutdownMode CKernel::Run (void)
 					}
 					else
 					{
+						spinlock.Acquire();
 						GPIO_CLR(0xff);
 						GPIO_SET(cflag);
+						spinlock.Release();
+					}
+					break;
+				case 3:
+					if (!wr)
+					{
+						spinlock.Acquire();
+						GPIO_CLR(0xff);
+						GPIO_SET(data3);
+						spinlock.Release();
 					}
 				default:
 					break;
@@ -269,14 +295,6 @@ TShutdownMode CKernel::Run (void)
 			dataout = 0;
 			while(!(GPIO & RPSPC_RST));
 		}
-	}
-	for (unsigned i = 1; i <= 10; i++)
-	{
-		m_ActLED.On ();
-		CTimer::SimpleMsDelay (200);
-
-		m_ActLED.Off ();
-		CTimer::SimpleMsDelay (500);
 	}
 
 	return ShutdownReboot;
