@@ -23,12 +23,11 @@
 #include <circle/memory.h>
 #include <circle/actled.h>
 #include <circle/koptions.h>
-#include <circle/types.h>
+#include <circle/devicenameservice.h>
 #include <circle/screen.h>
-#include <circle/exceptionhandler.h>
-#include <circle/interrupt.h>
-#include <circle/timer.h>
+#include <circle/serial.h>
 #include <circle/logger.h>
+#include <circle/types.h>
 
 enum TShutdownMode
 {
@@ -49,43 +48,13 @@ public:
 
 private:
 	// do not change this order
-	int getargs(int i)
-	{
-		//int cparams[256] = {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0};
-		int val = 0;
-		switch (i)
-		{
-			case 1:
-			case 2:
-			case 8:
-			case 9:
-				val = 4;
-				break;
-			case 5:
-			case 6:
-				val = 1;
-				break;
-			case 10:
-				val = 2;
-				break;
-			case 11:
-			case 12:
-				val = 6;
-				break;
-			case 4:
-				val = 7;
-				break;
-		}
-		return val;
-	}
-	CMemorySystem	m_Memory;
-	CActLED		m_ActLED;
-	//CKernelOptions		m_Options;	
-	//CScreenDevice		m_Screen;
-	//CLogger			m_Logger;	
-	//CExceptionHandler	m_ExceptionHandler;
-	//CInterruptSystem	m_Interrupt;
-	//CTimer			m_Timer;
+	CMemorySystem		m_Memory;
+	CActLED			m_ActLED;
+	CKernelOptions		m_Options;
+	CDeviceNameService	m_DeviceNameService;
+	CScreenDevice		m_Screen;
+	CSerialDevice		m_Serial;
+	CLogger			m_Logger;
 };
 
 #endif

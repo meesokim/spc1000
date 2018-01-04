@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 			switch (addr)
 			{
 				case 0:
-					if (mode == READ_FOR_DATA)
+					if (mode == READ_FOR_DATA)	
 					{
 						cmd = a;
 					}
