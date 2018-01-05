@@ -1,5 +1,5 @@
 #include "iocs.h"
-#include <stdio.h>
+//#include <stdio.h>
 
 static unsigned char io_val;
 
@@ -25,6 +25,32 @@ char getchar()
 	ld (_io_val), a
 	__endasm;
 	return io_val;
+}
+
+char getch()
+{
+	__asm
+	cont:
+	call _KEYGT
+	jr z, cont
+	ld l, a
+	__endasm;
+	return;
+}
+
+void gotoxy(uint8 x, uint8 y)
+{
+	x;
+	y;
+	__asm
+	push ix
+	ld ix,#4
+	add ix,sp
+	ld l,(ix)
+	ld h,1(ix)
+	ld (CURXY), hl
+	pop ix
+	__endasm;
 }
 
 char cas_load(unsigned char *data, int len)

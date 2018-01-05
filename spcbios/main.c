@@ -6,78 +6,41 @@ unsigned char data[0x1001];
 void cas2dsk();
 void dsk2cas();
 void dsk2dsk();
-
+uint8 listdir(uint8 p, uint8 c, uint8 pg);
+void pload(uint8 prg);
 void main(void)
 {
-	uint8 c;
-    printf("FDD check\n");
-	sd_init();
-    printf("FDD initialized\n");
+	uint8 ch, p, l, c;
+	p = 0;
+	cls();
+	printf("RPI extension box for SPC1000\n");
+	printf("------------------------------");
 	while(1)
 	{
 		//printf("Send State:%02x, Disk State:%02x\n", 0, sd_drvstate());
-		printf("Disk Utility v0.1\n0. dsk2dsk\n1. cas2dsk\n2. dsk2cas\n3. format disk A\n4. format disk B\n?");
-		c = getchar();
-		printf("%c\n", c);
-		switch (c)
+		gotoxy(0,2);
+		l = listdir(p, c, 10);
+		ch = getch();
+		switch (ch)
 		{
-			case '0':
-				dsk2dsk();
+			case KEY_F1:
+				p = (p > 0 ? p - 1: 0);
 				break;
-			case '1':
-				cas2dsk();
+			case KEY_F4:
+				p = (l > 10 ? p + 1: l);
 				break;
-			case '2':
-				dsk2cas();
+			case KEY_F2:
+				c = (c > 0 ? c - 1: 0);
 				break;
-			case '3':
-				sd_format(0);
+			case KEY_F3:
+				c = (l > c ? c + 1: l);
+				c = (c > 10 ? 10 : c);
 				break;
-			case '4':
-				sd_format(1);
+			case KEY_F5:
+				pload(p * 10 + c);
 				break;
-			case '5':
-				return;
 		}
 	}
-}
-void dsk2dsk()
-{
-	unsigned char t;
-	for(t = 0; t < 80; t++)
-	{
-		printf("FDD reading..track:%d\n", t);
-		sd_read(16,0,t,1,data);
-		printf("FDD writing..track:%d\n", t);
-		sd_write(16,1,t,1,data);
-	}
-}
-void cas2dsk()
-{
-	unsigned char t;
-	for(t = 0; t < 80; t++)
-	{
-		printf("CAS loading..\n");
-		cas_load(data, 0x1001);
-		t = data[0x1000];
-		printf("FDD writing..track:%d\n", t);
-		sd_write(16,0,t,1,data);
-	}
-    printf("FDD transfer completed\n");
-}
-
-void dsk2cas()
-{
-	unsigned char t;
-	for(t = 0; t < 80; t++)
-	{
-		printf("FDD reading..track:%d\n", t);
-		sd_read(16,0,t,1,data);
-		printf("CAS recording..track:%d\n", t);
-		data[0x1000] = t;
-		cas_save(data, 0x1001);
-	}
-    printf("CAS recording completed\n");
 }
 
 void dir(char *pp)
@@ -90,4 +53,13 @@ void dir(char *pp)
 		printf("%d.%s (%d)\n", i, p, *(p+15)*256);
 		p += 1;
 	}	
+}
+
+uint8 listdir(uint8 p, uint8 c, uint8 pg)
+{
+	
+}
+void pload(uint8 prg)
+{
+	
 }
