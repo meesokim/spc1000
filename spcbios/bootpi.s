@@ -7,13 +7,16 @@
 
     .module boot
     .area   _CODE
+	.area   HOME
+	.area   XSEG
+	.area   PSEG
     .area  _HEADER  (ABS)
     .org    CPM_BOOT
     
 MSIZE   =   58
 BIAS    =   (MSIZE-20)*1024
 CCP     =   0x3400+BIAS
-BIOS    =   0xf000
+BIOS    =   CPM_BOOT+0x100
 BIOSL   =   0x0300      ;length of the bios
 BDOS    =   CCP+0x806   ;base of bdos
 
@@ -28,6 +31,7 @@ GSAVES  =   0x1bea
 CDISK   =   0x0004      ;current disk number 0=A,...,15=P
 IOBYTE  =   0x0003      ;intel i/o byte
 TICONT  =   0x0036
+DEPRT   =   0x07F3
 
 SDWRITE     = 1
 SDREAD      = 2
@@ -35,24 +39,37 @@ SDSEND      = 3
 SDCOPY      = 4
 SDFORMAT    = 5
             
-CPM_BOOT = 0xcb00   
+CPM_BOOT = 0xcb00 
+MAIN  = 0xcc00  
+ROMPATCH   =   0xfb29
+BOOTBAS	   =   0xfb23
 
 start::
 ;   .ascii "SYS"
     ld  ix, #DSKIX
     ld  sp, ix
-	call CLR02
-    call GSAVES
+;	call CLR02
+;   call GSAVES
+    di
+	xor a
+	ld  l, a
     ld  bc, #0x002
     ld  h,  #15
     ld  de, #BIOS
     call _sd_load
-    jp BIOS
+	ex  de, hl
+	ld  bc, #0x101
+	ld  h, #4
+    call _sd_load
+	ld hl, #MAIN
+	ld (#0x1), hl
+	ei
+	jp MAIN
     
 _sd_load:
-    push hl
-    push de
-    push bc
+    push hl ; size
+    push de ; address
+    push bc ; pos
     ld  d, #SDREAD
     call sendcmd
     ld  d, h
@@ -143,4 +160,3 @@ CHKDAV1:
     OUT (C),A           
     POP BC              
     RET           
-

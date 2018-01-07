@@ -3,8 +3,8 @@ SRCS=vf.c logger.c imageCode.c
 OBJS=$(SRCS:.c=.o)
 CFLAGS=-DDEBUG=0 -Wall
 
-all: vfread vfwrite vformat vferase vfd2d88 putsys2
-	 cp *.exe ..
+all: vfread vfwrite vformat vferase vfd2d88 putspc1000
+	 
 
 vfread: vfread.o $(OBJS)
 	$(CC) -o vfread vfread.o $(OBJS) $(LDFLAGS) $(CFLAGS)
@@ -21,14 +21,14 @@ vferase: vferase.o $(OBJS)
 vfd2d88: vfd2d88.o $(OBJS)
 	$(CC) -o vfd2d88 vfd2d88.o $(OBJS) $(LDFLAGS) $(CFLAGS)
 	
-putsys2: putsysd88.o
-	$(CC) -o putsys2 putsysd88.o $(OBJS) $(LDFLAGS) $(CFLAGS)	
+putspc1000: putspc1000.o
+	$(CC) -o putspc1000 putspc1000.o $(OBJS) $(LDFLAGS) $(CFLAGS)	
 	
 depend: $(SRCS)
 	for i in $(SRCS);do $(CC) -MM $(CPPFLAGS) $$i;done > .depend
 
 clean:
-	rm -f *.o vfread vfwrite vformat vferase vfd2d88 putsys2 *.exe
+	rm -f *.o vfread vfwrite vformat vferase vfd2d88 putspc1000 *.exe
 
 strip:
 # 	strip vfread ; strip vfwrite ; strip vformat ; strip vferase ; strip vfd2d88

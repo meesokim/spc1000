@@ -6,6 +6,7 @@
 ;==============================================================================
 
 	.module	sd725
+	.globl _data
 	.area	_CODE
 	
 SDINIT		= 0
@@ -25,7 +26,10 @@ SDGO		= 0xD
 SDLOAD		= 0xE
 SDSAVE		= 0xF
 SDLDNGO		= 0x10	
-CLR2		= 0xad5
+CLR2      	= 0xad5
+RPI_FILES	= 0x20
+RPI_LOAD	= 0x21
+RPI_SAVE	= 0x22
 		
 _chkfdd::
 	push ix
@@ -145,6 +149,26 @@ _sd_sendstate::
 	ld l, d
 	ret
 	
+_rpi_files::
+	ld d, #RPI_FILES
+	call sendcmd
+loop:
+	ld d, (hl)
+	call senddata
+	inc hl
+	ld a, d
+	or a
+	jr nz, loop
+	ld hl, #_data
+loop2:
+	call recvdata
+	ld (hl), d
+	inc hl
+	ld a, d
+	or a
+	jr nz, loop2
+	ret
+
 _sd_load::
 	push hl
 	push de
@@ -238,4 +262,4 @@ CHKDAV1:
     XOR	A             	
     OUT	(C),A         	
     POP	BC            	
-    RET               	
+    RET     

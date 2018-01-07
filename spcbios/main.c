@@ -1,65 +1,72 @@
 #include <stdio.h>
+#include <string.h>
 #include "iocs.h"
 
-unsigned char data[0x1001];
+unsigned char data[0x1000];
 
 void cas2dsk();
 void dsk2cas();
 void dsk2dsk();
 uint8 listdir(uint8 p, uint8 c, uint8 pg);
 void pload(uint8 prg);
+void bootbasic();
+void pifiles(char *);
 void main(void)
 {
-	uint8 ch, p, l, c;
+	uint8 ch, p, l, c, pg;
+	char *files;
+	char *param = "SD:/\\*.tap";
 	p = 0;
+	c = 1;
+	pg = 12;
+	memset(data, 0, 0x1000);
 	cls();
-	printf("RPI extension box for SPC1000\n");
-	printf("------------------------------");
+	printf(" RPI extension box for SPC1000\n-------------------------------");
+	ch = 0;
+	pifiles(param);
 	while(1)
 	{
-		//printf("Send State:%02x, Disk State:%02x\n", 0, sd_drvstate());
 		gotoxy(0,2);
-		l = listdir(p, c, 10);
-		ch = getch();
+		l = listdir(p, c, pg);
+		printf("-------------------------------       RETURN for Execution");
+		gotoxy(3,c+2);
+		ch = getchar();
+//		printf("%d\n", ch);
+//		pload(1);
 		switch (ch)
 		{
-			case KEY_F1:
+			case 0x1d:
 				p = (p > 0 ? p - 1: 0);
 				break;
-			case KEY_F4:
-				p = (l > 10 ? p + 1: l);
+			case 0x1c:
+				p = (p < l ? p + 1: l);
 				break;
-			case KEY_F2:
+			case 0x1e:
 				c = (c > 0 ? c - 1: 0);
 				break;
-			case KEY_F3:
-				c = (l > c ? c + 1: l);
-				c = (c > 10 ? 10 : c);
+			case 0x1f:
+				c = (pg-1 > c ? c + 1: pg-1);
 				break;
-			case KEY_F5:
-				pload(p * 10 + c);
+			case 0x0d:
+				pload(p * pg + c);
 				break;
 		}
 	}
 }
 
-void dir(char *pp)
-{
-	unsigned char i = 1;
-	char *p = pp;
-//	= (FInfo *)pp;
-	while(*p != 0 || p < pp + 256)
-	{
-		printf("%d.%s (%d)\n", i, p, *(p+15)*256);
-		p += 1;
-	}	
-}
-
 uint8 listdir(uint8 p, uint8 c, uint8 pg)
 {
-	
-}
-void pload(uint8 prg)
-{
-	
+	int i = pg * p + 1;
+	uint8 j = 0;
+	int k = i;
+	int s = 0;
+	while(k--) while(data[s++] != 0);
+	attr_clear();
+	for(;j<pg;j++)
+	{
+		printf("%03d. %s\n", i+j, data+s);
+		while(data[s++] != 0);
+	}
+	attr_set(1, 0x840+c*32, 5);
+	return pg;
 }

@@ -28,6 +28,8 @@
 #include <circle/serial.h>
 #include <circle/logger.h>
 #include <circle/types.h>
+#include <SDCard/emmc.h>
+#include <fatfs/ff.h>
 
 enum TShutdownMode
 {
@@ -54,7 +56,15 @@ private:
 	CDeviceNameService	m_DeviceNameService;
 	CScreenDevice		m_Screen;
 	CSerialDevice		m_Serial;
+	CInterruptSystem	m_Interrupt;	
+	CTimer			m_Timer;	
 	CLogger			m_Logger;
+	CEMMCDevice		m_EMMC;
+	FATFS			m_FileSystem;
+	char files[256*256];
+	char drive[256];
+	char pattern[256];
+	char *fnRPI_FILES(char *drive, char *pattern);
 };
 
 #endif

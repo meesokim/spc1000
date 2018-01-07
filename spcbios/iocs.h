@@ -18,7 +18,20 @@ blog.naver.com/mayhouse
 #define	_ASCGET		0x0c62
 #define _KEYGT		0x0c92
 #define CLR2		0xad5
+#define CLS			0x1b42
+#define CLSSB		0x1b4c
 #define CURXY		0x11ed
+#define DEPRT		0x07F3
+#define KEYGT		0x0c92
+#define _KYBFST		0x0e35
+#define BOOTBAS		0xfb23
+#define GCOLOR		0x1181
+#define KEYBUF		0x7a4f
+#define INITSB		0x0056
+#define BEEP		0x4778
+#define CLS1LP		0x1b51
+#define GRAPH		0x1b95
+#define BOOT		0x0
 
 #define KEY_F1	0x81
 #define KEY_F2	0x82
@@ -57,6 +70,8 @@ void sd_format(uint8 drive_n);
 char*sd_getfiles(char *pat);
 unsigned char sd_drvstate(void);
 unsigned char sd_sendstate(void);
+void attr_clear(void);
+void attr_set(char c, int, int);
 
 char cas_load(unsigned char *data, int len);
 void cas_save(unsigned char *data, int len);

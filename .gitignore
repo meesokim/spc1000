@@ -1,0 +1,6 @@
+cfg
+*.bin
+*.map
+*.ini
+*.o
+*.rel

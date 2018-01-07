@@ -1,5 +1,7 @@
-NAME  = sd720
-CC = sdcc
+NAME  = rpmain
+BOOT  = bootpi
+CC1 = sdcc
+CC2 = gcc
 AS = sdasz80
 
 ifndef TARGETOS
@@ -55,9 +57,13 @@ endif
 
 SRC1  = main.c iocs.c  		
 SRC2  = sd725.s crt0spc.s 
+SRC3  = bootpi.s
+SRC4  = makesize.c
 		
 OBJ1	= $(SRC1:.c=.rel)
 OBJ2	= $(SRC2:.s=.rel)
+OBJ3 	= $(SRC3:.s=.rel)
+OBJ4	= $(SRC4:.c=.o)
 OBJ= $(OBJ1) $(OBJ2)
 
 ifeq ($(TARGETOS),win32)
@@ -71,19 +77,34 @@ DEFL = -lrt
 endif
 
 CFLAGS	= -mz80 
+CFLAGS3 = -I.
 #LDFLAGS	= -mz80 --code-loc 0x7ce3  --data-loc 0x9000 --no-std-crt0 
-LDFLAGS	= -mz80 --code-loc 0xc000  --data-loc 0x9000 --no-std-crt0 
+LDFLAGS	= -mz80 --code-loc 0xcc00  --data-loc 0xf000 --no-std-crt0  --code-size 0x1100
+LDFLAGS3 = 
+all: makesize $(NAME) $(BOOT) spc1000 
 
 $(NAME): $(OBJ)
-	$(CC) $^ $(LDFLAGS) -o $@.ihex
-	bin2tap $@.ihex
+	$(CC1) $^ $(LDFLAGS) -o $@.ihex
+	./hex2bin $@.ihex
+$(BOOT): $(OBJ3)	
+	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
+	./hex2bin $@.ihex
+	./makesize $@.bin 256 > boot.bin
+spc1000: $(NAME) $(BOOT)
+	cat boot.bin $(NAME).bin > $@.bin
+	./yazd --addr:0xcb00 -lst spc1000.bin > spc1000.lst
+	$(eval V := $(shell ps | grep mess | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//'))
+	if [ "$V" \> "" ]; then kill -9 $V; sleep 1; fi
+	./putspc1000 system.d88 $@.bin
+makesize: $(OBJ4)
+	$(CC2) $(LDFLAGS3) $^ -o $@
 
+%.o: %.c
+	$(CC2) -c $< $(CFLAGS3) -o $@
 %.rel: %.c
-	$(CC) -c $< $(CFLAGS) -o $@
+	$(CC1) -c $< $(CFLAGS) -o $@
 %.rel: %.s
 	$(AS) -l -o $< 
 
-all: $(NAME)
-
 clean:
-	rm -f *.rel
+	rm -f *.rel *.lst *.map *.sym *.noi *.ihex *.lk *.mem *.ihx *.o 
