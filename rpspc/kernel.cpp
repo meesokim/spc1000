@@ -138,16 +138,17 @@ char * CKernel::fnRPI_FILES(char *drive, char *pattern)
 	DIR Directory;
 	FILINFO FileInfo;
 	CString FileName;
-	FRESULT Result = f_findfirst (&Directory, &FileInfo,  DRIVE "/", "*");
+	FRESULT Result = f_findfirst (&Directory, &FileInfo,  DRIVE "/", "*.tap");
 	int len = 0;
+	memset(files, 0, 256*256);
 	for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0]; i++)
 	{
 		if (!(FileInfo.fattrib & (AM_HID | AM_SYS)))
 		{
 			strcpy(files+len, FileInfo.fname);
 			len += strlen(FileInfo.fname);
-			*(files+len+1)='\\';
-			FileName.Format ("%s: %s\n", FileInfo.fname, FileInfo.fsize);
+			*(files+(len++))='\\';
+			FileName.Format ("%s: %d\n", FileInfo.fname, FileInfo.fsize);
 			m_Screen.Write ((const char *) FileName, FileName.GetLength ());			
 		}
 
@@ -356,10 +357,10 @@ TShutdownMode CKernel::Run (void)
 											{
 												if (rpibuf == pattern || p == 0)
 												{
-													Message.Format ("RPI_FILES: drive=%s, pattern=%s\n", drive, pattern);
-													m_Screen.Write ((const char *) Message, Message.GetLength ());
 													tmpbuf = fnRPI_FILES(drive, pattern);
 													strcpy(buffer, tmpbuf);
+													Message.Format ("RPI_FILES: drive=%s, pattern=%s\n%s\n", drive, pattern, tmpbuf);
+													m_Screen.Write ((const char *) Message, Message.GetLength ());
 												}
 											}
 											else if (params[p] == '\\')
@@ -448,7 +449,7 @@ TShutdownMode CKernel::Run (void)
 					}
 					else
 					{
-						data3 = tapbuf[t++];
+						data3 = tapbuf[t++];	
 					}
 				default:
 					break;

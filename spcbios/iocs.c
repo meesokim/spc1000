@@ -206,6 +206,11 @@ void pload(int num)
 bload2:
 	CALL #_MLOAD
 	ld hl, (#MTEXEC)
+	ld a, h
+	or l
+	jr nz, brun
+	ld hl, (#MTADRS)
+brun:	
 	jp (hl)
 ;	call #NEW
 ;	call #CLR
