@@ -59,7 +59,8 @@ private:
 	uint8_t m_i8255_portb;
 	uint8_t m_data0;
 	uint8_t m_data1;
-	uint8_t n_data2;
+	uint8_t m_data2;
+	uint8_t m_data3;
 	uint8_t m_ext = 0;
 };
 

@@ -195,7 +195,7 @@ void spc1000_fdd_exp_device::device_timer(emu_timer &timer, device_timer_id id, 
 
 READ8_MEMBER(spc1000_fdd_exp_device::read)
 {
-	static int pdata = 0;
+//	static int pdata = 0;
 	// this should be m_pio->read on the whole 0x00-0x03 range?
 	if (offset > 3)
 		return 0xff;
@@ -206,17 +206,18 @@ READ8_MEMBER(spc1000_fdd_exp_device::read)
 		{
 			case 1:
 				data = (m_ext ? m_data1: m_i8255_portb);
-				if (m_ext)
-					printf("port 1:   %02x\n", data);
+//				if (m_ext)
+//					printf("port 1:   %02x\n", data);
 				break;
 			case 2:
 				data = m_i8255_1_pc >> 4;
-				if (data != pdata)
-					printf("port r:%02x\n", data);
-				pdata = data;
+//				if (data != pdata)
+//					printf("port r:%02x\n", data);
+//				pdata = data;
 				break;
 			case 3:
-				data = m_data1;
+				data = m_data3;
+				printf("%c", m_data3 > 0 ? '1' : '0');
 		}
 		return data;
 	}
@@ -237,7 +238,8 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 	static int rpi_idx = 0;
 	static char drive[256];
 	static char pattern[256];
-	static char *rpibuf, tmpbuf[256*256*9];
+	static char *rpibuf, filenames[256*256*9], filename[256];
+	static int q2 = 0, pos = 0, pose = 0, length = 0, num = 0;
 	if (offset <= 3) 
 	{
 		switch (offset)
@@ -247,7 +249,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 				m_data0 = data;
 				break;
 			case 2:
-				printf("port 2:%02x\n", data);
+//				printf("port 2:%02x\n", data);
 				if (m_ext)
 				{
 					switch (data & 0xf0)
@@ -288,13 +290,13 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 													if (strstr(strlwr(dir->d_name), ".tap"))
 													{
 //														printf("%s\n", dir->d_name);
-														strcpy(tmpbuf+len, dir->d_name);
+														strcpy(filenames+len, dir->d_name);
 														len += strlen(dir->d_name);
-														*(tmpbuf+(len++))='\\';
+														*(filenames+(len++))='\\';
 													}
 												}
 												closedir(d);
-												strcpy(buffer, tmpbuf);
+												strcpy(buffer, filenames);
 												printf("%s\n", buffer);
 											}
 											q = 0;
@@ -308,7 +310,29 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 									}
 									else
 										rpibuf[rpi_idx++] = m_data0;
-									break;								
+									break;
+								case RPI_LOAD:
+									if (p == 2)
+									{
+										num = params[2] * 256 + params[1];
+										pos = 0;
+										while(num--) while(*(filenames+pos++) != '\\');
+										pose = pos; while(*(filenames+pose++) != '\\');
+										pose -= pos;
+										memcpy(filename, filenames+pos, pose);
+										filename[pose-1] = 0;
+										printf("RPI_LOAD: fnum=%d, %s\n", params[2] * 256 + params[1], filename);
+										FILE* fp = fopen(filename, "rb");
+										if (fp)
+										{
+											printf("file %s is opened\n", filename);
+											fseek(fp, 0L, SEEK_END);
+											length = ftell(fp); rewind(fp);
+											fread(buffer, length, 1, fp);
+											q2 = 0;
+										}
+									}
+									break;
 							}
 							break;
 						case rRFD: // 0x20 --> 0x01
@@ -352,7 +376,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 							printf("%s:%02x\n", p == 0 ? "cmd" : "data", m_data0);
 							if (p == 0)
 								cmd = m_data0;
-							if (cmd == 0x20)
+							if (cmd >= 0x20)
 							{
 								m_ext = 1;
 								params[0] = cmd;
@@ -367,6 +391,11 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 					}
 				}
 				break;
+			case 3:
+				if (data == 0)
+					m_data3 = (length > q2 ? 0xff : 0);
+				else
+					m_data3 = (buffer[q2++] > '0' ? 1 : 0);
 		}
 	}
 }

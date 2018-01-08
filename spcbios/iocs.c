@@ -177,10 +177,55 @@ loopd:
 	__endasm;
 }
 
-void pload(uint8 num)
+
+void pload(int num)
 {
 	__asm
-	
+	push ix
+	ld ix,#4
+	add ix,sp
+	ld l,(ix)
+	ld h,1(ix)
+	call _rpi_load
+	LD	(#FILEFG),A
+	LD	(#CONTFG),A	
+	call #_FLOAD
+	ld a, (#FILMOD)
+	cp #2
+	jr nz, bload2
+	LD	HL,#TEXTST
+	LD	(#MTADRS),HL
+	LD	DE,(#MTBYTE)
+	ADD	HL,DE	
+	LD	HL,(#MEMEND)
+	OR	A
+	SBC	HL,DE
+	CALL #_MLOAD
+	CALL #CVLOAD
+	JP	RUN
+bload2:
+	CALL #_MLOAD
+	ld hl, (#MTEXEC)
+	jp (hl)
+;	call #NEW
+;	call #CLR
+;	LD	SP,(#STRTOP)
+;	LD	HL,#0xFFFF
+;	PUSH	HL
+;	LD	(#SPBUF),SP
+;	LD	HL,#CINPUT
+;	LD	(#LODVEC),HL
+;	LD	A,#0x01
+;	LD	(#NRLDED),A
+;	CALL	#BUFCLR
+;	jp	NMESOK
+	__endasm;
+}
+
+void pload2(int num)
+{
+	__asm
+	jp PLOAD_FAKE
 	__endasm;
 }
 

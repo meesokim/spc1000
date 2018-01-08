@@ -59,10 +59,18 @@ start::
     call _sd_load
 	ex  de, hl
 	ld  bc, #0x101
-	ld  h, #4
+	ld  h, #7
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
+	ld hl, #0xcb00 + #0x13d0
+	ld de, #0x114
+	ld bc, #634-#8
+	ldir
+	ld hl, #0xcf7e
+	ld de, #0xf800
+	ld bc, #0x134-0x0f2
+	ldir
 	ei
 	jp MAIN
     

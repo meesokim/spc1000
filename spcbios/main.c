@@ -8,7 +8,6 @@ void cas2dsk();
 void dsk2cas();
 void dsk2dsk();
 uint8 listdir(uint8 p, uint8 c, uint8 pg);
-void pload(uint8 prg);
 void bootbasic();
 void pifiles(char *);
 void main(void)
@@ -19,7 +18,7 @@ void main(void)
 	p = 0;
 	c = 1;
 	pg = 12;
-	memset(data, 0, 0x1000);
+	memset(data, 0, 0x800);
 	cls();
 	printf(" RPI extension box for SPC1000\n-------------------------------");
 	ch = 0;
@@ -48,7 +47,7 @@ void main(void)
 				c = (pg-1 > c ? c + 1: pg-1);
 				break;
 			case 0x0d:
-				pload(p * pg + c);
+				pload2((int)p * pg + c);
 				break;
 		}
 	}
@@ -56,7 +55,7 @@ void main(void)
 
 uint8 listdir(uint8 p, uint8 c, uint8 pg)
 {
-	int i = pg * p + 1;
+	int i = pg * p;
 	uint8 j = 0;
 	int k = i;
 	int s = 0;

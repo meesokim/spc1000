@@ -168,6 +168,14 @@ loop2:
 	or a
 	jr nz, loop2
 	ret
+_rpi_load::
+	ld d, #RPI_LOAD
+	call sendcmd
+	ld d, l
+	call senddata
+	ld d, h
+	call senddata
+	ret
 
 _sd_load::
 	push hl

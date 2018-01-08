@@ -32,6 +32,27 @@ blog.naver.com/mayhouse
 #define CLS1LP		0x1b51
 #define GRAPH		0x1b95
 #define BOOT		0x0
+#define FILMOD   	0x1396
+#define NEW      	0x39ae
+#define CLR      	0x1951
+#define BLOAD2		0x397e
+
+#define STRTOP   	0x7a47
+#define SPBUF   	0x2232
+#define CINPUT   	0x39fa
+#define LODVEC   	0x149d
+#define NRLDED   	0x3a32
+#define BUFCLR   	0x4513
+#define NMESOK   	0x1488
+
+#define TEXTST   	0x7c4e
+#define MEMEND   	0x7a4d
+#define CVLOAD   	0x39b9
+#define RUN      	0x15c3
+#define MTEXEC   	0x13ac
+#define FILEFG   	0x3385
+#define CONTFG		0x2208
+#define PLOAD_FAKE  0xf800
 
 #define KEY_F1	0x81
 #define KEY_F2	0x82
@@ -72,6 +93,8 @@ unsigned char sd_drvstate(void);
 unsigned char sd_sendstate(void);
 void attr_clear(void);
 void attr_set(char c, int, int);
+void pload(int hl);
+void pload2(int hl);
 
 char cas_load(unsigned char *data, int len);
 void cas_save(unsigned char *data, int len);
