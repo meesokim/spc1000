@@ -59,6 +59,9 @@ start::
     ld  h,  #7
     ld  de, #BIOS+0x800
     call _sd_load
+	im 1
+	ei
+	call #0x56
     jp BIOS
     
 _sd_load:

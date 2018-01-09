@@ -39,16 +39,19 @@ SDSEND      = 3
 SDCOPY      = 4
 SDFORMAT    = 5
             
-CPM_BOOT = 0xcb00 
-MAIN  = 0xcc00  
+CPM_BOOT   =   0xcb00 
+MAIN  	   =   0xcc00  
 ROMPATCH   =   0xfb29
 BOOTBAS	   =   0xfb23
+MEMSET	   =   0x33e9
+INITSB	   =   0x0050
+GRAPH	   =   0x1b95
 
 start::
 ;   .ascii "SYS"
     ld  ix, #DSKIX
     ld  sp, ix
-;	call CLR02
+	call GRAPH
 ;   call GSAVES
     di
 	xor a
@@ -67,11 +70,7 @@ start::
 	ld de, #0x114
 	ld bc, #634-#8
 	ldir
-	ld hl, #0xcf7e
-	ld de, #0xf800
-	ld bc, #0x134-0x0f2
-	ldir
-	ei
+	ld hl, #0xFF00
 	jp MAIN
     
 _sd_load:

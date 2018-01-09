@@ -101,7 +101,7 @@ $(BOOT): $(OBJ3)
 spc1000: $(NAME) $(BOOT)
 	cat boot.bin $(NAME).bin load.bin > $@.bin
 	./yazd --addr:0xcb00 -lst spc1000.bin > spc1000.lst
-	$(eval V := $(shell ps | grep mess | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//'))
+	$(eval V := $(shell ps | grep mame | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//'))
 	if [ "$V" \> "" ]; then kill -9 $V; sleep 1; fi
 	./putspc1000 system.d88 $@.bin
 makesize: $(OBJ4)

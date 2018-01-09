@@ -9,10 +9,11 @@ void dsk2cas();
 void dsk2dsk();
 uint8 listdir(uint8 p, uint8 c, uint8 pg);
 void bootbasic();
-void pifiles(char *);
+int pifiles(char *);
 void main(void)
 {
 	uint8 ch, p, l, c, pg;
+	int t;
 	char *files;
 	char *param = "SD:/\\*.tap";
 	p = 0;
@@ -22,7 +23,8 @@ void main(void)
 	cls();
 	printf(" RPI extension box for SPC1000\n-------------------------------");
 	ch = 0;
-	pifiles(param);
+	t = pifiles(param);
+	l = t / pg;
 	while(1)
 	{
 		gotoxy(0,2);
@@ -63,7 +65,7 @@ uint8 listdir(uint8 p, uint8 c, uint8 pg)
 	attr_clear();
 	for(;j<pg;j++)
 	{
-		printf("%03d. %s\n", i+j, data+s);
+		printf("%03d. %-25s\n", i+j, data+s);
 		while(data[s++] != 0);
 	}
 	attr_set(1, 0x840+c*32, 5);

@@ -2,6 +2,7 @@
 //#include <stdio.h>
 
 static unsigned char io_val;
+static int intval;
 char files[4096];
 static int fnum[512];
 extern char data[];
@@ -177,7 +178,7 @@ loopd:
 	__endasm;
 }
 
-
+/*
 void pload(int num)
 {
 	__asm
@@ -193,6 +194,7 @@ void pload(int num)
 	ld a, (#FILMOD)
 	cp #2
 	jr nz, bload2
+	call #NEW
 	LD	HL,#TEXTST
 	LD	(#MTADRS),HL
 	LD	DE,(#MTBYTE)
@@ -226,6 +228,7 @@ brun:
 ;	jp	NMESOK
 	__endasm;
 }
+*/
 
 void pload2(int num)
 {
@@ -234,7 +237,7 @@ void pload2(int num)
 	__endasm;
 }
 
-void pifiles(char *str)
+int pifiles(char *str)
 {
 //	char drive[24] = "SD:/";
 //	char pattern[60] = "*.tap";
@@ -251,16 +254,20 @@ void pifiles(char *str)
 	call _rpi_files
 	pop ix	
 	ld hl, #_data
+	ld bc, #0
 loopm:	
 	ld a, (hl)
 	cp #92
 	jr nz, loopn
 	ld (hl), #0
+	inc bc
 loopn:
 	inc hl
 	or a
 	jr nz, loopm
+	ld (_intval), bc
 	__endasm;
+	return intval;
 }
 
 void patch(void)

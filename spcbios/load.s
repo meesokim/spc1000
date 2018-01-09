@@ -407,6 +407,73 @@ MKRD3:
 ;	POP	AF
 ;	RET
 
+FILEFG	= 0x3385
+CONTFG  = 0x2208
+NEW     = 0x39ae
+TEXTST  = 0x7c4e
+MEMEND	= 0x7a4d
+CVLOAD  = 0x39b9
+RUN	    = 0x15c3
+MEMSET	   =   0x33e9
+INITSB	   =   0x0056
+GRAPH	   =   0x1b95
+CLR2     = 0xad5
+_rpi_load = 0xD1A6
+
+_pload:
+	push ix
+	ld ix,#4
+	add ix,sp	
+	ld l,(ix)
+	ld h,1(ix)
+	call _rpi_load
+	LD	(FILEFG),A
+	LD	(CONTFG),A
+_load:	
+	call FLOAD
+	ld a, (FILMOD)
+	cp #2
+	jr nz, bload2
+	im 1
+	ei
+	ld  HL, #0x0adc
+	ld (hl), #0x20
+	LD	HL,#TEXTST
+	LD	(MTADRS),HL
+	LD	DE,(MTBYTE)
+	ADD	HL,DE	
+	LD	HL,(MEMEND)
+	OR	A
+	SBC	HL,DE
+	CALL MLOAD
+	CALL CVLOAD
+	call CLR2
+	call MEMSET
+	JP	RUN
+bload2:
+	CALL MLOAD
+	ld hl, (MTEXEC)
+	ld a, h
+	or l
+	cp #1
+	jr z, _load
+	or a
+	jr nz, brun
+	ld hl, (MTADRS)
+brun:	
+	jp (hl)
+;	call #NEW
+;	call #CLR
+;	LD	SP,(#STRTOP)
+;	LD	HL,#0xFFFF
+;	PUSH	HL
+;	LD	(#SPBUF),SP
+;	LD	HL,#CINPUT
+;	LD	(#LODVEC),HL
+;	LD	A,#0x01
+;	LD	(#NRLDED),A
+;	CALL	#BUFCLR
+;	jp	NMESOK
 	.org 0x0375
 WRITEM: 
 	.ascii	'WRITING '
