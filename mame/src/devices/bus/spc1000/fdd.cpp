@@ -40,7 +40,6 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::i8255_c_w)
 {
 	if (!m_ext)
 		m_i8255_1_pc = data;
-	printf("port c:%02x\n", data>>4);
 }
 
 //-------------------------------------------------
@@ -218,6 +217,7 @@ READ8_MEMBER(spc1000_fdd_exp_device::read)
 			case 3:
 				data = m_data3;
 				printf("%c", m_data3 > 0 ? '1' : '0');
+				fflush(stdout);
 		}
 		return data;
 	}
@@ -261,20 +261,20 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 							break;
 						case rDAV:
 							m_i8255_1_pc |= wDAC;
-							printf("*%s:%02x cmd=%02x\n", p == 0 ? "cmd" : "data", m_data0, params[0]);
+							printf("*%s:%02x\n", p == 0 ? "cmd" : "data", m_data0);
 							if (p < 10)
 								params[p] = m_data0;
 							switch (params[0])
 							{
 								case RPI_FILES:
-									if (p == 1)
+									if (p == 0)
 									{
 										rpi_idx = 0;
 										strcpy(drive, "SD:/");
 										strcpy(pattern, "*.tap");
 										rpibuf = drive;											
 									}
-									printf("%s\n", rpibuf);
+									//printf("%s\n", rpibuf);
 									if (m_data0 == 0)
 									{
 										if (rpibuf == pattern || p == 0)
@@ -308,7 +308,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 										rpi_idx = 0;
 										rpibuf = pattern;
 									}
-									else
+									else if (p > 0)
 										rpibuf[rpi_idx++] = m_data0;
 									break;
 								case RPI_LOAD:
@@ -325,6 +325,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 										FILE* fp = fopen(filename, "rb");
 										if (fp)
 										{
+											printf("file %s is opened\n", filename);
 											printf("file %s is opened\n", filename);
 											fseek(fp, 0L, SEEK_END);
 											length = ftell(fp); rewind(fp);
