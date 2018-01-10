@@ -415,10 +415,13 @@ MEMEND	= 0x7a4d
 CVLOAD  = 0x39b9
 RUN	    = 0x15c3
 MEMSET	   =   0x33e9
+MEMMAX   = 0x7a49
 INITSB	   =   0x0056
 GRAPH	   =   0x1b95
+GSAVES = 0x1bea
 CLR2     = 0xad5
-_rpi_load = 0xD1A6
+PSGST  = 0x08a9
+_rpi_load = 0xD1B5
 
 _pload:
 	push ix
@@ -430,15 +433,19 @@ _pload:
 	LD	(FILEFG),A
 	LD	(CONTFG),A
 _load:	
+	call PSGST
 	call FLOAD
 	ld a, (FILMOD)
 	cp #2
 	jr nz, bload2
 	im 1
 	ei
+	LD hl, #0xFF00
+	LD  (MEMMAX),HL
+	call MEMSET
 	ld  HL, #0x0adc
 	ld (hl), #0x20
-	LD	HL,#TEXTST
+	LD	HL,(#0x1586)
 	LD	(MTADRS),HL
 	LD	DE,(MTBYTE)
 	ADD	HL,DE	
@@ -448,12 +455,11 @@ _load:
 	CALL MLOAD
 	CALL CVLOAD
 	call CLR2
-	call MEMSET
 	JP	RUN
 bload2:
 	CALL MLOAD
 	ld hl, (MTEXEC)
-	ld a, h
+	ld a, h	
 	or l
 	cp #1
 	jr z, _load

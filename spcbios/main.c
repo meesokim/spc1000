@@ -17,23 +17,21 @@ void main(void)
 	char *files;
 	char *param = "SD:/\\*.tap";
 	p = 0;
-	c = 1;
+	c = 0;
 	pg = 12;
 	memset(data, 0, 0x800);
 	cls();
 	printf(" RPI extension box for SPC1000\n-------------------------------");
 	ch = 0;
 	t = pifiles(param);
-	l = t / pg;
+	l = t / pg - 1;
 	while(1)
 	{
 		gotoxy(0,2);
-		l = listdir(p, c, pg);
+		listdir(p, c, pg);
 		printf("-------------------------------       RETURN for Execution");
-		gotoxy(3,c+2);
+		gotoxy(4,c+2);
 		ch = getchar();
-//		printf("%d\n", ch);
-//		pload(1);
 		switch (ch)
 		{
 			case 0x1d:
@@ -68,6 +66,6 @@ uint8 listdir(uint8 p, uint8 c, uint8 pg)
 		printf("%03d. %-25s\n", i+j, data+s);
 		while(data[s++] != 0);
 	}
-	attr_set(1, 0x840+c*32, 5);
+	attr_set(1, 0x840+c*32, 32);
 	return pg;
 }

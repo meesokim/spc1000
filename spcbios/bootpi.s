@@ -46,12 +46,11 @@ BOOTBAS	   =   0xfb23
 MEMSET	   =   0x33e9
 INITSB	   =   0x0050
 GRAPH	   =   0x1b95
-
+SCRNS0	   =   0x05f3
 start::
 ;   .ascii "SYS"
     ld  ix, #DSKIX
     ld  sp, ix
-	call GRAPH
 ;   call GSAVES
     di
 	xor a
@@ -70,6 +69,8 @@ start::
 	ld de, #0x114
 	ld bc, #634-#8
 	ldir
+	xor a
+	call SCRNS0
 	ld hl, #0xFF00
 	jp MAIN
     

@@ -27,7 +27,12 @@ void putchar(char c)
 	ld a, (hl)
 	cp #0x0a
 	jr nz, next
-	ld a, #0x0d
+	ld hl, (CURXY)
+	inc h
+	xor a
+	ld l, a
+	ld (CURXY), hl
+	ret
 next:
 	call _ACCPRT
 	__endasm;
@@ -166,8 +171,7 @@ void attr_set(char attr, int addr, int length)
 loopd:
 	in a, (c)
 	or d
-	ld d, a
-	out (c), d
+	out (c), a
 	inc bc
 	dec hl
 	ld a,h
@@ -426,10 +430,4 @@ PATCODEE:
 	__endasm;
 }
 
-struct finfo {
-	char name[13];
-	int trk;
-	int sec;
-	unsigned char len256;
-} FInfo;
 

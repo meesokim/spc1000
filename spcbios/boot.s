@@ -59,6 +59,7 @@ start::
     ld  h,  #7
     ld  de, #BIOS+0x800
     call _sd_load
+	LD  SP,#00000
 	im 1
 	ei
 	call #0x56
