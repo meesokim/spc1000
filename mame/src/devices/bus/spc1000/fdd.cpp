@@ -249,7 +249,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 	// this should be m_pio->write on the whole 0x00-0x03 range?
 	static int p = 0, q = 0;
 	static int cmd = 0, len;
-	static char buffer[256*256*64];
+	static char buffer[256*256*64], bufcas[256*256*64/8];
 	static int params[10];
 //	static int args[] {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0,0,0,0,0,2};
 	static int rpi_idx = 0;
@@ -288,7 +288,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 									{
 										rpi_idx = 0;
 										strcpy(drive, "SD:/");
-										strcpy(pattern, "*.tap");
+										strcpy(pattern, "*.tap;*.cas");
 										rpibuf = drive;											
 									}
 									if (m_data0 == 0)
@@ -305,7 +305,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 											{
 												while ((dir = readdir(d)) != NULL)
 												{
-													if (strstr(strlwr(dir->d_name), ".tap"))
+													if (strstr(strlwr(dir->d_name), ".tap") || strstr(strlwr(dir->d_name), ".cas") )
 													{
 														printf("%s\n", dir->d_name);
 														strcpy(filenames+len, dir->d_name);
@@ -349,8 +349,24 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 											fseek(fp, 0L, SEEK_END);
 											length = ftell(fp); rewind(fp);
 											fread(buffer, length, 1, fp);
+											if (filename[pose-2] == 's')
+											{
+												memcpy(bufcas, buffer, length);
+												for(int i = 15; i < length; i++)
+												{
+													buffer[i*8]   = ((bufcas[i] >> 7) & 1) + '0';
+													buffer[i*8+1] = ((bufcas[i] >> 6) & 1) + '0';
+													buffer[i*8+2] = ((bufcas[i] >> 5) & 1) + '0';
+													buffer[i*8+3] = ((bufcas[i] >> 4) & 1) + '0';
+													buffer[i*8+4] = ((bufcas[i] >> 3) & 1) + '0';
+													buffer[i*8+5] = ((bufcas[i] >> 2) & 1) + '0';
+													buffer[i*8+6] = ((bufcas[i] >> 1) & 1) + '0';
+													buffer[i*8+7] = ((bufcas[i] >> 0) & 1) + '0';
+												}
+												length = length * 8;
+											}
 											printf("file %s is opened (%d)\n", filename, length);
-										fflush(stdout);
+											fflush(stdout);
 											q2 = 0;
 										}
 									}
@@ -418,7 +434,10 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 				if (data == 0)
 					m_data3 = (length > q2 ? 0xff : 0);
 				else
+				{
 					m_data3 = (buffer[q2++] > '0' ? 1 : 0);
+				}
+						
 		}
 	}
 	fflush(stdout);

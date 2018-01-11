@@ -70,7 +70,7 @@ start::
 	ld bc, #634-#8
 	ldir
 	xor a
-	call SCRNS0
+;	call SCRNS0
 	ld hl, #0xFF00
 	jp MAIN
     
