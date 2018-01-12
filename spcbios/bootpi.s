@@ -32,6 +32,7 @@ CDISK   =   0x0004      ;current disk number 0=A,...,15=P
 IOBYTE  =   0x0003      ;intel i/o byte
 TICONT  =   0x0036
 DEPRT   =   0x07F3
+CGINT	=	0x554A
 
 SDWRITE     = 1
 SDREAD      = 2
@@ -51,7 +52,6 @@ start::
 ;   .ascii "SYS"
     ld  ix, #DSKIX
     ld  sp, ix
-;   call GSAVES
     di
 	xor a
 	ld  l, a
@@ -61,14 +61,15 @@ start::
     call _sd_load
 	ex  de, hl
 	ld  bc, #0x101
-	ld  h, #7
+	ld  h, #9
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
-	ld hl, #0xcb00 + #0x13d0
+	ld hl, #0xcb00 + #0x1510
 	ld de, #0x114
 	ld bc, #634-#8
 	ldir
+	call GSAVES
 	xor a
 ;	call SCRNS0
 	ld hl, #0xFF00

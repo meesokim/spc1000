@@ -421,15 +421,8 @@ GRAPH	   =   0x1b95
 GSAVES = 0x1bea
 CLR2     = 0xad5
 PSGST  = 0x08a9
-_rpi_load = 0xD1B5
 
 _pload:
-	push ix
-	ld ix,#4
-	add ix,sp	
-	ld l,(ix)
-	ld h,1(ix)
-	call _rpi_load
 	LD	(FILEFG),A
 	LD	(CONTFG),A
 _load:	

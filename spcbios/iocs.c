@@ -119,6 +119,31 @@ void cas_save(unsigned char *data, int len)
 	return;	
 }
 
+void cls2()
+{
+	__asm
+	ld hl, #0x180
+	ld bc, #0x040
+	ld a, #0x20
+	ld d, a
+loope:
+	out (c), d
+	push bc
+	ld a, #0x8
+	add a, b
+	ld b, a
+	xor a
+	out (c), a
+	pop bc
+	inc bc
+	dec hl
+	ld a,h
+	or l
+	jr nz, loope
+	__endasm;
+	return;
+}
+
 void cls()
 {
 	__asm
@@ -126,13 +151,13 @@ void cls()
 	ld bc, #0x000
 	ld a, #0x20
 	ld d, a
-loope:
+loopf:
 	out (c), d
 	inc bc
 	dec hl
 	ld a,h
 	or l
-	jr nz, loope
+	jr nz, loopf
 	__endasm;
 	return;
 }
@@ -237,6 +262,12 @@ brun:
 void pload2(int num)
 {
 	__asm
+	push ix
+	ld ix,#4
+	add ix,sp	
+	ld l,(ix)
+	ld h,1(ix)
+	call _rpi_load	
 	jp PLOAD_FAKE
 	__endasm;
 }

@@ -30,6 +30,7 @@ CLR2      	= 0xad5
 RPI_FILES	= 0x20
 RPI_LOAD	= 0x21
 RPI_SAVE	= 0x22
+RPI_OLDNUM	= 0x23
 		
 _chkfdd::
 	push ix
@@ -206,6 +207,19 @@ RDLOOPx:
 	or  c
 	jr nz, RDLOOPx
 	ret	
+	
+_pioldnum::
+	push de
+	push bc
+	ld d, #RPI_OLDNUM
+	call sendcmd
+	call recvdata
+	ld l, d
+	call recvdata
+	ld h, d
+	pop bc
+	pop de
+	ret;
 
 sendcmd:
     LD	B,#0xC0         	

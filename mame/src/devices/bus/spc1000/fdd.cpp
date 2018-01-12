@@ -20,6 +20,7 @@
 
 #define RPI_FILES 0x20
 #define RPI_LOAD  0x21
+#define RPI_OLDNUM 0x23
 
 
 /***************************************************************************
@@ -256,7 +257,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 	static char drive[256];
 	static char pattern[256];
 	static char *rpibuf, filenames[256*256*9], filenames2[256*256*9], filename[256];
-	static int q2 = 0, pos = 0, pose = 0, length = 0, num = 0;
+	static int q2 = 0, pos = 0, pose = 0, length = 0, num = 0, oldnum = 0;
 	if (offset <= 3) 
 	{
 		switch (offset)
@@ -336,6 +337,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 									if (p == 2)
 									{
 										num = params[2] * 256 + params[1];
+										oldnum = num;
 										pos = 0;
 										while(num--) while(*(filenames+pos++) != '\\');
 										pose = pos; while(*(filenames+pose++) != '\\');
@@ -365,12 +367,14 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 												}
 												length = length * 8;
 											}
-											printf("file %s is opened (%d)\n", filename, length);
+											q2=0;
+											while(buffer[q2] != '1') q2++;
+											printf("file %s is opened (%d)\n", filename, length-q2);
 											fflush(stdout);
-											q2 = 0;
 										}
 									}
 									break;
+
 							}
 							break;
 						case rRFD: // 0x20 --> 0x01
@@ -398,6 +402,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 								else if (m_i8255_1_pc & wDAV)
 								{
 									m_data1 = buffer[q];
+									//printf("%02x,", m_data1);
 								}
 							}
 					}					
@@ -419,6 +424,15 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 								m_ext = 1;
 								params[0] = cmd;
 								m_i8255_1_pc |= wDAC;
+								switch (params[0])
+								{
+									case RPI_OLDNUM:
+										buffer[0] = oldnum & 0xff;
+										buffer[1] = oldnum >> 8;
+										q = 0;
+										printf("oldnum = %d\n", oldnum);
+										break;								
+								}
 							}
 							break;
 						case 0:
@@ -436,6 +450,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 				else
 				{
 					m_data3 = (buffer[q2++] > '0' ? 1 : 0);
+					printf("%c", m_data3+'0');
 				}
 						
 		}

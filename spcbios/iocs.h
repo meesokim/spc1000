@@ -100,6 +100,7 @@ char cas_load(unsigned char *data, int len);
 void cas_save(unsigned char *data, int len);
 
 void cls();
+void cls2();
 char getch();
 void gotoxy(uint8 x, uint8 y);
 #endif
