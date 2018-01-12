@@ -26,7 +26,7 @@ void main(void)
 	printf(" RPI extension box for SPC1000\n-------------------------------");
 	ch = 0;
 	t = pifiles(param);
-	l = t / pg - 1;
+	l = t / pg;
 	num = pioldnum();
 	p = num / pg;
 	c = num % pg;
@@ -80,7 +80,8 @@ uint8 listdir(uint8 p, uint8 c, uint8 pg)
 	attr_clear();
 	for(;j<pg;j++)
 	{
-		printf("%03d. %-25s\n", i+j, data+s);
+		if (*(data+s) != 0)
+			printf("%03d. %-25s\n", i+j, data+s);
 		while(data[s++] != 0);
 	}
 	attr_set(1, 0x840+c*32, 32);

@@ -450,7 +450,7 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 				else
 				{
 					m_data3 = (buffer[q2++] > '0' ? 1 : 0);
-					printf("%c", m_data3+'0');
+					//printf("%c", m_data3+'0');
 				}
 						
 		}

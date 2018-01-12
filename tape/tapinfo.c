@@ -28,6 +28,8 @@ int error = 0;
 int num = 0;
 int split = 0;
 int fpos = 0;
+int bin = 0;
+char binfilename[256];
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
 {
@@ -49,6 +51,19 @@ void writefile(FILE *OUT, byte *b, int len, int csum)
 		}
 		for(int i = 0; i < 200; i++)
 			fprintf(OUT, "0");
+	}
+}
+
+void binfile(byte *b, int len)
+{
+	char filename[1024];
+	sprintf(filename, "%s-%d.bin", binfilename, bin++);
+	printf("%s ... created\n", filename);
+	FILE *f = fopen(filename, "wb");
+	if (f)
+	{
+		fwrite(b, 1, len, f); 
+		fclose(f);
 	}
 }
 
@@ -104,6 +119,8 @@ int main(int argc, char **argv) {
 		pos = atoi(argv[2]);
 		if (*argv[2] == '-' || (argc > 3 && *argv[3] == '-'))
 			split = 1;
+		if (*argv[2] == 'b')
+			bin = 1;
 	} else if (argc <= 2) {
 	}
 	strict = 1;
@@ -116,6 +133,7 @@ int main(int argc, char **argv) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
 	}//if
+	strcpy(binfilename, argv[1]);
 	while (1)
 	{
 		length = dump(length);
@@ -250,8 +268,11 @@ int dump(int len) {
 		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));		
+		printf("bin: %d\n", bin);
 		if (TAP)
 			writefile(TAP, b, d, csum);
+		if (bin)
+			binfile(b, d);
 	}
 	return 0;
 }

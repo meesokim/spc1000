@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
 	int	i,j;
 	int cs = 0;
 	int dotpos = 0, slashpos = 0;
+	int datastart = 0;
 	HEADER *head;
 	char block[126];
 	head = (HEADER *) &block[0];
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		datastart=atoh(argv[3]);
+		datastart=strtol(argv[3], NULL, 16);
 		if ((datastart<0)||(datastart>65536))
 		{
 			fprintf(stdout,"Invalid start address: B Integer Out of Range");
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
         fprintf(stdout,"Can't open input file\n");
 		exit(1);
 	}
-	if (strcasecmp(argv[1] + strlen(argv[1]) - 3, "ihx") == 0 || strcasecmp(argv[1] + strlen(argv[1]) - 5, "ihex"))
+	if (strcasecmp(argv[1] + strlen(argv[1]) - 3, "ihx") == 0 || strcasecmp(argv[1] + strlen(argv[1]) - 5, "ihex") == 0)
 	{
 		parseIHEX(fpin);
 	}
@@ -137,6 +138,7 @@ int main(int argc, char *argv[])
 			binary[datastart + i++] = c;
 		}
 		len = i;
+		printf("%d\n", len);
 	}
 
 /*
@@ -297,7 +299,8 @@ void parseIHEX(FILE *fp)
 	char str[2048];
 	int i, count, type, addr = 0xffff, cs, dataend = 0;
 	len = 0;
-	datastart = addr;
+	if (datastart == 0)
+		datastart = addr;
 	while((cs = fscanf(fp, "%s", str)) != EOF)
 	{
 		if (str[0] == ':')

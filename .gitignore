@@ -1,6 +1,8 @@
 cfg
 *.bin
 *.map
-*.ini
 *.o
 *.rel
+*.lst
+*.sym
+*.noi

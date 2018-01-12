@@ -1,0 +1,2 @@
+#!/bin/bash
+~/mame/mame64 spc1000 -skip_gameinfo -ext1 fdd -flop1 system.d88 $@

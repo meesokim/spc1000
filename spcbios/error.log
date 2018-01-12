@@ -1,0 +1,29 @@
+﻿[:screen] :screen: Deprecated legacy Old Style screen configured (MCFG_SCREEN_VBLANK_TIME), please use MCFG_SCREEN_RAW_PARAMS instead.
+[:ay8910] AY-3-8910A PSG using legacy output levels!
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_spin_start_empty' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_spin_start_loaded' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_spin_empty' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_spin_loaded' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_spin_end' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_step_1_1' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_seek_2ms' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_seek_6ms' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_seek_12ms' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:floppysound] :ext1:fdd:upd765:0:sd320:floppysound: Sample '35_seek_20ms' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_spin_start_empty' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_spin_start_loaded' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_spin_empty' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_spin_loaded' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_spin_end' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_step_1_1' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_seek_2ms' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_seek_6ms' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_seek_12ms' NOT FOUND
+[:ext1:fdd:upd765:1:sd320:floppysound] :ext1:fdd:upd765:1:sd320:floppysound: Sample '35_seek_20ms' NOT FOUND
+[:ext1:fdd:upd765:0:sd320:flopsndout] Warning: mixer ":ext1:fdd:upd765:0:sd320:flopsndout" has no inputs
+[:ext1:fdd:upd765:1:sd320:flopsndout] Warning: mixer ":ext1:fdd:upd765:1:sd320:flopsndout" has no inputs
+Soft reset
+[:ext1:fdd] ':ext1:fdd:fdccpu' (0105): control_w(01)
+[:ext1:fdd] ':ext1:fdd:fdccpu' (0316): tc_r
+[:ext1:fdd] ':ext1:fdd:fdccpu' (0316): tc_r
+[:ext1:fdd] ':ext1:fdd:fdccpu' (0316): tc_r
