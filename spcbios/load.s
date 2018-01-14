@@ -438,7 +438,7 @@ _load:
 	call MEMSET
 	ld  HL, #0x0adc
 	ld (hl), #0x20
-	LD	HL,(#0x1586)
+	LD	HL,(#0x3a9d)
 	LD	(MTADRS),HL
 	LD	DE,(MTBYTE)
 	ADD	HL,DE	
@@ -447,7 +447,7 @@ _load:
 	SBC	HL,DE
 	CALL MLOAD
 	CALL CVLOAD
-	call CLR2
+	;call CLR2
 	JP	RUN
 bload2:
 	CALL MLOAD

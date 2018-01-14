@@ -29,6 +29,7 @@ int num = 0;
 int split = 0;
 int fpos = 0;
 int bin = 0;
+int reverse = 0;
 char binfilename[256];
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
@@ -73,7 +74,11 @@ int getByte(FILE *in)
 	char c;
 	v = 0;
 	for(i = 0; i < 8; i++) {
-		v += (fgetc2(in) == '1' ? 1 << (7-i) : 0);
+		if (!reverse)
+			v += (fgetc2(in) == '1' ? 1 << (7-i) : 0);
+		else
+			v += (fgetc2(in) == '1' ? 1 << i : 0);
+
 	}
 	c = fgetc2(in);
 	if (c != '1' && c != '#')
@@ -121,6 +126,13 @@ int main(int argc, char **argv) {
 			split = 1;
 		if (*argv[2] == 'b')
 			bin = 1;
+		if (*argv[2] == 'r')
+			reverse = 1;
+		if (*argv[2] == 'R')
+		{
+			reverse = 1;
+			split = 1;
+		}
 	} else if (argc <= 2) {
 	}
 	strict = 1;
@@ -216,6 +228,11 @@ int dump(int len) {
 	}
 	csum1 += getByte(IN) << 8;
 	csum1 += getByte(IN);
+	if (reverse)
+	{
+		csum1 = ~csum1;
+		csum1 &= 0xffff;
+	}
 	if (d == 128) 
 	{
 		head = (HEADER *) b;
