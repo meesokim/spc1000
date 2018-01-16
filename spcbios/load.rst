@@ -472,7 +472,7 @@ Hexadecimal [16-Bits]
    0291 CD 14 01      [17]  430 	call FLOAD
    0294 3A 96 13      [13]  431 	ld a, (FILMOD)
    0297 FE 02         [ 7]  432 	cp #2
-   0299 20 2E         [12]  433 	jr nz, bload2
+   0299 20 2B         [12]  433 	jr nz, bload2
    029B ED 56         [ 8]  434 	im 1
    029D FB            [ 4]  435 	ei
    029E 21 00 FF      [10]  436 	LD hl, #0xFF00
@@ -485,7 +485,7 @@ Hexadecimal [16-Bits]
 
    02A7 21 DC 0A      [10]  439 	ld  HL, #0x0adc
    02AA 36 20         [10]  440 	ld (hl), #0x20
-   02AC 2A 86 15      [16]  441 	LD	HL,(#0x1586)
+   02AC 2A 9D 3A      [16]  441 	LD	HL,(#0x3a9d)
    02AF 22 AA 13      [16]  442 	LD	(MTADRS),HL
    02B2 ED 5B A8 13   [20]  443 	LD	DE,(MTBYTE)
    02B6 19            [11]  444 	ADD	HL,DE	
@@ -494,20 +494,20 @@ Hexadecimal [16-Bits]
    02BB ED 52         [15]  447 	SBC	HL,DE
    02BD CD 34 01      [17]  448 	CALL MLOAD
    02C0 CD B9 39      [17]  449 	CALL CVLOAD
-   02C3 CD D5 0A      [17]  450 	call CLR2
-   02C6 C3 C3 15      [10]  451 	JP	RUN
-   02C9                     452 bload2:
-   02C9 CD 34 01      [17]  453 	CALL MLOAD
-   02CC 2A AC 13      [16]  454 	ld hl, (MTEXEC)
-   02CF 7C            [ 4]  455 	ld a, h	
-   02D0 B5            [ 4]  456 	or l
-   02D1 FE 01         [ 7]  457 	cp #1
-   02D3 28 B9         [12]  458 	jr z, _load
-   02D5 B7            [ 4]  459 	or a
-   02D6 20 03         [12]  460 	jr nz, brun
-   02D8 2A AA 13      [16]  461 	ld hl, (MTADRS)
-   02DB                     462 brun:	
-   02DB E9            [ 4]  463 	jp (hl)
+                            450 	;call CLR2
+   02C3 C3 C3 15      [10]  451 	JP	RUN
+   02C6                     452 bload2:
+   02C6 CD 34 01      [17]  453 	CALL MLOAD
+   02C9 2A AC 13      [16]  454 	ld hl, (MTEXEC)
+   02CC 7C            [ 4]  455 	ld a, h	
+   02CD B5            [ 4]  456 	or l
+   02CE FE 01         [ 7]  457 	cp #1
+   02D0 28 BC         [12]  458 	jr z, _load
+   02D2 B7            [ 4]  459 	or a
+   02D3 20 03         [12]  460 	jr nz, brun
+   02D5 2A AA 13      [16]  461 	ld hl, (MTADRS)
+   02D8                     462 brun:	
+   02D8 E9            [ 4]  463 	jp (hl)
                             464 ;	call #NEW
                             465 ;	call #CLR
                             466 ;	LD	SP,(#STRTOP)
@@ -549,8 +549,8 @@ Symbol Table
     PROTCT  =  13AE     |     PSGST   =  08A9     |     RUN     =  15C3 
     TEXTST  =  7C4E     |   7 VBLOAD     0220 R   |   7 VBLOD1     0229 R
   7 VBLOD2     023C R   |   7 VBLOD3     024A R   |   8 WRITEM     0375 R
-  7 _load      028E R   |   7 _pload     0288 R   |   7 bload2     02C9 R
-  7 brun       02DB R
+  7 _load      028E R   |   7 _pload     0288 R   |   7 bload2     02C6 R
+  7 brun       02D8 R
 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 11.
 Hexadecimal [16-Bits]
@@ -564,6 +564,6 @@ Area Table
    4 _HEADER    size    0   flags    8
    5 _HEADER0   size   27   flags    8
    6 _HEADER1   size   76   flags    8
-   7 _HEADER2   size  123   flags    8
+   7 _HEADER2   size  120   flags    8
    8 _HEADER3   size    9   flags    8
 
