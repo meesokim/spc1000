@@ -1,0 +1,1780 @@
+;Z80-Assembler		Release 1.6				Page 1
+;Source file: spc-1000_cpm_bios.asm
+;Title:       
+
+;SOURCE CODE   LOC   OBJECT CODE   
+                                        ;                       1      1 ;	Z80 CBIOS for SPC-1000
+                                        ;                       2      2 ;
+                                        ;                       3      3 ;	Copyright (C) 1988-2007 by Udo Munk
+                                        ;                       4      4 ;	Copyright (C) 2014 by Miso Kim
+                                        ;                       5      5 ;
+MSIZE   EQU 58                          ;003a                   6      6 ;cp/m version memory size in kilobytes
+                                        ;                       7      7 ;	include "spc-1000_all.inc"
+                                        ;                       8      8 ;ACCPRT  	EQU 00864H
+                                        ;                       9      9 ;ASCGET  	EQU 00C62H
+                                        ;                      10     10 ;ACCOUT  	EQU 008D9H
+                                        ;                      11     11 ;ACCDIS  	EQU 008DEH
+                                        ;                      12     12 ;GACPRT  	EQU 0094FH
+                                        ;                      13     13 ;CR1     	EQU 00843H
+                                        ;                      14     14 ;CR2     	EQU 00823H
+KEYBUF      EQU 07A4FH                  ;7a4f                  15     15 
+                                        ;                      16     16 ;
+                                        ;                      17     17 ;	"bias" is address offset from 3400H for memory systems
+                                        ;                      18     18 ;	than 16K (referred to as "b" throughout the text).
+                                        ;                      19     19 ;
+BIAS    EQU (MSIZE-20)*1024             ;9800                  20     20 
+CCP     EQU 3400H+BIAS                  ;cc00                  21     21 ;base of ccp
+BDOS    EQU CCP+806H                    ;d406                  22     22 ;base of bdos
+BIOS    EQU CCP+1600H                   ;e200                  23     23 ;base of bios
+NSECTS  EQU (BIOS-CCP)/128              ;002c                  24     24 ;warm start sector count
+CDISK   EQU 0004H                       ;0004                  25     25 ;current disk number 0=A,...,15=P
+IOBYTE  EQU 0003H                       ;0003                  26     26 ;intel i/o byte
+                                        ;                      27     27 ;
+                                        ;                      28     28 ;	I/O ports
+                                        ;                      29     29 ;
+CONSTA  EQU 0                           ;0000                  30     30 ;console status port
+CONDAT  EQU 1                           ;0001                  31     31 ;console data port
+PRTSTA  EQU 2                           ;0002                  32     32 ;printer status port
+PRTDAT  EQU 3                           ;0003                  33     33 ;printer data port
+AUXDAT  EQU 5                           ;0005                  34     34 ;auxiliary data port
+FDCD    EQU 10                          ;000a                  35     35 ;fdc-port: # of drive
+FDCT    EQU 11                          ;000b                  36     36 ;fdc-port: # of track
+FDCS    EQU 12                          ;000c                  37     37 ;fdc-port: # of sector
+FDCOP   EQU 13                          ;000d                  38     38 ;fdc-port: command
+FDCST   EQU 14                          ;000e                  39     39 ;fdc-port: status
+DMAL    EQU 15                          ;000f                  40     40 ;dma-port: dma address low
+DMAH    EQU 16                          ;0010                  41     41 ;dma-port: dma address high
+                                        ;                      42     42 ;
+    ORG BIOS                            ;                      43     43 ;origin of this program
+                                        ;                      44     44 ;
+                                        ;                      45     45 ;	jump vector for individual subroutines
+                                        ;                      46     46 ;
+    JP  BOOT                            ;e200  c3 d0 e2        47     47 ;cold start
+WBOOTE: JP  WBOOT                       ;e203  c3 f9 e2        48     48 ;warm start
+    JP  CONST                           ;e206  c3 64 e3        49     49 ;console status
+    JP  CONIN                           ;e209  c3 6c e3        50     50 ;console character in
+    JP  CONOUT                          ;e20c  c3 70 e3        51     51 ;console character out
+    JP  LIST                            ;e20f  c3 77 e3        52     52 ;list character out
+    JP  PUNCHS                          ;e212  c3 7c e3        53     53 ;punch character out
+    JP  READER                          ;e215  c3 7e e3        54     54 ;reader character in
+    JP  HOME                            ;e218  c3 7f e3        55     55 ;move head to home position
+    JP  SELDSK                          ;e21b  c3 84 e3        56     56 ;select disk
+    JP  SETTRK                          ;e21e  c3 a8 e3        57     57 ;set track number
+    JP  SETSEC                          ;e221  c3 b7 e3        58     58 ;set sector number
+    JP  SETDMA                          ;e224  c3 e0 e3        59     59 ;set dma address
+    JP  READ                            ;e227  c3 e5 e3        60     60 ;read disk
+    JP  WRITE                           ;e22a  c3 3b e4        61     61 ;write disk
+    JP  LISTST                          ;e22d  c3 79 e3        62     62 ;return list status
+    JP  SECTRAN                         ;e230  c3 cf e3        63     63 ;sector translate
+                                        ;                      64     64 ;
+                                        ;                      65     65 ;	fixed data tables for four-drive standard
+                                        ;                      66     66 ;	IBM-compatible 8" SD disks
+                                        ;                      67     67 ;
+                                        ;                      68     68 ;	disk parameter header for disk 00
+DPBASE:                                 ;                      69     69 
+    DEFW    0000H,0000H                 ;e233  00 00 00 00     70     70 
+    DEFW    0000H,0000H                 ;e237  00 00 00 00     71     71 
+    DEFW    DIRBF,DPBLK                 ;e23b  13 ec 6d e2     72     72 
+    DEFW    CHK00,ALL00                 ;e23f  0d ef 93 ec     73     73 
+                                        ;                      74     74 ;	disk parameter header for disk 01
+    DEFW    0000H,0000H                 ;e243  00 00 00 00     75     75 
+    DEFW    0000H,0000H                 ;e247  00 00 00 00     76     76 
+    DEFW    DIRBF,DPBLK                 ;e24b  13 ec 6d e2     77     77 
+    DEFW    CHK01,ALL01                 ;e24f  1d ef b2 ec     78     78 
+                                        ;                      79     79 ;
+                                        ;                      80     80 ;	sector translate vector for the IBM 8" SD disks
+                                        ;                      81     81 ;
+TRANS:                                  ;                      82     82 
+    DEFB    1,7,13,19                   ;e253  01 07 0d 13     83     83 ;sectors 1,2,3,4
+    DEFB    25,5,11,17                  ;e257  19 05 0b 11     84     84 ;sectors 5,6,7,8
+    DEFB    23,3,9,15                   ;e25b  17 03 09 0f     85     85 ;sectors 9,10,11,12
+    DEFB    21,2,8,14                   ;e25f  15 02 08 0e     86     86 ;sectors 13,14,15,16
+    DEFB    20,26,6,12                  ;e263  14 1a 06 0c     87     87 ;sectors 17,18,19,20
+    DEFB    18,24,4,10                  ;e267  12 18 04 0a     88     88 ;sectors 21,22,23,24
+    DEFB    16,22                       ;e26b  10 16           89     89 ;sectors 25,26
+                                        ;                      90     90 ;
+                                        ;                      91     91 ;	disk parameter block, SD725 (from TF-20)
+                                        ;                      92     92 ;
+DPBLK:                                  ;                      93     93 
+    DEFW    32                          ;e26d  20 00           94     94 ;sectors per track
+    DEFB    4                           ;e26f  04              95     95 ;block shift factor
+    DEFB    15                          ;e270  0f              96     96 ;block mask
+    DEFB    1                           ;e271  01              97     97 ;extent mask
+    DEFW    153                         ;e272  99 00           98     98 ;disk size-1
+    DEFW    127                         ;e274  7f 00           99     99 ;directory max
+    DEFB    0C0H                        ;e276  c0             100    100 ;alloc 0
+    DEFB    0                           ;e277  00             101    101 ;alloc 1
+    DEFW    32                          ;e278  20 00          102    102 ;check size
+    DEFW    3                           ;e27a  03 00          103    103 ;track offset
+                                        ;                     104    104 ;
+                                        ;                     105    105 ;	messages
+                                        ;                     106    106 ;
+SIGNON:                                 ;                     107    107 
+    DEFM    '58K CP/M Version 2.2'      ;e27c  35 38 4b 20    108    108 
+                                        ;e280  43 50 2f 4d    108    109
+                                        ;e284  20 56 65 72    108    110
+                                        ;e288  73 69 6f 6e    108    111
+                                        ;e28c  20 32 2e 32    108    112
+    DEFB    13,10                       ;e290  0d 0a          109    113 
+    DEFM    '(for SPC-1000 with SD-725)';e292  28 66 6f 72    110    114 
+                                        ;e296  20 53 50 43    110    115
+                                        ;e29a  2d 31 30 30    110    116
+                                        ;e29e  30 20 77 69    110    117
+                                        ;e2a2  74 68 20 53    110    118
+                                        ;e2a6  44 2d 37 32    110    119
+                                        ;e2aa  35 29          110    120
+    DEFB    13,10,0                     ;e2ac  0d 0a 00       111    121 
+                                        ;                     112    122 ;
+LDERR:                                  ;                     113    123 
+    DEFM    'BIOS: error booting'       ;e2af  42 49 4f 53    114    124 
+                                        ;e2b3  3a 20 65 72    114    125
+                                        ;e2b7  72 6f 72 20    114    126
+                                        ;e2bb  62 6f 6f 74    114    127
+                                        ;e2bf  69 6e 67       114    128
+    DEFB    13,10,0                     ;e2c2  0d 0a 00       115    129 
+                                        ;                     116    130 
+                                        ;                     117    131 ;
+                                        ;                     118    132 ;	end of fixed tables
+                                        ;                     119    133 ;
+                                        ;                     120    134 ;	utility functions
+                                        ;                     121    135 ;
+                                        ;                     122    136 ;	print a 0 terminated string to console device
+                                        ;                     123    137 ;	pointer to string in HL
+                                        ;                     124    138 ;
+PRTMSG: LD  A,(HL)                      ;e2c5  7e             125    139 
+    OR  A                               ;e2c6  b7             126    140 
+    RET Z                               ;e2c7  c8             127    141 
+    LD  C,A                             ;e2c8  4f             128    142 
+    CALL    CONOUT                      ;e2c9  cd 70 e3       129    143 
+    INC HL                              ;e2cc  23             130    144 
+    JP  PRTMSG                          ;e2cd  c3 c5 e2       131    145 
+                                        ;                     132    146 ;
+                                        ;                     133    147 ;	individual subroutines to perform each function
+                                        ;                     134    148 ;	simplest case is to just perform parameter initialization
+                                        ;                     135    149 ;
+BOOT:                                   ;                     136    150 
+    LD  SP,80H                          ;e2d0  31 80 00       137    151 ;use space below buffer for stack
+    XOR A                               ;e2d3  af             138    152 
+    LD  BC, 06000h                      ;e2d4  01 00 60       139    153 
+    OUT (C), A                          ;e2d7  ed 79          140    154 
+    ld  a, 8eh                          ;e2d9  3e 8e          141    155 
+    LD  BC, 02000h                      ;e2db  01 00 20       142    156 
+    OUT (C), a                          ;e2de  ed 79          143    157 
+    DEC BC                              ;e2e0  0b             144    158 
+CLS3:                                   ;                     145    159 
+    XOR A                               ;e2e1  af             146    160 
+    OUT (C), A                          ;e2e2  ed 79          147    161 
+    DEC BC                              ;e2e4  0b             148    162 
+    LD  A,B                             ;e2e5  78             149    163 
+    OR  C                               ;e2e6  b1             150    164 
+    JR  NZ, CLS3                        ;e2e7  20 f8          151    165 
+    LD  HL,SIGNON                       ;e2e9  21 7c e2       152    166 ;print message
+    CALL    PRTMSG                      ;e2ec  cd c5 e2       153    167 
+    XOR A                               ;e2ef  af             154    168 ;zero in the accum
+    LD  (IOBYTE),A                      ;e2f0  32 03 00       155    169 ;clear the iobyte
+    LD  (CDISK),A                       ;e2f3  32 04 00       156    170 ;select disk zero
+    JP  GOCPM                           ;e2f6  c3 43 e3       157    171 ;initialize and go to cp/m
+                                        ;                     158    172 ;
+                                        ;                     159    173 ;	simplest case is to read the disk until all sectors loaded
+                                        ;                     160    174 ;
+WBOOT:  LD  SP,80H                      ;e2f9  31 80 00       161    175 ;use space below buffer for stack
+    LD  C,0                             ;e2fc  0e 00          162    176 ;select disk 0
+    CALL    SELDSK                      ;e2fe  cd 84 e3       163    177 
+    CALL    HOME                        ;e301  cd 7f e3       164    178 ;go to track 00
+                                        ;                     165    179 ;
+    LD  B,NSECTS                        ;e304  06 2c          166    180 ;b counts # of sectors to load
+    LD  C,0                             ;e306  0e 00          167    181 ;c has the current track number
+    LD  D,4                             ;e308  16 04          168    182 ;d has the next sector to read
+                                        ;                     169    183 ;	note that we begin by reading track 0, sector 2 since sector 1
+                                        ;                     170    184 ;	contains the cold start loader, which is skipped in a warm start
+    LD  HL,CCP                          ;e30a  21 00 cc       171    185 ;base of cp/m (initial load point)
+LOAD1:                                  ;                     172    186 ;load one more sector
+    PUSH    BC                          ;e30d  c5             173    187 ;save sector count, current track
+    PUSH    DE                          ;e30e  d5             174    188 ;save next sector to read
+    PUSH    HL                          ;e30f  e5             175    189 ;save dma address
+    LD  C,D                             ;e310  4a             176    190 ;get sector address to register c
+    CALL    SETSEC                      ;e311  cd b7 e3       177    191 ;set sector address from register c
+    POP BC                              ;e314  c1             178    192 ;recall dma address to b,c
+    PUSH    BC                          ;e315  c5             179    193 ;replace on stack for later recall
+    CALL    SETDMA                      ;e316  cd e0 e3       180    194 ;set dma address from b,c
+                                        ;                     181    195 ;	drive set to 0, track set, sector set, dma address set
+    CALL    READ                        ;e319  cd e5 e3       182    196 
+    OR  A                               ;e31c  b7             183    197 ;any errors?
+    JP  Z,LOAD2                         ;e31d  ca 28 e3       184    198 ;no, continue
+    LD  HL,LDERR                        ;e320  21 af e2       185    199 ;error, print message
+    CALL    PRTMSG                      ;e323  cd c5 e2       186    200 
+    DI                                  ;e326  f3             187    201 ;and halt the machine
+    HALT                                ;e327  76             188    202 
+                                        ;                     189    203 ;	no error, move to next sector
+LOAD2:  POP HL                          ;e328  e1             190    204 ;recall dma address
+    LD  DE,128                          ;e329  11 80 00       191    205 ;dma=dma+128
+    ADD HL,DE                           ;e32c  19             192    206 ;new dma address is in h,l
+    POP DE                              ;e32d  d1             193    207 ;recall sector address
+    POP BC                              ;e32e  c1             194    208 ;recall number of sectors remaining,
+                                        ;                     195    209 ;and current trk
+    DEC B                               ;e32f  05             196    210 ;sectors=sectors-1
+    JP  Z,GOCPM                         ;e330  ca 43 e3       197    211 ;transfer to cp/m if all have been loaded
+                                        ;                     198    212 ;	more sectors remain to load, check for track change
+    INC D                               ;e333  14             199    213 
+    LD  A,D                             ;e334  7a             200    214 ;sector=27?, if so, change tracks
+    CP  31                              ;e335  fe 1f          201    215 
+    JP  C,LOAD1                         ;e337  da 0d e3       202    216 ;carry generated if sector<27
+                                        ;                     203    217 ;	end of current track, go to next track
+    LD  D,1                             ;e33a  16 01          204    218 ;begin with first sector of next track
+    INC C                               ;e33c  0c             205    219 ;track=track+1
+                                        ;                     206    220 ;	save register state, and change tracks
+    CALL    SETTRK                      ;e33d  cd a8 e3       207    221 ;track address set from register c
+    JP  LOAD1                           ;e340  c3 0d e3       208    222 ;for another sector
+                                        ;                     209    223 ;	end of load operation, set parameters and go to cp/m
+GOCPM:                                  ;                     210    224 
+    LD  A,0C3H                          ;e343  3e c3          211    225 ;c3 is a jmp instruction
+    LD  (0),A                           ;e345  32 00 00       212    226 ;for jmp to wboot
+    LD  HL,WBOOTE                       ;e348  21 03 e2       213    227 ;wboot entry point
+    LD  (1),HL                          ;e34b  22 01 00       214    228 ;set address field for jmp at 0
+                                        ;                     215    229 ;
+    LD  (5),A                           ;e34e  32 05 00       216    230 ;for jmp to bdos
+    LD  HL,BDOS                         ;e351  21 06 d4       217    231 ;bdos entry point
+    LD  (6),HL                          ;e354  22 06 00       218    232 ;address field of jump at 5 to bdos
+                                        ;                     219    233 ;
+    LD  BC,80H                          ;e357  01 80 00       220    234 ;default dma address is 80h
+    CALL    SETDMA                      ;e35a  cd e0 e3       221    235 
+                                        ;                     222    236 ;
+    LD  A,(CDISK)                       ;e35d  3a 04 00       223    237 ;get current disk number
+    LD  C,A                             ;e360  4f             224    238 ;send to the ccp
+    JP  CCP                             ;e361  c3 00 cc       225    239 ;go to cp/m for further processing
+                                        ;                     226    240 ;
+                                        ;                     227    241 ;
+                                        ;                     228    242 ;	simple i/o handlers
+                                        ;                     229    243 ;
+                                        ;                     230    244 ;	console status, return 0ffh if character ready, 00h if not
+                                        ;                     231    245 ;
+CONST:                                  ;                     232    246 
+                                        ;                     233    247 ;    IN	A,(CONSTA)	;get console status
+    LD A, (KEYBUF)                      ;e364  3a 4f 7a       234    248 
+    OR A                                ;e367  b7             235    249 
+    RET NZ                              ;e368  c0             236    250 
+    LD A, 0ffh                          ;e369  3e ff          237    251 
+    RET                                 ;e36b  c9             238    252 
+                                        ;                     239    253 ;
+                                        ;                     240    254 ;	console character into register a
+                                        ;                     241    255 ;
+CONIN:                                  ;                     242    256 
+                                        ;                     243    257 ;	IN	A,(CONDAT)	;get character from console
+    CALL ASCGET1                        ;e36c  cd 1b e5       244    258 ; SPC-1000 IOCS
+    RET                                 ;e36f  c9             245    259 
+                                        ;                     246    260 ;
+                                        ;                     247    261 ;	console character output from register c
+                                        ;                     248    262 ;
+CONOUT:                                 ;                     249    263 
+    LD  A,C                             ;e370  79             250    264 ;get to accumulator
+                                        ;                     251    265 ;	OUT	(CONDAT),A	;send character to console
+                                        ;                     252    266 ;	CP 13
+                                        ;                     253    267 ;	JR NZ, ASCPRT
+                                        ;                     254    268 ;	CALL CR2
+                                        ;                     255    269 ;	RET
+ASCPRT:                                 ;                     256    270 
+    PUSH HL                             ;e371  e5             257    271 
+    CALL ACCPRT1                        ;e372  cd a8 e7       258    272 
+    POP  HL                             ;e375  e1             259    273 
+    RET                                 ;e376  c9             260    274 
+                                        ;                     261    275 ;
+                                        ;                     262    276 ;	list character from register c
+                                        ;                     263    277 ;
+LIST:   LD  A,C                         ;e377  79             264    278 ;character to register a
+                                        ;                     265    279 ;	OUT	(PRTDAT),A
+                                        ;                     266    280 
+    RET                                 ;e378  c9             267    281 
+                                        ;                     268    282 ;
+                                        ;                     269    283 ;	return list status (00h if not ready, 0ffh if ready)
+                                        ;                     270    284 ;
+LISTST:                                 ;                     271    285 
+                                        ;                     272    286 ;	IN	A,(PRTSTA)
+    LD  A, 0                            ;e379  3e 00          273    287 
+    RET                                 ;e37b  c9             274    288 
+                                        ;                     275    289 ;
+                                        ;                     276    290 ;	punch character from register c
+                                        ;                     277    291 ;
+PUNCHS:                                 ;                     278    292 
+    LD  A,C                             ;e37c  79             279    293 ;character to register a
+                                        ;                     280    294 ;	OUT	(AUXDAT),A
+    RET                                 ;e37d  c9             281    295 
+                                        ;                     282    296 ;
+                                        ;                     283    297 ;	read character into register a from reader device
+                                        ;                     284    298 ;
+READER:                                 ;                     285    299 
+                                        ;                     286    300 ;	IN	A,(AUXDAT)
+    RET                                 ;e37e  c9             287    301 
+                                        ;                     288    302 ;
+                                        ;                     289    303 ;
+                                        ;                     290    304 ;	i/o drivers for the disk follow
+                                        ;                     291    305 ;
+                                        ;                     292    306 ;	move to the track 00 position of current drive
+                                        ;                     293    307 ;	translate this call into a settrk call with parameter 00
+                                        ;                     294    308 ;
+HOME:   LD  C,0                         ;e37f  0e 00          295    309 ;select track 0
+    JP  SETTRK                          ;e381  c3 a8 e3       296    310 ;we will move to 00 on first read/write
+                                        ;                     297    311 ;
+                                        ;                     298    312 ;	select disk given by register C
+                                        ;                     299    313 ;
+SELDSK: LD  HL,0000H                    ;e384  21 00 00       300    314 ;error return code
+    LD  A,C                             ;e387  79             301    315 
+    CP  2                               ;e388  fe 02          302    316 ;FD drive 0-1?
+    JR  C,SELFD                         ;e38a  38 01          303    317 ;go
+    RET                                 ;e38c  c9             304    318 ;no, error
+                                        ;                     305    319 ;	disk number is in the proper range
+                                        ;                     306    320 ;	compute proper disk parameter header address
+SELFD:                                  ;                     307    321 
+    LD  C,A                             ;e38d  4f             308    322 
+    LD  A,(FDD#D)                       ;e38e  3a 0d e5       309    323 
+    CP  C                               ;e391  b9             310    324 
+    JR  Z,SELFD$                        ;e392  28 05          311    325 
+    LD HL,CHGFLG                        ;e394  21 12 e5       312    326 
+    SET 2,(HL)                          ;e397  cb d6          313    327 
+SELFD$:                                 ;                     314    328 
+    LD H,0                              ;e399  26 00          315    329 
+    LD (FDD#D),A                        ;e39b  32 0d e5       316    330 
+    LD  L,A                             ;e39e  6f             317    331 ;L=disk number 0,1,2,3
+    ADD HL,HL                           ;e39f  29             318    332 ;*2
+    ADD HL,HL                           ;e3a0  29             319    333 ;*4
+    ADD HL,HL                           ;e3a1  29             320    334 ;*8
+    ADD HL,HL                           ;e3a2  29             321    335 ;*16 (size of each header)
+    LD  DE,DPBASE                       ;e3a3  11 33 e2       322    336 
+    ADD HL,DE                           ;e3a6  19             323    337 ;HL=.dpbase(diskno*16)
+    RET                                 ;e3a7  c9             324    338 
+                                        ;                     325    339 ;
+                                        ;                     326    340 ;	set track given by register c
+                                        ;                     327    341 ;
+SETTRK:                                 ;                     328    342 
+                                        ;                     329    343 ;	LD	A,C
+                                        ;                     330    344 ;	OUT	(FDCT),A
+    LD A,(FDD#T)                        ;e3a8  3a 0e e5       331    345 
+    CP C                                ;e3ab  b9             332    346 
+    RET Z                               ;e3ac  c8             333    347 
+    LD HL,CHGFLG                        ;e3ad  21 12 e5       334    348 
+    SET 1,(HL)                          ;e3b0  cb ce          335    349 
+    LD  A,C                             ;e3b2  79             336    350 
+    LD (FDD#T),A                        ;e3b3  32 0e e5       337    351 
+    RET                                 ;e3b6  c9             338    352 
+                                        ;                     339    353 ;
+                                        ;                     340    354 ;	set sector given by register c
+                                        ;                     341    355 ;
+SETSEC:                                 ;                     342    356 
+                                        ;                     343    357 ;	LD	A,C
+                                        ;                     344    358 ;	OUT	(FDCS),A
+    DEC C                               ;e3b7  0d             345    359 
+    LD B,C                              ;e3b8  41             346    360 
+    XOR A                               ;e3b9  af             347    361 
+    LD A,(FDD#S)                        ;e3ba  3a 0f e5       348    362 
+    RR A                                ;e3bd  cb 1f          349    363 
+    OR A                                ;e3bf  b7             350    364 
+    RR C                                ;e3c0  cb 19          351    365 
+    CP C                                ;e3c2  b9             352    366 
+    JR Z, SETSEC0                       ;e3c3  28 05          353    367 
+    LD HL,CHGFLG                        ;e3c5  21 12 e5       354    368 
+    SET 0,(HL)                          ;e3c8  cb c6          355    369 
+SETSEC0:                                ;                     356    370 
+    LD  A,B                             ;e3ca  78             357    371 
+    LD (FDD#S),A                        ;e3cb  32 0f e5       358    372 
+    RET                                 ;e3ce  c9             359    373 
+                                        ;                     360    374 ;
+                                        ;                     361    375 ;	translate the sector given by BC using the
+                                        ;                     362    376 ;	translate table given by DE
+                                        ;                     363    377 ;
+SECTRAN:                                ;                     364    378 
+    LD  A,D                             ;e3cf  7a             365    379 ;do we have a translation table?
+    OR  E                               ;e3d0  b3             366    380 
+    JP  NZ,SECT1                        ;e3d1  c2 da e3       367    381 ;yes, translate
+    LD  L,C                             ;e3d4  69             368    382 ;no, return untranslated
+    LD  H,B                             ;e3d5  60             369    383 ;in HL
+    INC L                               ;e3d6  2c             370    384 ;sector no. start with 1
+    RET NZ                              ;e3d7  c0             371    385 
+    INC H                               ;e3d8  24             372    386 
+    RET                                 ;e3d9  c9             373    387 
+SECT1:  EX  DE,HL                       ;e3da  eb             374    388 ;HL=.trans
+    ADD HL,BC                           ;e3db  09             375    389 ;HL=.trans(sector)
+    LD  L,(HL)                          ;e3dc  6e             376    390 ;L = trans(sector)
+    LD  H,0                             ;e3dd  26 00          377    391 ;HL= trans(sector)
+    RET                                 ;e3df  c9             378    392 ;with data in HL
+                                        ;                     379    393 ;
+                                        ;                     380    394 ;	set dma address given by registers b and c
+                                        ;                     381    395 ;
+SETDMA:                                 ;                     382    396 
+                                        ;                     383    397 ;	LD	A,C		;low order address
+                                        ;                     384    398 ;	OUT	(DMAL),A
+                                        ;                     385    399 ;	LD	A,B		;high order address
+                                        ;                     386    400 ;	OUT	(DMAH),A	;in dma
+    LD (DATADDR), BC                    ;e3e0  ed 43 10 e5    387    401 
+    RET                                 ;e3e4  c9             388    402 
+                                        ;                     389    403 ;
+                                        ;                     390    404 ;	perform read operation
+                                        ;                     391    405 ;
+READ:                                   ;                     392    406 
+                                        ;                     393    407 ;	XOR	A		;read command -> A
+                                        ;                     394    408 ;	JP	WAITIO		;to perform the actual i/o
+    LD A,(CHGFLG)                       ;e3e5  3a 12 e5       395    409 
+    CP 0                                ;e3e8  fe 00          396    410 
+    JR NZ, REALREAD                     ;e3ea  20 06          397    411 
+BUFCHECK:                               ;                     398    412 
+    LD A,(FDD#S)                        ;e3ec  3a 0f e5       399    413 
+    RRA                                 ;e3ef  1f             400    414 
+    JR BUFCOPY                          ;e3f0  18 35          401    415 
+REALREAD:                               ;                     402    416 
+    LD  D, SDREAD                       ;e3f2  16 02          403    417 
+    CALL    SENDCOM                     ;e3f4  cd a6 e4       404    418 
+    LD  HL,FDD#N                        ;e3f7  21 0c e5       405    419 ; FDD#N
+    LD  D,(HL)                          ;e3fa  56             406    420 
+    LD  B,D                             ;e3fb  42             407    421 
+    LD  C,0                             ;e3fc  0e 00          408    422 
+    PUSH BC                             ;e3fe  c5             409    423 
+    CALL    SENDDAT                     ;e3ff  cd ae e4       410    424 
+    INC HL                              ;e402  23             411    425 ; FDD#D
+    LD  D,(HL)                          ;e403  56             412    426 
+    CALL    SENDDAT                     ;e404  cd ae e4       413    427 
+    INC HL                              ;e407  23             414    428 ; FDD#T
+    LD  D,(HL)                          ;e408  56             415    429 
+    CALL    SENDDAT                     ;e409  cd ae e4       416    430 
+    INC HL                              ;e40c  23             417    431 ; FDD#S
+    LD  A,(HL)                          ;e40d  7e             418    432 
+    RRA                                 ;e40e  1f             419    433 
+    LD  D,A                             ;e40f  57             420    434 
+    INC D                               ;e410  14             421    435 
+    CALL    SENDDAT                     ;e411  cd ae e4       422    436 
+    LD  D,03h                           ;e414  16 03          423    437 
+    CALL    SENDCOM                     ;e416  cd a6 e4       424    438 
+    POP BC                              ;e419  c1             425    439 
+    LD  HL,DISKDATA                     ;e41a  21 ad f5       426    440 
+SYM1:                                   ;                     427    441 
+    CALL GETDATA                        ;e41d  cd dd e4       428    442 ; from FDD  
+    LD (HL),D                           ;e420  72             429    443 ; and write to RAM  
+    INC HL                              ;e421  23             430    444 ; from 0CC00h   
+    DEC BC                              ;e422  0b             431    445 ;  
+    LD A,B                              ;e423  78             432    446 ;  
+    OR C                                ;e424  b1             433    447 ;  
+    JR NZ, SYM1                         ;e425  20 f6          434    448 ; ------------------  
+BUFCOPY:                                ;                     435    449 
+    LD  HL,DISKDATA                     ;e427  21 ad f5       436    450 
+    LD  BC,128                          ;e42a  01 80 00       437    451 
+    JR NC, EVENREAD                     ;e42d  30 01          438    452 
+ODDREAD:                                ;                     439    453 
+    ADD HL,BC                           ;e42f  09             440    454 
+EVENREAD:                               ;                     441    455 
+    LD  DE,(DATADDR)                    ;e430  ed 5b 10 e5    442    456 
+    LDIR                                ;e434  ed b0          443    457 
+    XOR A                               ;e436  af             444    458 
+    LD (CHGFLG), A                      ;e437  32 12 e5       445    459 
+    RET                                 ;e43a  c9             446    460 
+                                        ;                     447    461 ;
+                                        ;                     448    462 ;	perform a write operation
+                                        ;                     449    463 ;
+WRITE:                                  ;                     450    464 
+                                        ;                     451    465 ;	LD	A,1		;write command -> A
+WRITEC:                                 ;                     452    466 ; C == 2
+    LD  HL,DISKDATA                     ;e43b  21 ad f5       453    467 
+    LD  A,(FDD#S)                       ;e43e  3a 0f e5       454    468 
+    OR A                                ;e441  b7             455    469 
+    RRA                                 ;e442  1f             456    470 
+    LD  BC, 128                         ;e443  01 80 00       457    471 
+    JR  NC, EVENWRIT                    ;e446  30 01          458    472 
+ODDWRIT:                                ;                     459    473 
+    ADD HL,BC                           ;e448  09             460    474 
+EVENWRIT:                               ;                     461    475 
+    LD  DE,(DATADDR)                    ;e449  ed 5b 10 e5    462    476 
+    EX  DE,HL                           ;e44d  eb             463    477 
+    LDIR                                ;e44e  ed b0          464    478 
+CHKWCPY:                                ;                     465    479 
+CHKWFLG:                                ;                     466    480 
+WRITEM:                                 ;                     467    481 
+    LD  D, SDWRITE                      ;e450  16 01          468    482 
+    CALL    SENDCOM                     ;e452  cd a6 e4       469    483 
+    LD  HL,FDD#N                        ;e455  21 0c e5       470    484 
+    LD  D,(HL)                          ;e458  56             471    485 
+    CALL    SENDDAT                     ;e459  cd ae e4       472    486 
+    INC HL                              ;e45c  23             473    487 
+    LD  D,(HL)                          ;e45d  56             474    488 
+    CALL    SENDDAT                     ;e45e  cd ae e4       475    489 
+    INC HL                              ;e461  23             476    490 
+    LD  D,(HL)                          ;e462  56             477    491 
+    CALL    SENDDAT                     ;e463  cd ae e4       478    492 
+    INC HL                              ;e466  23             479    493 
+    LD  A,(HL)                          ;e467  7e             480    494 
+    OR A                                ;e468  b7             481    495 
+    RR A                                ;e469  cb 1f          482    496 
+    LD  D,A                             ;e46b  57             483    497 
+    INC D                               ;e46c  14             484    498 
+    CALL    SENDDAT                     ;e46d  cd ae e4       485    499 
+    LD  HL,DISKDATA                     ;e470  21 ad f5       486    500 
+    LD  D,H                             ;e473  54             487    501 
+    CALL    SENDDAT                     ;e474  cd ae e4       488    502 
+    LD  D,L                             ;e477  55             489    503 
+    CALL    SENDDAT                     ;e478  cd ae e4       490    504 
+    XOR A                               ;e47b  af             491    505 
+    RET                                 ;e47c  c9             492    506 
+                                        ;                     493    507 
+READ1:                                  ;                     494    508 ;                     354    368 ;	JP	WAITIO		;to perform the actual i/o
+    LD  D, SDLOAD                       ;e47d  16 0e          495    509 ;e3aa  16 0e          355    369 
+    CALL    SENDCOM                     ;e47f  cd a6 e4       496    510 ;e3ac  cd 01 e4       356    370 
+    LD  HL,FDD#N                        ;e482  21 0c e5       497    511 ;e3af  21 67 e4       357    371 
+    LD  D,(HL)                          ;e485  56             498    512 ;e3b2  56             358    372 
+    CALL    SENDDAT                     ;e486  cd ae e4       499    513 ;e3b3  cd 09 e4       359    373 
+    INC HL                              ;e489  23             500    514 ;e3b6  23             360    374 
+    LD  D,(HL)                          ;e48a  56             501    515 ;e3b7  56             361    375 
+    CALL    SENDDAT                     ;e48b  cd ae e4       502    516 ;e3b8  cd 09 e4       362    376 
+    INC HL                              ;e48e  23             503    517 ;e3bb  23             363    377 
+    LD  D,(HL)                          ;e48f  56             504    518 ;e3bc  56             364    378 
+    CALL    SENDDAT                     ;e490  cd ae e4       505    519 ;e3bd  cd 09 e4       365    379 
+    INC HL                              ;e493  23             506    520 ;e3c0  23             366    380 
+    LD  D,(HL)                          ;e494  56             507    521 ;e3c1  56             367    381 
+    CALL    SENDDAT                     ;e495  cd ae e4       508    522 ;e3c3  cd 09 e4       369    383 
+    LD  HL,DATADDR+1                    ;e498  21 11 e5       509    523 ;e3c6  21 6c e4       370    384 
+    LD  D,(HL)                          ;e49b  56             510    524 ;e3c9  56             371    385 
+    CALL    SENDDAT                     ;e49c  cd ae e4       511    525 ;e3ca  cd 09 e4       372    386 
+    DEC HL                              ;e49f  2b             512    526 ;e3cd  2b             373    387 
+    LD  D,(HL)                          ;e4a0  56             513    527 ;e3ce  56             374    388 
+    CALL    SENDDAT                     ;e4a1  cd ae e4       514    528 ;e3cf  cd 09 e4       375    389 
+    RET                                 ;e4a4  c9             515    529 ;e3d2  c9             376    390 
+                                        ;                     516    530 
+                                        ;                     517    531 ;
+                                        ;                     518    532 ;	enter here from read and write to perform the actual i/o
+                                        ;                     519    533 ;	operation.  return a 00h in register a if the operation completes
+                                        ;                     520    534 ;	properly, and 01h if an error occurs during the read or write
+                                        ;                     521    535 ;
+WAITIO:                                 ;                     522    536 
+                                        ;                     523    537 ;   OUT	(FDCOP),A	;start i/o operation
+                                        ;                     524    538 ;	IN	A,(FDCST)	;status of i/o operation -> A
+    RET                                 ;e4a5  c9             525    539 
+                                        ;                     526    540 
+SDINIT      EQU 0                       ;0000                 527    541 
+SDWRITE     EQU 1                       ;0001                 528    542 
+SDREAD      EQU 2                       ;0002                 529    543 
+SDSEND      EQU 3                       ;0003                 530    544 
+SDCOPY      EQU 4                       ;0004                 531    545 
+SDFORMAT    EQU 5                       ;0005                 532    546 
+SDSTATUS    EQU 6                       ;0006                 533    547 
+SDDRVSTS    EQU 7                       ;0007                 534    548 
+SDRAMTST    EQU 8                       ;0008                 535    549 
+SDTRANS2    EQU 9                       ;0009                 536    550 
+SDNOACT     EQU 0Ah                     ;000a                 537    551 
+SDTRANS1    EQU 0Bh                     ;000b                 538    552 
+SDRCVE      EQU 0Ch                     ;000c                 539    553 
+SDGO        EQU 0Dh                     ;000d                 540    554 
+SDLOAD      EQU 0Eh                     ;000e                 541    555 
+SDSAVE      EQU 0Fh                     ;000f                 542    556 
+SDLDNGO     EQU 010h                    ;0010                 543    557 
+                                        ;                     544    558 
+                                        ;                     545    559 
+                                        ;                     546    560 ;
+                                        ;                     547    561 ;   SPC-1000 FDD command I/O
+                                        ;                     548    562 ;
+SENDCOM:                                ;                     549    563 
+    LD  B,0C0h                          ;e4a6  06 c0          550    564 ;
+    LD  C,002h                          ;e4a8  0e 02          551    565 ;
+    LD  A,080h                          ;e4aa  3e 80          552    566 ;
+    OUT (C),A                           ;e4ac  ed 79          553    567 ;
+SENDDAT:                                ;                     554    568 
+    LD  B,0C0h                          ;e4ae  06 c0          555    569 ;
+    LD  C,002h                          ;e4b0  0e 02          556    570 ;
+CHKRFD1:    IN  A,(C)                   ;e4b2  ed 78          557    571 ;
+    AND 002h                            ;e4b4  e6 02          558    572 ;
+    JR  Z,CHKRFD1                       ;e4b6  28 fa          559    573 ;
+    LD  C,002h                          ;e4b8  0e 02          560    574 ;
+    XOR A                               ;e4ba  af             561    575 ;
+    OUT (C),A                           ;e4bb  ed 79          562    576 ; ATN=0
+    LD  C,000h                          ;e4bd  0e 00          563    577 ;
+    OUT (C),D                           ;e4bf  ed 51          564    578 ;
+    LD  C,002h                          ;e4c1  0e 02          565    579 ;
+    LD  A,010h                          ;e4c3  3e 10          566    580 ;
+    OUT (C),A                           ;e4c5  ed 79          567    581 ;
+    LD  C,002h                          ;e4c7  0e 02          568    582 ;
+CHKDAC2:    IN  A,(C)                   ;e4c9  ed 78          569    583 ;
+    AND 004h                            ;e4cb  e6 04          570    584 ;
+    JR  Z,CHKDAC2                       ;e4cd  28 fa          571    585 ;
+    LD  C,002h                          ;e4cf  0e 02          572    586 ;
+    XOR A                               ;e4d1  af             573    587 ;
+    OUT (C),A                           ;e4d2  ed 79          574    588 ;
+    LD  C,002h                          ;e4d4  0e 02          575    589 ;
+CHKDAC3:    IN  A,(C)                   ;e4d6  ed 78          576    590 ;
+    AND 004h                            ;e4d8  e6 04          577    591 ;
+    JR  NZ,CHKDAC3                      ;e4da  20 fa          578    592 ; 
+    RET                                 ;e4dc  c9             579    593 ;
+GETDATA:                                ;                     580    594 
+    PUSH    BC                          ;e4dd  c5             581    595 ;
+    LD  C,002h                          ;e4de  0e 02          582    596 ;
+    LD  B,0C0h                          ;e4e0  06 c0          583    597 ;
+    LD  A,020h                          ;e4e2  3e 20          584    598 ;
+    OUT (C),A                           ;e4e4  ed 79          585    599 ;
+    LD  C,002h                          ;e4e6  0e 02          586    600 ;
+CHKDAV0:    IN  A,(C)                   ;e4e8  ed 78          587    601 ;
+    AND 001h                            ;e4ea  e6 01          588    602 ;
+    JR  Z,CHKDAV0                       ;e4ec  28 fa          589    603 ;
+    LD  C,002h                          ;e4ee  0e 02          590    604 ;
+    XOR A                               ;e4f0  af             591    605 ;
+    OUT (C),A                           ;e4f1  ed 79          592    606 ;
+    LD  C,001h                          ;e4f3  0e 01          593    607 ;
+    IN  D,(C)                           ;e4f5  ed 50          594    608 ;
+    LD  C,002h                          ;e4f7  0e 02          595    609 ;
+    LD  A,040h                          ;e4f9  3e 40          596    610 ;
+    OUT (C),A                           ;e4fb  ed 79          597    611 ;
+    LD  C,002h                          ;e4fd  0e 02          598    612 ;
+CHKDAV1:    IN  A,(C)                   ;e4ff  ed 78          599    613 ;
+    AND 001h                            ;e501  e6 01          600    614 ;
+    JR  NZ,CHKDAV1                      ;e503  20 fa          601    615 ; 
+    LD  C,002h                          ;e505  0e 02          602    616 ;
+    XOR A                               ;e507  af             603    617 ;
+    OUT (C),A                           ;e508  ed 79          604    618 ;
+    POP BC                              ;e50a  c1             605    619 ;
+    RET                                 ;e50b  c9             606    620 ;
+                                        ;                     607    621 
+FDD#N:  DEFB    1                       ;e50c  01             608    622 
+FDD#D:  DEFB    0                       ;e50d  00             609    623 
+FDD#T:  DEFB    0                       ;e50e  00             610    624 
+FDD#S:  DEFB    0                       ;e50f  00             611    625 
+DATADDR:DEFW    0                       ;e510  00 00          612    626 
+CHGFLG: DEFB    1                       ;e512  01             613    627 
+PRESEC: DEFB    0xffh                   ;e513  ff             614    628 
+                                        ;                     615    629 
+BRKEY:  LD  A,080h                      ;e514  3e 80          616    630 
+    IN  A,(0)                           ;e516  db 00          617    631 
+    AND 012h                            ;e518  e6 12          618    632 
+    RET                                 ;e51a  c9             619    633 
+                                        ;                     620    634 ;
+ASCGET1: PUSH    BC                     ;e51b  c5             621    635 
+    PUSH    DE                          ;e51c  d5             622    636 
+    PUSH    HL                          ;e51d  e5             623    637 
+    LD  HL,(POINT1)                     ;e51e  2a 30 eb       624    638 
+    LD  A,L                             ;e521  7d             625    639 
+    CP  H                               ;e522  bc             626    640 
+    JR  Z,BUFSET                        ;e523  28 12          627    641 
+BUFCEK: INC A                           ;e525  3c             628    642 
+    AND 03Fh                            ;e526  e6 3f          629    643 
+    LD  (POINT1),A                      ;e528  32 30 eb       630    644 
+    LD  L,A                             ;e52b  6f             631    645 
+    LD  H,0                             ;e52c  26 00          632    646 
+    LD  DE,INKYBF                       ;e52e  11 4d ef       633    647 
+    ADD HL,DE                           ;e531  19             634    648 
+    LD  A,(HL)                          ;e532  7e             635    649 
+GETRET: POP HL                          ;e533  e1             636    650 
+    POP DE                              ;e534  d1             637    651 
+    POP BC                              ;e535  c1             638    652 
+    RET                                 ;e536  c9             639    653 
+                                        ;                     640    654 ;
+BUFSET: DEFB    03Eh                    ;e537  3e             641    655 ; LD A,
+FLASHF: DEFB    001h                    ;e538  01             642    656 ;
+    OR  A                               ;e539  b7             643    657 
+    JR  NZ,FLGET                        ;e53a  20 24          644    658 
+    CALL    KEYSEN                      ;e53c  cd 0b e6       645    659 
+    CALL    BRKEY                       ;e53f  cd 14 e5       646    660 
+    JR  NZ,KEYGT                        ;e542  20 07          647    661 
+BRKGTR: CALL    NEWFLG                  ;e544  cd 72 e6       648    662 
+    LD  A,3                             ;e547  3e 03          649    663 
+    JR  GETRET                          ;e549  18 e8          650    664 
+KEYGT:  CALL    KEYSEN                  ;e54b  cd 0b e6       651    665 
+    JR  Z,ZERORT                        ;e54e  28 0a          652    666 
+    CALL    NEWCEK                      ;e550  cd 4c e6       653    667 
+    JR  NZ,NEWKYS                       ;e553  20 29          654    668 
+    CALL    SAMECK                      ;e555  cd 62 e6       655    669 
+    JR  Z,REPETS                        ;e558  28 16          656    670 
+ZERORT: CALL    NEWFLG                  ;e55a  cd 72 e6       657    671 
+ZEROR2: XOR A                           ;e55d  af             658    672 
+    JR  GETRET                          ;e55e  18 d3          659    673 
+FLGET:  CALL    FLSHGT                  ;e560  cd cd e5       660    674 
+    LD  C,A                             ;e563  4f             661    675 
+    LD  A,080h                          ;e564  3e 80          662    676 
+    IN  A,(0)                           ;e566  db 00          663    677 
+    AND 012h                            ;e568  e6 12          664    678 
+    JR  Z,BRKGTR                        ;e56a  28 d8          665    679 
+    LD  A,C                             ;e56c  79             666    680 
+    OR  A                               ;e56d  b7             667    681 
+    JR  Z,NEWKYS                        ;e56e  28 0e          668    682 
+REPETS: CALL    NEWFLG                  ;e570  cd 72 e6       669    683 
+    DEFB    021h                        ;e573  21             670    684 ; LD HL,(KEYBFA)
+KEYBFA: DEFW    0FFFEh                  ;e574  fe ff          671    685 ;
+    DEFB    03Eh                        ;e576  3e             672    686 ; LD A,(KEYBFD)
+KEYBFD: DEFB    000h                    ;e577  00             673    687 
+    LD  (HL),A                          ;e578  77             674    688 
+    LD  HL,30                           ;e579  21 1e 00       675    689 
+    JR  KEYST2                          ;e57c  18 06          676    690 
+NEWKYS: CALL    NEWFLG                  ;e57e  cd 72 e6       677    691 
+    DEFB    021h                        ;e581  21             678    692 ; LD HL,300
+REPTSW: DEFW    200                     ;e582  c8 00          679    693 ; auto repeat key duration
+KEYST2: LD  (REPETF),HL                 ;e584  22 e8 e5       680    694 
+    LD  HL,NEWBUF                       ;e587  21 25 eb       681    695 
+    LD  D,0                             ;e58a  16 00          682    696 
+    LD  C,9                             ;e58c  0e 09          683    697 
+SETLP1: LD  B,8                         ;e58e  06 08          684    698 
+    LD  A,(HL)                          ;e590  7e             685    699 
+    CPL                                 ;e591  2f             686    700 
+    OR  A                               ;e592  b7             687    701 
+    JR  Z,SETPL3                        ;e593  28 09          688    702 
+SETPL2: RRCA                            ;e595  0f             689    703 
+    JP  C,KYBFST                        ;e596  da c6 e6       690    704 
+    INC D                               ;e599  14             691    705 
+    DJNZ    SETPL2                      ;e59a  10 f9          692    706 
+    JR  SETPL4                          ;e59c  18 04          693    707 
+SETPL3: LD  A,D                         ;e59e  7a             694    708 
+    ADD A,8                             ;e59f  c6 08          695    709 
+    LD  D,A                             ;e5a1  57             696    710 
+SETPL4: INC HL                          ;e5a2  23             697    711 
+    DEC C                               ;e5a3  0d             698    712 
+    JR  NZ,SETLP1                       ;e5a4  20 e8          699    713 
+KYBFSR: LD  HL,(POINT1)                 ;e5a6  2a 30 eb       700    714 
+    LD  A,L                             ;e5a9  7d             701    715 
+    CP  H                               ;e5aa  bc             702    716 
+    JP  Z,ZEROR2                        ;e5ab  ca 5d e5       703    717 
+    JP  BUFCEK                          ;e5ae  c3 25 e5       704    718 
+                                        ;                     705    719 ;
+FLASHS:                                 ;                     706    720 
+                                        ;                     707    721 ;	 CALL    ADRCAL                  ;
+                                        ;                     708    722 ;    SET 3,B                           
+                                        ;                     709    723 ;    LD  (FLASHA),BC                   
+                                        ;                     710    724 ;    IN  A,(C)                         
+                                        ;                     711    725 ;    LD  (FLASHD),A                    
+                                        ;                     712    726 ;    OR  1                             
+                                        ;                     713    727 ;    OUT (C),A                         
+                                        ;                     714    728 ;    LD  (FLASHO),A                    
+                                        ;                     715    729 ;    LD  A,(TICONT)                    
+                                        ;                     716    730 ;    LD  (FLASHC+1),A                 ;??+1"??빠져?�었??
+    RET                                 ;e5b1  c9             717    731 ;
+                                        ;                     718    732 ;
+                                        ;                     719    733 ;
+FLASHG: DEFB    001h                    ;e5b2  01             720    734 
+FLASHA: DEFW    0                       ;e5b3  00 00          721    735 
+    DEFB    03Eh                        ;e5b5  3e             722    736 ; LD A,
+FLASHD: DEFB    000h                    ;e5b6  00             723    737 ;
+                                        ;                     724    738 ;    AND 0FEh                          
+                                        ;                     725    739 ;    LD  E,A                           
+                                        ;                     726    740 ;    LD  A,(TICONT)                    
+FLASHC: SUB 0                           ;e5b7  d6 00          727    741 ; cursor blink time
+    AND 010h                            ;e5b9  e6 10          728    742 
+    LD  A,001h                          ;e5bb  3e 01          729    743 
+    JR  Z,L0D28                         ;e5bd  28 01          730    744 
+    XOR A                               ;e5bf  af             731    745 
+L0D28:  OR  E                           ;e5c0  b3             732    746 
+    DEFB    0FEh                        ;e5c1  fe             733    747 ;CP
+FLASHO: DEFB    000h                    ;e5c2  00             734    748 
+    RET Z                               ;e5c3  c8             735    749 
+                                        ;                     736    750 ;    OUT (C),A                         
+                                        ;                     737    751 ;    LD  (FLASHO),A                    
+    RET                                 ;e5c4  c9             738    752 
+                                        ;                     739    753 ;
+FLASHE: LD  BC,(FLASHA)                 ;e5c5  ed 4b b3 e5    740    754 
+    LD  A,(FLASHD)                      ;e5c9  3a b6 e5       741    755 
+                                        ;                     742    756 ;    OUT (C),A                         
+    RET                                 ;e5cc  c9             743    757 
+                                        ;                     744    758 ;
+                                        ;                     745    759 ;
+FLSHGT: PUSH    BC                      ;e5cd  c5             746    760 
+    PUSH    DE                          ;e5ce  d5             747    761 
+    PUSH    HL                          ;e5cf  e5             748    762 
+    CALL    FLASHS                      ;e5d0  cd b1 e5       749    763 
+FLGTLP: CALL    FLASHG                  ;e5d3  cd b2 e5       750    764 
+    CALL    KEYSEN                      ;e5d6  cd 0b e6       751    765 
+    JR  Z,FLSHL3                        ;e5d9  28 1b          752    766 
+    CALL    NEWCEK                      ;e5db  cd 4c e6       753    767 
+    LD  A,0                             ;e5de  3e 00          754    768 
+    JR  NZ,FLSHRT                       ;e5e0  20 20          755    769 
+    CALL    SAMECK                      ;e5e2  cd 62 e6       756    770 
+    JR  NZ,FLGTLP                       ;e5e5  20 ec          757    771 
+    DEFB    021h                        ;e5e7  21             758    772 ; LD HL,
+REPETF: DEFW    00000h                  ;e5e8  00 00          759    773 ;
+    DEC HL                              ;e5ea  2b             760    774 ;
+    LD  (REPETF),HL                     ;e5eb  22 e8 e5       761    775 
+    LD  A,H                             ;e5ee  7c             762    776 
+    OR  L                               ;e5ef  b5             763    777 
+    JR  NZ,FLGTLP                       ;e5f0  20 e1          764    778 
+    LD  A,1                             ;e5f2  3e 01          765    779 
+    JR  FLSHRT                          ;e5f4  18 0c          766    780 
+FLSHL3: CALL    NEWFLG                  ;e5f6  cd 72 e6       767    781 
+FLGTL2: CALL    FLASHG                  ;e5f9  cd b2 e5       768    782 
+    CALL    KEYSEN                      ;e5fc  cd 0b e6       769    783 
+    JR  Z,FLGTL2                        ;e5ff  28 f8          770    784 
+    XOR A                               ;e601  af             771    785 
+FLSHRT: PUSH    AF                      ;e602  f5             772    786 
+    CALL    FLASHE                      ;e603  cd c5 e5       773    787 
+    POP AF                              ;e606  f1             774    788 
+    POP HL                              ;e607  e1             775    789 
+    POP DE                              ;e608  d1             776    790 
+    POP BC                              ;e609  c1             777    791 
+    RET                                 ;e60a  c9             778    792 
+                                        ;                     779    793 ;
+                                        ;                     780    794 ;
+                                        ;                     781    795 ;
+KEYSEN: CALL    KEYSN2                  ;e60b  cd 1d e6       782    796 
+KEYSN0: LD  B,4                         ;e60e  06 04          783    797 
+KEYSN1: CALL    KEYSN2                  ;e610  cd 1d e6       784    798 
+    BIT 1,E                             ;e613  cb 4b          785    799 
+    JR  NZ,KEYSN0                       ;e615  20 f7          786    800 
+    DJNZ    KEYSN1                      ;e617  10 f7          787    801 
+    LD  A,E                             ;e619  7b             788    802 
+    AND 1                               ;e61a  e6 01          789    803 
+    RET                                 ;e61c  c9             790    804 
+                                        ;                     791    805 ;
+KEYSN2: LD  HL,NEWBUF                   ;e61d  21 25 eb       792    806 
+    PUSH    BC                          ;e620  c5             793    807 
+    LD  BC,08009h                       ;e621  01 09 80       794    808 ;KEYIO
+    LD  DE,00900h                       ;e624  11 00 09       795    809 
+KEYSN3: IN  A,(C)                       ;e627  ed 78          796    810 
+    XOR (HL)                            ;e629  ae             797    811 
+    JR  Z,L0D9D                         ;e62a  28 02          798    812 
+    SET 1,E                             ;e62c  cb cb          799    813 
+L0D9D:  XOR (HL)                        ;e62e  ae             800    814 
+    LD  (HL),A                          ;e62f  77             801    815 
+    CPL                                 ;e630  2f             802    816 
+    OR  A                               ;e631  b7             803    817 
+    JR  Z,L0DA5                         ;e632  28 02          804    818 
+    SET 0,E                             ;e634  cb c3          805    819 
+L0DA5:  INC HL                          ;e636  23             806    820 
+    DEC BC                              ;e637  0b             807    821 
+    DEC D                               ;e638  15             808    822 
+    JR  NZ,KEYSN3                       ;e639  20 ec          809    823 
+    IN  A,(C)                           ;e63b  ed 78          810    824 
+    XOR (HL)                            ;e63d  ae             811    825 
+    JR  Z,L0DB1                         ;e63e  28 02          812    826 
+    SET 1,E                             ;e640  cb cb          813    827 
+L0DB1:  XOR (HL)                        ;e642  ae             814    828 
+    LD  (HL),A                          ;e643  77             815    829 
+    AND 012h                            ;e644  e6 12          816    830 
+    JR  NZ,L0DB9                        ;e646  20 02          817    831 
+    SET 0,E                             ;e648  cb c3          818    832 
+L0DB9:  POP BC                          ;e64a  c1             819    833 
+    RET                                 ;e64b  c9             820    834 
+                                        ;                     821    835 ;
+NEWCEK: LD  HL,OLDBUF                   ;e64c  21 1b eb       822    836 
+    LD  DE,NEWBUF                       ;e64f  11 25 eb       823    837 
+    LD  B,9                             ;e652  06 09          824    838 
+NEWPL1: LD  A,(DE)                      ;e654  1a             825    839 
+    CPL                                 ;e655  2f             826    840 
+    AND (HL)                            ;e656  a6             827    841 
+    RET NZ                              ;e657  c0             828    842 
+    INC DE                              ;e658  13             829    843 
+    INC HL                              ;e659  23             830    844 
+    DJNZ    NEWPL1                      ;e65a  10 f8          831    845 
+    LD  A,(DE)                          ;e65c  1a             832    846 
+    CPL                                 ;e65d  2f             833    847 
+    AND (HL)                            ;e65e  a6             834    848 
+    AND 010h                            ;e65f  e6 10          835    849 
+    RET                                 ;e661  c9             836    850 
+                                        ;                     837    851 ;
+SAMECK: LD  HL,OLDBUF                   ;e662  21 1b eb       838    852 
+    LD  DE,NEWBUF                       ;e665  11 25 eb       839    853 
+    LD  B,10                            ;e668  06 0a          840    854 
+SAMELP: LD  A,(DE)                      ;e66a  1a             841    855 
+    XOR (HL)                            ;e66b  ae             842    856 
+    RET NZ                              ;e66c  c0             843    857 
+    INC DE                              ;e66d  13             844    858 
+    INC HL                              ;e66e  23             845    859 
+    DJNZ    SAMELP                      ;e66f  10 f9          846    860 
+    RET                                 ;e671  c9             847    861 
+                                        ;                     848    862 ;
+NEWFLG: LD  HL,NEWBUF                   ;e672  21 25 eb       849    863 
+    LD  DE,OLDBUF                       ;e675  11 1b eb       850    864 
+    LD  B,9                             ;e678  06 09          851    865 
+FLGLP1: LD  A,(DE)                      ;e67a  1a             852    866 
+    CPL                                 ;e67b  2f             853    867 
+    OR  (HL)                            ;e67c  b6             854    868 
+    LD  C,(HL)                          ;e67d  4e             855    869 
+    LD  (HL),A                          ;e67e  77             856    870 
+    LD  A,C                             ;e67f  79             857    871 
+    LD  (DE),A                          ;e680  12             858    872 
+    INC DE                              ;e681  13             859    873 
+    INC HL                              ;e682  23             860    874 
+    DJNZ    FLGLP1                      ;e683  10 f5          861    875 
+    LD  A,(HL)                          ;e685  7e             862    876 
+    LD  (DE),A                          ;e686  12             863    877 
+    LD  DE,NEWBUF                       ;e687  11 25 eb       864    878 
+    LD  HL,OLDBUF                       ;e68a  21 1b eb       865    879 
+    LD  BC,00900h                       ;e68d  01 00 09       866    880 
+FLGLP2: LD  A,(DE)                      ;e690  1a             867    881 
+    CPL                                 ;e691  2f             868    882 
+    OR  A                               ;e692  b7             869    883 
+    JR  Z,FLGLP3                        ;e693  28 0a          870    884 
+    DEC C                               ;e695  0d             871    885 
+    JR  NZ,FLGLP5                       ;e696  20 0c          872    886 
+    OR  (HL)                            ;e698  b6             873    887 
+    LD  (HL),A                          ;e699  77             874    888 
+    LD  A,0FFh                          ;e69a  3e ff          875    889 
+    LD  (DE),A                          ;e69c  12             876    890 
+FLGLP4: LD  C,1                         ;e69d  0e 01          877    891 
+FLGLP3: INC DE                          ;e69f  13             878    892 
+    INC HL                              ;e6a0  23             879    893 
+    DJNZ    FLGLP2                      ;e6a1  10 ed          880    894 
+    RET                                 ;e6a3  c9             881    895 
+FLGLP5: PUSH    BC                      ;e6a4  c5             882    896 
+    LD  BC,00801h                       ;e6a5  01 01 08       883    897 
+FLGLP6: RRCA                            ;e6a8  0f             884    898 
+    JR  C,FLGLP7                        ;e6a9  38 0b          885    899 
+    RLC C                               ;e6ab  cb 01          886    900 
+    DJNZ    FLGLP6                      ;e6ad  10 f9          887    901 
+    POP BC                              ;e6af  c1             888    902 
+    JR  FLGLP4                          ;e6b0  18 eb          889    903 
+FLGLP9: RRCA                            ;e6b2  0f             890    904 
+    CALL    C,FLGLP8                    ;e6b3  dc bd e6       891    905 
+FLGLP7: RLC C                           ;e6b6  cb 01          892    906 
+    DJNZ    FLGLP9                      ;e6b8  10 f8          893    907 
+    POP BC                              ;e6ba  c1             894    908 
+    JR  FLGLP4                          ;e6bb  18 e0          895    909 
+                                        ;                     896    910 ;
+FLGLP8: PUSH    AF                      ;e6bd  f5             897    911 
+    LD  A,C                             ;e6be  79             898    912 
+    OR  (HL)                            ;e6bf  b6             899    913 
+    LD  (HL),A                          ;e6c0  77             900    914 
+    LD  A,(DE)                          ;e6c1  1a             901    915 
+    OR  C                               ;e6c2  b1             902    916 
+    LD  (DE),A                          ;e6c3  12             903    917 
+    POP AF                              ;e6c4  f1             904    918 
+    RET                                 ;e6c5  c9             905    919 
+                                        ;                     906    920 ;
+                                        ;                     907    921 ;
+KYBFST: LD  A,(HL)                      ;e6c6  7e             908    922 
+    LD  (KEYBFA),HL                     ;e6c7  22 74 e5       909    923 
+    LD  (KEYBFD),A                      ;e6ca  32 77 e5       910    924 
+    LD  C,D                             ;e6cd  4a             911    925 
+    LD  B,0                             ;e6ce  06 00          912    926 
+    LD  HL,KEYDT1                       ;e6d0  21 83 eb       913    927 ;NORMAL DATA
+    LD  A,(NEWMOD)                      ;e6d3  3a 2e eb       914    928 
+    BIT 1,A                             ;e6d6  cb 4f          915    929 
+    JR  NZ,L0E4C                        ;e6d8  20 03          916    930 
+    LD  HL,KEYDT2                       ;e6da  21 cb eb       917    931 ;SHIFT DATA
+L0E4C:  ADD HL,BC                       ;e6dd  09             918    932 
+    LD  C,(HL)                          ;e6de  4e             919    933 
+    LD  B,A                             ;e6df  47             920    934 
+    BIT 2,B                             ;e6e0  cb 50          921    935 
+    JR  NZ,CTRLNO                       ;e6e2  20 09          922    936 
+    LD  A,C                             ;e6e4  79             923    937 
+    SUB 040h                            ;e6e5  d6 40          924    938 
+    JR  C,NONKE?                        ;e6e7  38 17          925    939 
+    AND 01Fh                            ;e6e9  e6 1f          926    940 
+    JR  SETKY                           ;e6eb  18 0d          927    941 
+CTRLNO: BIT 6,B                         ;e6ed  cb 70          928    942 
+    JR  NZ,SETKY2                       ;e6ef  20 17          929    943 
+    LD  A,C                             ;e6f1  79             930    944 
+    SUB 040h                            ;e6f2  d6 40          931    945 
+    JR  C,NONKEY                        ;e6f4  38 07          932    946 
+    AND 01Fh                            ;e6f6  e6 1f          933    947 
+    ADD A,080h                          ;e6f8  c6 80          934    948 
+SETKY:  CALL    BFSTSB                  ;e6fa  cd 3e e7       935    949 
+NONKEY: JP  KYBFSR                      ;e6fd  c3 a6 e5       936    950 
+NONKE?: ADD A,010h                      ;e700  c6 10          937    951 
+    CP  004h                            ;e702  fe 04          938    952 
+    JR  NC,NONKEY                       ;e704  30 f7          939    953 
+                                        ;                     940    954 ;   LD  (COLORF),A                    
+    JR  NONKEY                          ;e706  18 f5          941    955 
+                                        ;                     942    956 ;
+                                        ;                     943    957 ;
+SETKY2: LD  A,C                         ;e708  79             944    958 
+    CP  0F0h                            ;e709  fe f0          945    959 
+    JR  NC,FUNCTN                       ;e70b  30 16          946    960 
+    LD  A,(LOCKMD)                      ;e70d  3a 2f eb       947    961 
+    OR  A                               ;e710  b7             948    962 
+    LD  A,C                             ;e711  79             949    963 
+    JR  Z,SETKY                         ;e712  28 e6          950    964 
+    CP  041h                            ;e714  fe 41          951    965 
+    JR  C,SETKY                         ;e716  38 e2          952    966 
+    AND 01Fh                            ;e718  e6 1f          953    967 
+    CP  01Bh                            ;e71a  fe 1b          954    968 
+    LD  A,C                             ;e71c  79             955    969 
+    JR  NC,SETKY                        ;e71d  30 db          956    970 
+    XOR 020h                            ;e71f  ee 20          957    971 
+    JR  SETKY                           ;e721  18 d7          958    972 
+FUNCTN: SUB 0F1h                        ;e723  d6 f1          959    973 
+    LD  L,A                             ;e725  6f             960    974 
+    LD  H,0                             ;e726  26 00          961    975 
+    ADD HL,HL                           ;e728  29             962    976 
+    ADD HL,HL                           ;e729  29             963    977 
+    ADD HL,HL                           ;e72a  29             964    978 
+                                        ;                     965    979 ;    ADD HL,HL                         
+    LD  BC,FUNBUF                       ;e72b  01 32 eb       966    980 
+    ADD HL,BC                           ;e72e  09             967    981 
+    LD  B,(HL)                          ;e72f  46             968    982 
+    INC HL                              ;e730  23             969    983 
+    LD  A,B                             ;e731  78             970    984 
+    OR  A                               ;e732  b7             971    985 
+    JR  Z,NONKEY                        ;e733  28 c8          972    986 
+FUNCLP: LD  A,(HL)                      ;e735  7e             973    987 
+    CALL    BFSTSB                      ;e736  cd 3e e7       974    988 
+    INC HL                              ;e739  23             975    989 
+    DJNZ    FUNCLP                      ;e73a  10 f9          976    990 
+    JR  NONKEY                          ;e73c  18 bf          977    991 
+BFSTSB: PUSH    HL                      ;e73e  e5             978    992 
+    PUSH    BC                          ;e73f  c5             979    993 
+    LD  C,A                             ;e740  4f             980    994 
+    LD  HL,(POINT1)                     ;e741  2a 30 eb       981    995 
+    LD  A,H                             ;e744  7c             982    996 
+    INC A                               ;e745  3c             983    997 
+    AND 03Fh                            ;e746  e6 3f          984    998 
+    CP  L                               ;e748  bd             985    999 
+    JR  Z,NONSET                        ;e749  28 0c          986   1000 
+    LD  (POINT2),A                      ;e74b  32 31 eb       987   1001 
+    LD  L,A                             ;e74e  6f             988   1002 
+    LD  H,0                             ;e74f  26 00          989   1003 
+    LD  A,C                             ;e751  79             990   1004 
+    LD  BC,INKYBF                       ;e752  01 4d ef       991   1005 
+    ADD HL,BC                           ;e755  09             992   1006 
+    LD  (HL),A                          ;e756  77             993   1007 
+NONSET: POP BC                          ;e757  c1             994   1008 
+    POP HL                              ;e758  e1             995   1009 
+NORET:  RET                             ;e759  c9             996   1010 
+                                        ;                     997   1011 
+                                        ;                     998   1012 
+                                        ;                     999   1013 
+CTL:                                    ;                    1000   1014 
+    ld  hl,CTLTBL                       ;e75a  21 68 e7      1001   1015 
+    add a,a                             ;e75d  87            1002   1016 
+    add a,l                             ;e75e  85            1003   1017 
+    ld  l,a                             ;e75f  6f            1004   1018 
+    jr  nc,NOINC1                       ;e760  30 01         1005   1019 
+    inc h                               ;e762  24            1006   1020 
+NOINC1:                                 ;                    1007   1021 
+    ld  e,(hl)                          ;e763  5e            1008   1022 
+    inc hl                              ;e764  23            1009   1023 
+    ld  d,(hl)                          ;e765  56            1010   1024 
+    ex  de,hl                           ;e766  eb            1011   1025 
+JPHL:                                   ;                    1012   1026 
+    jp  (hl)                            ;e767  e9            1013   1027 
+                                        ;                    1014   1028 
+CTLTBL:                                 ;                    1015   1029 
+    dw  CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL;e768  76 e8 76 e8   1016   1030 
+                                        ;e76c  76 e8 76 e8   1016   1031
+                                        ;e770  76 e8 76 e8   1016   1032
+                                        ;e774  76 e8 76 e8   1016   1033
+    dw  CTLLFT,CTLRHT,CTLLF, CTLUP, CTLRHT,CTLCR, CTLNUL,CTLNUL;e778  3a e8 23 e8   1017   1034 
+                                        ;e77c  ba e7 1a e8   1017   1035
+                                        ;e780  23 e8 14 e8   1017   1036
+                                        ;e784  76 e8 76 e8   1017   1037
+    dw  CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL,CTLNUL;e788  76 e8 76 e8   1018   1038 
+                                        ;e78c  76 e8 76 e8   1018   1039
+                                        ;e790  76 e8 76 e8   1018   1040
+                                        ;e794  76 e8 76 e8   1018   1041
+    dw  CTLNUL,CTLNUL,CTLCLS,CTLESC,CTLRHT,CTLLFT,CTLHOM,CTLNUL;e798  76 e8 76 e8   1019   1042 
+                                        ;e79c  56 e8 71 e8   1019   1043
+                                        ;e7a0  23 e8 3a e8   1019   1044
+                                        ;e7a4  4e e8 76 e8   1019   1045
+                                        ;                    1020   1046 
+                                        ;                    1021   1047 
+ACCPRT1:                                ;                    1022   1048 
+    ld  a,(ESCMOD)                      ;e7a8  3a 0a eb      1023   1049 
+    or  a                               ;e7ab  b7            1024   1050 
+    jp  nz,ESC                          ;e7ac  c2 77 e8      1025   1051 
+    ld  a,c                             ;e7af  79            1026   1052 
+    and 7fh                             ;e7b0  e6 7f         1027   1053 ;reset bit7
+    cp  20h                             ;e7b2  fe 20         1028   1054 
+    jr  c,CTL                           ;e7b4  38 a4         1029   1055 
+    call    COPYCHR                     ;e7b6  cd 02 e9      1030   1056 
+    ret nz                              ;e7b9  c0            1031   1057 
+                                        ;                    1032   1058 
+CTLLF:                                  ;                    1033   1059 ;0ah(LF), line feed + carriage return
+    ld  hl,CSRX                         ;e7ba  21 0d eb      1034   1060 
+    ld  (hl),0                          ;e7bd  36 00         1035   1061 
+    inc hl                              ;e7bf  23            1036   1062 
+    inc (hl)                            ;e7c0  34            1037   1063 ;CSRY
+    ld  a,(HEIGHT)                      ;e7c1  3a 15 eb      1038   1064 
+    cp  (hl)                            ;e7c4  be            1039   1065 
+    jr  nz,SETAD                        ;e7c5  20 34         1040   1066 
+    dec (hl)                            ;e7c7  35            1041   1067 
+    ld  de,VDISP                        ;e7c8  11 ad ef      1042   1068 
+    ld  hl,VDISP+64                     ;e7cb  21 ed ef      1043   1069 
+    ld  bc,64*(24-1)                    ;e7ce  01 c0 05      1044   1070 
+                                        ;                    1045   1071 
+    ldir                                ;e7d1  ed b0         1046   1072 
+    ld  a,(WIDTH)                       ;e7d3  3a 14 eb      1047   1073 
+    ld  b,a                             ;e7d6  47            1048   1074 
+LOWEST:                                 ;                    1049   1075 
+    ld  a," "                           ;e7d7  3e 20         1050   1076 
+    ld  (de),a                          ;e7d9  12            1051   1077 
+    inc de                              ;e7da  13            1052   1078 
+    djnz    LOWEST                      ;e7db  10 fa         1053   1079 
+                                        ;                    1054   1080 
+    ld  bc, VRAM+256                    ;e7dd  01 00 01      1055   1081 
+    ld  de, 32*8*23                     ;e7e0  11 00 17      1056   1082 
+    push de                             ;e7e3  d5            1057   1083 
+MOVEN1:                                 ;                    1058   1084 
+    in  a, (C)                          ;e7e4  ed 78         1059   1085 
+    dec  b                              ;e7e6  05            1060   1086 
+    out (c), a                          ;e7e7  ed 79         1061   1087 
+    inc  b                              ;e7e9  04            1062   1088 
+    inc  bc                             ;e7ea  03            1063   1089 
+    dec  de                             ;e7eb  1b            1064   1090 
+    ld  a,d                             ;e7ec  7a            1065   1091 
+    or  e                               ;e7ed  b3            1066   1092 
+    jr nz, MOVEN1                       ;e7ee  20 f4         1067   1093 
+    ld  h,0                             ;e7f0  26 00         1068   1094 
+    pop bc                              ;e7f2  c1            1069   1095 
+MOVEN2:                                 ;                    1070   1096 
+    xor a                               ;e7f3  af            1071   1097 
+    out (c), a                          ;e7f4  ed 79         1072   1098 
+    inc bc                              ;e7f6  03            1073   1099 
+    dec h                               ;e7f7  25            1074   1100 
+    or  h                               ;e7f8  b4            1075   1101 
+    jr  nz, MOVEN2                      ;e7f9  20 f8         1076   1102 
+                                        ;                    1077   1103 
+SETAD:                                  ;                    1078   1104 
+                                        ;                    1079   1105 ;set (CSRAD)
+    ld  bc,(CSRX)                       ;e7fb  ed 4b 0d eb   1080   1106 ;c=X,b=Y y*64
+    ld  a,b                             ;e7ff  78            1081   1107 
+    add a,a                             ;e800  87            1082   1108 ; Y*2
+    add a,a                             ;e801  87            1083   1109 ; Y*4
+    add a,a                             ;e802  87            1084   1110 ; Y*8
+    ld  h,0                             ;e803  26 00         1085   1111 
+    ld  l,a                             ;e805  6f            1086   1112 
+    add hl,hl                           ;e806  29            1087   1113 ; Y*16
+    add hl,hl                           ;e807  29            1088   1114 ; Y*32
+    add hl,hl                           ;e808  29            1089   1115 ; Y*64
+    ld  b,0                             ;e809  06 00         1090   1116 
+    add hl,bc                           ;e80b  09            1091   1117 
+    ld de,VDISP                         ;e80c  11 ad ef      1092   1118 
+    add hl, de                          ;e80f  19            1093   1119 
+    ld  (CSRAD),hl                      ;e810  22 0f eb      1094   1120 
+    ret                                 ;e813  c9            1095   1121 
+                                        ;                    1096   1122 
+CTLCR:                                  ;                    1097   1123 ;0dh(CR)
+    xor a                               ;e814  af            1098   1124 
+    ld  (CSRX),a                        ;e815  32 0d eb      1099   1125 
+    jr  SETAD                           ;e818  18 e1         1100   1126 
+                                        ;                    1101   1127 
+CTLUP:                                  ;                    1102   1128 ;0bh(VT)
+    ld  hl,CSRY                         ;e81a  21 0e eb      1103   1129 
+    ld  a,(hl)                          ;e81d  7e            1104   1130 
+    or  a                               ;e81e  b7            1105   1131 
+    ret z                               ;e81f  c8            1106   1132 
+    dec (hl)                            ;e820  35            1107   1133 
+    jr  SETAD                           ;e821  18 d8         1108   1134 
+                                        ;                    1109   1135 
+CTLRHT:                                 ;                    1110   1136 ;09h(HT),0ch(FF),1ch(FS)
+    ld  hl,CSRX                         ;e823  21 0d eb      1111   1137 
+    ld  bc,(WIDTH)                      ;e826  ed 4b 14 eb   1112   1138 
+    ld  a,(hl)                          ;e82a  7e            1113   1139 
+    inc a                               ;e82b  3c            1114   1140 
+    cp  c                               ;e82c  b9            1115   1141 
+    jr  c,RHTOK                         ;e82d  38 08         1116   1142 
+    inc hl                              ;e82f  23            1117   1143 ;CSRY
+    ld  a,(hl)                          ;e830  7e            1118   1144 
+    dec b                               ;e831  05            1119   1145 
+    cp  b                               ;e832  b8            1120   1146 
+    ret nc                              ;e833  d0            1121   1147 
+    inc (hl)                            ;e834  34            1122   1148 
+    dec hl                              ;e835  2b            1123   1149 ;CSRX
+    xor a                               ;e836  af            1124   1150 
+RHTOK:                                  ;                    1125   1151 
+    ld  (hl),a                          ;e837  77            1126   1152 
+    jr  SETAD                           ;e838  18 c1         1127   1153 
+                                        ;                    1128   1154 
+CTLLFT:                                 ;                    1129   1155 ;08h(BS),1dh(GS)
+    ld  hl,CSRX                         ;e83a  21 0d eb      1130   1156 
+    ld  a,(hl)                          ;e83d  7e            1131   1157 
+    or  a                               ;e83e  b7            1132   1158 
+    jr  nz,LFTOK                        ;e83f  20 09         1133   1159 
+    inc hl                              ;e841  23            1134   1160 ;CSRY
+    ld  a,(hl)                          ;e842  7e            1135   1161 
+    or  a                               ;e843  b7            1136   1162 
+    ret z                               ;e844  c8            1137   1163 
+    dec (hl)                            ;e845  35            1138   1164 
+    dec hl                              ;e846  2b            1139   1165 ;CSRX
+    ld  a,(WIDTH)                       ;e847  3a 14 eb      1140   1166 
+LFTOK:                                  ;                    1141   1167 
+    dec a                               ;e84a  3d            1142   1168 
+    ld  (hl),a                          ;e84b  77            1143   1169 
+    jr  SETAD                           ;e84c  18 ad         1144   1170 
+                                        ;                    1145   1171 
+CTLHOM:                                 ;                    1146   1172 ;1eh(RS)
+    ld  hl,0                            ;e84e  21 00 00      1147   1173 
+    ld  (CSRX),hl                       ;e851  22 0d eb      1148   1174 
+    jr  SETAD                           ;e854  18 a5         1149   1175 
+                                        ;                    1150   1176 
+CTLCLS:                                 ;                    1151   1177 ;1ah(SUB)
+    ld  hl,VDISP                        ;e856  21 ad ef      1152   1178 
+    ld  de,VDISP+1                      ;e859  11 ae ef      1153   1179 
+    ld  bc,64*24-1                      ;e85c  01 c0 05      1154   1180 
+    ld  (hl)," "                        ;e85f  36 20         1155   1181 
+    ldir                                ;e861  ed b0         1156   1182 
+                                        ;                    1157   1183 
+    ld bc, 32 * 192                     ;e863  01 00 18      1158   1184 
+    ld l, 0                             ;e866  2e 00         1159   1185 
+LOOP1:                                  ;                    1160   1186 
+    out (c), l                          ;e868  ed 69         1161   1187 
+    DEC BC                              ;e86a  0b            1162   1188 
+    LD A, B                             ;e86b  78            1163   1189 
+    OR C                                ;e86c  b1            1164   1190 
+    JR NZ, LOOP1                        ;e86d  20 f9         1165   1191 
+                                        ;                    1166   1192 
+    jr  CTLHOM                          ;e86f  18 dd         1167   1193 ;?
+                                        ;                    1168   1194 
+CTLESC:                                 ;                    1169   1195 ;1bh(ESC)
+    ld  a,1                             ;e871  3e 01         1170   1196 
+    ld  (ESCMOD),a                      ;e873  32 0a eb      1171   1197 
+CTLNUL:                                 ;                    1172   1198 ;00h(NUL),etc.
+    ret                                 ;e876  c9            1173   1199 
+                                        ;                    1174   1200 
+ESC:                                    ;                    1175   1201 
+    dec a                               ;e877  3d            1176   1202 ;a=(ESCMOD)
+    jr  z,ESC1                          ;e878  28 30         1177   1203 
+    dec a                               ;e87a  3d            1178   1204 
+    jr  z,ESC2                          ;e87b  28 23         1179   1205 
+                                        ;                    1180   1206 
+ESC3:                                   ;                    1181   1207 
+    xor a                               ;e87d  af            1182   1208 
+    ld  (ESCMOD),a                      ;e87e  32 0a eb      1183   1209 
+    ld  a,c                             ;e881  79            1184   1210 
+    sub 20h                             ;e882  d6 20         1185   1211 
+    ld  bc,(WIDTH)                      ;e884  ed 4b 14 eb   1186   1212 
+    cp  c                               ;e888  b9            1187   1213 
+    jr  c,XOK                           ;e889  38 02         1188   1214 
+    ld  a,c                             ;e88b  79            1189   1215 
+    dec a                               ;e88c  3d            1190   1216 
+XOK:                                    ;                    1191   1217 
+    ld  (CSRX),a                        ;e88d  32 0d eb      1192   1218 
+    ld  a,(ESCEQY)                      ;e890  3a 0b eb      1193   1219 
+    sub 20h                             ;e893  d6 20         1194   1220 
+    cp  b                               ;e895  b8            1195   1221 
+    jr  c,YOK                           ;e896  38 02         1196   1222 
+    ld  a,b                             ;e898  78            1197   1223 
+    dec a                               ;e899  3d            1198   1224 
+YOK:                                    ;                    1199   1225 
+    ld  (CSRY),a                        ;e89a  32 0e eb      1200   1226 
+    jp  SETAD                           ;e89d  c3 fb e7      1201   1227 
+                                        ;                    1202   1228 
+ESC2:                                   ;                    1203   1229 
+    ld  a,3                             ;e8a0  3e 03         1204   1230 
+    ld  (ESCMOD),a                      ;e8a2  32 0a eb      1205   1231 
+    ld  a,c                             ;e8a5  79            1206   1232 
+    ld  (ESCEQY),a                      ;e8a6  32 0b eb      1207   1233 
+    ret                                 ;e8a9  c9            1208   1234 
+                                        ;                    1209   1235 
+ESC1:                                   ;                    1210   1236 
+    ld  (ESCMOD),a                      ;e8aa  32 0a eb      1211   1237 ;a=0
+    ld  a,c                             ;e8ad  79            1212   1238 
+    cp  "="                             ;e8ae  fe 3d         1213   1239 
+    jr  z,ESCEQ                         ;e8b0  28 0d         1214   1240 
+    cp  "T"                             ;e8b2  fe 54         1215   1241 
+    jr  z,ESCT                          ;e8b4  28 0f         1216   1242 
+    cp  "Y"                             ;e8b6  fe 59         1217   1243 
+    jr  z,ESCY                          ;e8b8  28 21         1218   1244 
+    cp  "*"                             ;e8ba  fe 2a         1219   1245 
+    jr  z,CTLCLS                        ;e8bc  28 98         1220   1246 
+    ret                                 ;e8be  c9            1221   1247 
+                                        ;                    1222   1248 
+ESCEQ:                                  ;                    1223   1249 ;set cursor (ESC=YX)
+    ld  a,2                             ;e8bf  3e 02         1224   1250 
+    ld  (ESCMOD),a                      ;e8c1  32 0a eb      1225   1251 
+    ret                                 ;e8c4  c9            1226   1252 
+                                        ;                    1227   1253 
+ESCT:                                   ;                    1228   1254 ;clear to line end
+    ld  hl,(CSRX)                       ;e8c5  2a 0d eb      1229   1255 
+    push    hl                          ;e8c8  e5            1230   1256 
+    call    ESCTLP                      ;e8c9  cd d3 e8      1231   1257 
+    pop hl                              ;e8cc  e1            1232   1258 
+    ld  (CSRX),hl                       ;e8cd  22 0d eb      1233   1259 
+    jp  SETAD                           ;e8d0  c3 fb e7      1234   1260 
+                                        ;                    1235   1261 
+ESCTLP:                                 ;                    1236   1262 
+    ld  a," "                           ;e8d3  3e 20         1237   1263 
+    call    COPYCHR                     ;e8d5  cd 02 e9      1238   1264 
+    jr  nz,ESCTLP                       ;e8d8  20 f9         1239   1265 
+    ret                                 ;e8da  c9            1240   1266 
+                                        ;                    1241   1267 
+ESCY:                                   ;                    1242   1268 ;clear to screen end
+    ld  hl,(CSRX)                       ;e8db  2a 0d eb      1243   1269 
+    push    hl                          ;e8de  e5            1244   1270 
+ESCYLP:                                 ;                    1245   1271 
+    call    ESCTLP                      ;e8df  cd d3 e8      1246   1272 
+    ld  hl,CSRX                         ;e8e2  21 0d eb      1247   1273 
+    ld  (hl),0                          ;e8e5  36 00         1248   1274 
+    inc hl                              ;e8e7  23            1249   1275 
+    inc (hl)                            ;e8e8  34            1250   1276 
+    ld  a,(hl)                          ;e8e9  7e            1251   1277 
+    cp  24                              ;e8ea  fe 18         1252   1278 
+    jr  c,ESCYLP                        ;e8ec  38 f1         1253   1279 
+    pop hl                              ;e8ee  e1            1254   1280 
+    ld  (CSRX),hl                       ;e8ef  22 0d eb      1255   1281 
+    ret                                 ;e8f2  c9            1256   1282 
+                                        ;                    1257   1283 
+CALCAD:                                 ;                    1258   1284 ; af,bc,hl
+                                        ;                    1259   1285 ;calculate VRAM address
+    xor a                               ;e8f3  af            1260   1286 
+    ld  l,a                             ;e8f4  6f            1261   1287 
+    ld  a,(CSRY)                        ;e8f5  3a 0e eb      1262   1288 
+    ld  h,a                             ;e8f8  67            1263   1289 ;Y*256
+    ld  b,VRAM/256                      ;e8f9  06 00         1264   1290 
+    ld  a,(CSRX)                        ;e8fb  3a 0d eb      1265   1291 
+    rra                                 ;e8fe  1f            1266   1292 ;X/2
+    ld  c,a                             ;e8ff  4f            1267   1293 
+    add hl,bc                           ;e900  09            1268   1294 ;VRAM+Y*256+X/2
+    ret                                 ;e901  c9            1269   1295 
+                                        ;                    1270   1296 
+COPYCHR:                                ;                    1271   1297 ;return z-flag=1 if cursor reach line end
+    ld  hl,(CSRAD)                      ;e902  2a 0f eb      1272   1298 
+    cp  (hl)                            ;e905  be            1273   1299 
+    jr  z,INCCSR                        ;e906  28 71         1274   1300 
+    ld  (hl),a                          ;e908  77            1275   1301 
+    add a,a                             ;e909  87            1276   1302 
+    ld  h,0                             ;e90a  26 00         1277   1303 
+    ld  l,a                             ;e90c  6f            1278   1304 
+    add hl,hl                           ;e90d  29            1279   1305 
+    ld  de,FONT-80h                     ;e90e  11 09 e9      1280   1306 
+    add hl,de                           ;e911  19            1281   1307 
+    ex  de,hl                           ;e912  eb            1282   1308 
+                                        ;                    1283   1309 ;	call	CALCAD		;de no change
+    xor a                               ;e913  af            1284   1310 
+    ld  a,(CSRY)                        ;e914  3a 0e eb      1285   1311 
+    ld  h, a                            ;e917  67            1286   1312 
+    ld  a,(CSRX)                        ;e918  3a 0d eb      1287   1313 
+    rra                                 ;e91b  1f            1288   1314 
+    ld  l,a                             ;e91c  6f            1289   1315 
+    ld  b,4                             ;e91d  06 04         1290   1316 
+    jr  c,XODD                          ;e91f  38 2d         1291   1317 
+                                        ;                    1292   1318 
+XEVEN:                                  ;                    1293   1319 
+                                        ;                    1294   1320 ;x=0,2,4,...
+    push bc                             ;e921  c5            1295   1321 
+    ld  b,h                             ;e922  44            1296   1322 
+    ld  c,l                             ;e923  4d            1297   1323 
+    in  a, (c)                          ;e924  ed 78         1298   1324 
+    ld  c, a                            ;e926  4f            1299   1325 
+    ld  a,(de)                          ;e927  1a            1300   1326 ;font
+    xor c                               ;e928  a9            1301   1327 
+    and 0f0h                            ;e929  e6 f0         1302   1328 
+    xor c                               ;e92b  a9            1303   1329 
+    ld  c,l                             ;e92c  4d            1304   1330 
+    out (c), a                          ;e92d  ed 79         1305   1331 
+    ld  bc, 32                          ;e92f  01 20 00      1306   1332 
+    add hl, bc                          ;e932  09            1307   1333 
+    ld  b,h                             ;e933  44            1308   1334 
+    ld  c,l                             ;e934  4d            1309   1335 
+    in  a, (c)                          ;e935  ed 78         1310   1336 
+    ld  c, a                            ;e937  4f            1311   1337 
+    ld  a,(de)                          ;e938  1a            1312   1338 ;font
+    rlca                                ;e939  07            1313   1339 
+    rlca                                ;e93a  07            1314   1340 
+    rlca                                ;e93b  07            1315   1341 
+    rlca                                ;e93c  07            1316   1342 
+    xor c                               ;e93d  a9            1317   1343 
+    and 0f0h                            ;e93e  e6 f0         1318   1344 
+    xor  c                              ;e940  a9            1319   1345 
+    ld  c,l                             ;e941  4d            1320   1346 
+    out (c), a                          ;e942  ed 79         1321   1347 
+    ld  bc, 32                          ;e944  01 20 00      1322   1348 
+    add hl, bc                          ;e947  09            1323   1349 
+    inc de                              ;e948  13            1324   1350 
+    pop bc                              ;e949  c1            1325   1351 
+    djnz    XEVEN                       ;e94a  10 d5         1326   1352 
+    jr  INCCSR                          ;e94c  18 2b         1327   1353 
+                                        ;                    1328   1354 
+XODD:                                   ;                    1329   1355 
+                                        ;                    1330   1356 ;x=1,3,5,...
+    push bc                             ;e94e  c5            1331   1357 
+    ld  b, h                            ;e94f  44            1332   1358 
+    ld  c, l                            ;e950  4d            1333   1359 
+    in  a, (c)                          ;e951  ed 78         1334   1360 
+    ld  c, a                            ;e953  4f            1335   1361 
+    ld  a,(de)                          ;e954  1a            1336   1362 ;font
+    rrca                                ;e955  0f            1337   1363 
+    rrca                                ;e956  0f            1338   1364 
+    rrca                                ;e957  0f            1339   1365 
+    rrca                                ;e958  0f            1340   1366 
+    xor c                               ;e959  a9            1341   1367 
+    and 0fh                             ;e95a  e6 0f         1342   1368 
+    xor c                               ;e95c  a9            1343   1369 
+    ld  c, l                            ;e95d  4d            1344   1370 
+    out (c), a                          ;e95e  ed 79         1345   1371 
+    ld  bc, 32                          ;e960  01 20 00      1346   1372 
+    add hl, bc                          ;e963  09            1347   1373 
+    ld  b, h                            ;e964  44            1348   1374 
+    ld  c, l                            ;e965  4d            1349   1375 
+    in  a, (c)                          ;e966  ed 78         1350   1376 
+    ld  c, a                            ;e968  4f            1351   1377 
+    ld  a,(de)                          ;e969  1a            1352   1378 ;font
+    xor c                               ;e96a  a9            1353   1379 
+    and 0fh                             ;e96b  e6 0f         1354   1380 
+    xor c                               ;e96d  a9            1355   1381 
+    ld  c, l                            ;e96e  4d            1356   1382 
+    out (c), a                          ;e96f  ed 79         1357   1383 
+    ld  bc, 32                          ;e971  01 20 00      1358   1384 
+    add hl, bc                          ;e974  09            1359   1385 
+    inc de                              ;e975  13            1360   1386 
+    pop bc                              ;e976  c1            1361   1387 
+    djnz    XODD                        ;e977  10 d5         1362   1388 
+                                        ;                    1363   1389 
+INCCSR:                                 ;                    1364   1390 
+    ld  hl,(CSRAD)                      ;e979  2a 0f eb      1365   1391 
+    inc hl                              ;e97c  23            1366   1392 
+    ld  (CSRAD),hl                      ;e97d  22 0f eb      1367   1393 
+    ld  hl,CSRX                         ;e980  21 0d eb      1368   1394 
+    inc (hl)                            ;e983  34            1369   1395 
+    ld  a,(WIDTH)                       ;e984  3a 14 eb      1370   1396 
+    cp  (hl)                            ;e987  be            1371   1397 
+    ret                                 ;e988  c9            1372   1398 
+                                        ;                    1373   1399 
+FONT:                                   ;                    1374   1400 
+    db  000h,000h,000h,000h             ;e989  00 00 00 00   1375   1401 ;sp
+    db  044h,044h,040h,040h             ;e98d  44 44 40 40   1376   1402 ;!
+    db  0aah,000h,000h,000h             ;e991  aa 00 00 00   1377   1403 ;"
+    db  00ah,0eah,0eah,000h             ;e995  0a ea ea 00   1378   1404 ;#
+    db  04eh,0ceh,06eh,040h             ;e999  4e ce 6e 40   1379   1405 ;$
+    db  008h,024h,082h,000h             ;e99d  08 24 82 00   1380   1406 ;%
+    db  04ah,0a4h,0a8h,060h             ;e9a1  4a a4 a8 60   1381   1407 ;&
+    db  048h,000h,000h,000h             ;e9a5  48 00 00 00   1382   1408 ;'
+    db  024h,044h,044h,020h             ;e9a9  24 44 44 20   1383   1409 ;(
+    db  084h,044h,044h,080h             ;e9ad  84 44 44 80   1384   1410 ;)
+    db  004h,0e4h,0e4h,000h             ;e9b1  04 e4 e4 00   1385   1411 ;*
+    db  004h,04eh,044h,000h             ;e9b5  04 4e 44 00   1386   1412 ;+
+    db  000h,000h,044h,080h             ;e9b9  00 00 44 80   1387   1413 ;,
+    db  000h,00eh,000h,000h             ;e9bd  00 0e 00 00   1388   1414 ;-
+    db  000h,000h,000h,040h             ;e9c1  00 00 00 40   1389   1415 ;.
+    db  022h,044h,048h,080h             ;e9c5  22 44 48 80   1390   1416 ;/
+                                        ;                    1391   1417 
+    db  04ah,0aeh,0aah,040h             ;e9c9  4a ae aa 40   1392   1418 ;0
+    db  04ch,044h,044h,0e0h             ;e9cd  4c 44 44 e0   1393   1419 ;1
+    db  04ah,0a2h,048h,0e0h             ;e9d1  4a a2 48 e0   1394   1420 ;2
+    db  04ah,024h,02ah,040h             ;e9d5  4a 24 2a 40   1395   1421 ;3
+    db  026h,0aah,0e2h,020h             ;e9d9  26 aa e2 20   1396   1422 ;4
+    db  0e8h,08ch,022h,0c0h             ;e9dd  e8 8c 22 c0   1397   1423 ;5
+    db  04ah,08ch,0aah,040h             ;e9e1  4a 8c aa 40   1398   1424 ;6
+    db  0eah,022h,044h,040h             ;e9e5  ea 22 44 40   1399   1425 ;7
+    db  04ah,0a4h,0aah,040h             ;e9e9  4a a4 aa 40   1400   1426 ;8
+    db  04ah,0a6h,02ah,040h             ;e9ed  4a a6 2a 40   1401   1427 ;9
+    db  004h,040h,044h,000h             ;e9f1  04 40 44 00   1402   1428 ;:
+    db  004h,040h,044h,080h             ;e9f5  04 40 44 80   1403   1429 ;;
+    db  002h,048h,042h,000h             ;e9f9  02 48 42 00   1404   1430 ;<
+    db  000h,0e0h,0e0h,000h             ;e9fd  00 e0 e0 00   1405   1431 ;=
+    db  008h,042h,048h,000h             ;ea01  08 42 48 00   1406   1432 ;>
+    db  04ah,024h,040h,040h             ;ea05  4a 24 40 40   1407   1433 ;?
+                                        ;                    1408   1434 
+    db  04ah,022h,06ah,040h             ;ea09  4a 22 6a 40   1409   1435 ;@
+    db  04ah,0aeh,0aah,0a0h             ;ea0d  4a ae aa a0   1410   1436 ;A
+    db  0cah,0ach,0aah,0c0h             ;ea11  ca ac aa c0   1411   1437 ;B
+    db  04ah,088h,08ah,040h             ;ea15  4a 88 8a 40   1412   1438 ;C
+    db  0cah,0aah,0aah,0c0h             ;ea19  ca aa aa c0   1413   1439 ;D
+    db  0e8h,08eh,088h,0e0h             ;ea1d  e8 8e 88 e0   1414   1440 ;E
+    db  0e8h,08eh,088h,080h             ;ea21  e8 8e 88 80   1415   1441 ;F
+    db  068h,08eh,0aah,040h             ;ea25  68 8e aa 40   1416   1442 ;G
+    db  0aah,0aeh,0aah,0a0h             ;ea29  aa ae aa a0   1417   1443 ;H
+    db  0e4h,044h,044h,0e0h             ;ea2d  e4 44 44 e0   1418   1444 ;I
+    db  0e4h,044h,044h,080h             ;ea31  e4 44 44 80   1419   1445 ;J
+    db  0aah,0cch,0aah,0a0h             ;ea35  aa cc aa a0   1420   1446 ;K
+    db  088h,088h,088h,0e0h             ;ea39  88 88 88 e0   1421   1447 ;L
+    db  0aeh,0eeh,0aah,0a0h             ;ea3d  ae ee aa a0   1422   1448 ;M
+    db  0aeh,0eeh,0eeh,0a0h             ;ea41  ae ee ee a0   1423   1449 ;N
+    db  04ah,0aah,0aah,040h             ;ea45  4a aa aa 40   1424   1450 ;O
+                                        ;                    1425   1451 
+    db  0cah,0ach,088h,080h             ;ea49  ca ac 88 80   1426   1452 ;P
+    db  04ah,0aah,0a4h,020h             ;ea4d  4a aa a4 20   1427   1453 ;Q
+    db  0cah,0ach,0aah,0a0h             ;ea51  ca ac aa a0   1428   1454 ;R
+    db  04ah,084h,02ah,040h             ;ea55  4a 84 2a 40   1429   1455 ;S
+    db  0e4h,044h,044h,040h             ;ea59  e4 44 44 40   1430   1456 ;T
+    db  0aah,0aah,0aah,0e0h             ;ea5d  aa aa aa e0   1431   1457 ;U
+    db  0aah,0aah,0aah,040h             ;ea61  aa aa aa 40   1432   1458 ;V
+    db  0aah,0eeh,0eeh,0a0h             ;ea65  aa ee ee a0   1433   1459 ;W
+    db  0aah,0a4h,0aah,0a0h             ;ea69  aa a4 aa a0   1434   1460 ;X
+    db  0aah,0a4h,044h,040h             ;ea6d  aa a4 44 40   1435   1461 ;Y
+    db  0e2h,0a4h,0a8h,0e0h             ;ea71  e2 a4 a8 e0   1436   1462 ;Z
+    db  064h,044h,044h,060h             ;ea75  64 44 44 60   1437   1463 ;[
+    db  0aah,04eh,04eh,040h             ;ea79  aa 4e 4e 40   1438   1464 ;\
+    db  0c4h,044h,044h,0c0h             ;ea7d  c4 44 44 c0   1439   1465 ;]
+    db  04ah,000h,000h,000h             ;ea81  4a 00 00 00   1440   1466 ;^
+    db  000h,000h,000h,0e0h             ;ea85  00 00 00 e0   1441   1467 ;_
+                                        ;                    1442   1468 
+    db  042h,000h,000h,000h             ;ea89  42 00 00 00   1443   1469 ;`
+    db  000h,0c2h,0eah,0e0h             ;ea8d  00 c2 ea e0   1444   1470 ;a
+    db  088h,08ch,0aah,0c0h             ;ea91  88 8c aa c0   1445   1471 ;b
+    db  000h,068h,088h,060h             ;ea95  00 68 88 60   1446   1472 ;c
+    db  022h,026h,0aah,060h             ;ea99  22 26 aa 60   1447   1473 ;d
+    db  000h,04ah,0e8h,060h             ;ea9d  00 4a e8 60   1448   1474 ;e
+    db  024h,04eh,044h,040h             ;eaa1  24 4e 44 40   1449   1475 ;f
+    db  000h,06ah,062h,0c0h             ;eaa5  00 6a 62 c0   1450   1476 ;g
+    db  088h,08ch,0aah,0a0h             ;eaa9  88 8c aa a0   1451   1477 ;h
+    db  040h,044h,044h,040h             ;eaad  40 44 44 40   1452   1478 ;i
+    db  020h,022h,02ah,040h             ;eab1  20 22 2a 40   1453   1479 ;j
+    db  088h,0ach,0cah,0a0h             ;eab5  88 ac ca a0   1454   1480 ;k
+    db  044h,044h,044h,060h             ;eab9  44 44 44 60   1455   1481 ;l
+    db  000h,0eeh,0eeh,0a0h             ;eabd  00 ee ee a0   1456   1482 ;m
+    db  000h,0cah,0aah,0a0h             ;eac1  00 ca aa a0   1457   1483 ;n
+    db  000h,04ah,0aah,040h             ;eac5  00 4a aa 40   1458   1484 ;o
+                                        ;                    1459   1485 
+    db  000h,0cah,0c8h,080h             ;eac9  00 ca c8 80   1460   1486 ;p
+    db  000h,06ah,062h,020h             ;eacd  00 6a 62 20   1461   1487 ;q
+    db  000h,0ach,088h,080h             ;ead1  00 ac 88 80   1462   1488 ;r
+    db  000h,068h,042h,0c0h             ;ead5  00 68 42 c0   1463   1489 ;s
+    db  004h,0e4h,044h,060h             ;ead9  04 e4 44 60   1464   1490 ;t
+    db  000h,0aah,0aah,060h             ;eadd  00 aa aa 60   1465   1491 ;u
+    db  000h,0aah,0aah,040h             ;eae1  00 aa aa 40   1466   1492 ;v
+    db  000h,0aah,0eeh,0a0h             ;eae5  00 aa ee a0   1467   1493 ;w
+    db  000h,0aah,04ah,0a0h             ;eae9  00 aa 4a a0   1468   1494 ;x
+    db  000h,0aah,062h,0c0h             ;eaed  00 aa 62 c0   1469   1495 ;y
+    db  000h,0e2h,048h,0e0h             ;eaf1  00 e2 48 e0   1470   1496 ;z
+    db  024h,048h,044h,020h             ;eaf5  24 48 44 20   1471   1497 ;{
+    db  044h,040h,044h,040h             ;eaf9  44 40 44 40   1472   1498 ;|
+    db  084h,042h,044h,080h             ;eafd  84 42 44 80   1473   1499 ;}
+    db  000h,02eh,080h,000h             ;eb01  00 2e 80 00   1474   1500 ;~
+    db  000h,000h,000h,000h             ;eb05  00 00 00 00   1475   1501 ;none
+                                        ;                    1476   1502 
+                                        ;                    1477   1503 
+                                        ;                    1478   1504 ;
+                                        ;                    1479   1505 ;
+                                        ;                    1480   1506 ; Workarea for SPC-1000
+                                        ;                    1481   1507 ;
+CAPS:   db  0                           ;eb09  00            1482   1508 ;caps lock, non-zero=on
+ESCMOD: db  0                           ;eb0a  00            1483   1509 ;waiting for ESC character
+ESCEQY: db  0                           ;eb0b  00            1484   1510 ;
+TIME:   db  0                           ;eb0c  00            1485   1511 ;2ms timer
+                                        ;                    1486   1512 
+CSRX:   db  0                           ;eb0d  00            1487   1513 ;cursor x position on virtual display
+CSRY:   db  0                           ;eb0e  00            1488   1514 ;cursor y positin on virtual display
+CSRAD:  dw  VDISP                       ;eb0f  ad ef         1489   1515 ;cursor address on virtual display
+CSRATT: dw  0                           ;eb11  00 00         1490   1516 ;cursor attribute address on real display
+                                        ;                    1491   1517 ; used and changed by only CONIN and INTGAM
+CSROUT: db  0                           ;eb13  00            1492   1518 ;cursor in/out of real display (non-zero=out)
+                                        ;                    1493   1519 
+                                        ;                    1494   1520 ;BIOS work area
+WIDTH:  db  64                          ;eb14  40            1495   1521 ;virtual display size=80x25
+HEIGHT: db  24                          ;eb15  18            1496   1522 ;
+    ds  1                               ;eb16                1497   1523 
+VDAREA: db  0                           ;eb17  00            1498   1524 ;display area number in virtual display
+                                        ;                    1499   1525 
+VRAM    equ 0h                          ;0000                1500   1526 ;VRAM plane1
+                                        ;                    1501   1527 ;ATTR	equ	0e000h		;VRAM plane2
+                                        ;                    1502   1528 
+                                        ;                    1503   1529 
+                                        ;                    1504   1530 
+GMODEF: DEFB    0                       ;eb18  00            1505   1531 
+CURX:   DEFB    0                       ;eb19  00            1506   1532 ;11ed  00            2867   2874 ; cursor X
+CURY:   DEFB    0                       ;eb1a  00            1507   1533 ;11ee  00            2868   2875 ; cursor Y
+OLDBUF: DEFS    10                      ;eb1b                1508   1534 ;11ef                2869   2876 ; keyboard matrix old buffer
+NEWBUF: DEFS    9                       ;eb25                1509   1535 ;11f9                2870   2877 ; keyboard matrix new buffer
+NEWMOD: DEFB    0FFh                    ;eb2e  ff            1510   1536 ;1202  ff            2871   2878 ; keyboard matrix mode flag
+                                        ;                    1511   1537 ;                    2872   2879 ;
+LOCKMD: DEFB    0                       ;eb2f  00            1512   1538 ;1203  00            2873   2880 ; LOCK mode
+POINT1: DEFB    0                       ;eb30  00            1513   1539 ;1204  00            2874   2881 ; key input buffer 
+POINT2: DEFB    0                       ;eb31  00            1514   1540 ;1205  00            2875   2882 ; key input buffer 
+                                        ;                    1515   1541 ;                    2878   2885 ;
+                                        ;                    1516   1542 ;                    2879   2886 ;
+FUNS    EQU  8                                      ;0008                1517   1543 
+FUNBUF:                                 ;                    1518   1544 
+    DEFB    4                           ;eb32  04            1519   1545 
+    DEFM    'DIR'                       ;eb33  44 49 52      1520   1546 
+    DEFB    00Dh                        ;eb36  0d            1521   1547 
+    DEFS    11-FUNS                     ;eb37                1522   1548 
+                                        ;                    1523   1549 
+    DEFB    4                           ;eb3a  04            1524   1550 
+    DEFM    'ERA '                      ;eb3b  45 52 41 20   1525   1551 
+    DEFB    0                           ;eb3f  00            1526   1552 
+    DEFS    10-FUNS                     ;eb40                1527   1553 
+                                        ;                    1528   1554 
+                                        ;                    1529   1555 
+    DEFB    4                           ;eb42  04            1530   1556 
+    DEFM    'REN '                      ;eb43  52 45 4e 20   1531   1557 
+    DEFB    0                           ;eb47  00            1532   1558 
+    DEFS    10-FUNS                     ;eb48                1533   1559 
+                                        ;                    1534   1560 
+    DEFB    5                           ;eb4a  05            1535   1561 
+    DEFM    'SAVE '                     ;eb4b  53 41 56 45   1536   1562 
+                                        ;eb4f  20            1536   1563
+    DEFB    0                           ;eb50  00            1537   1564 
+    DEFS    9-FUNS                      ;eb51                1538   1565 
+                                        ;                    1539   1566 
+    DEFB    5                           ;eb52  05            1540   1567 
+    DEFM    'TYPE '                     ;eb53  54 59 50 45   1541   1568 
+                                        ;eb57  20            1541   1569
+    DEFB    0                           ;eb58  00            1542   1570 
+    DEFS    9-FUNS                      ;eb59                1543   1571 
+                                        ;                    1544   1572 
+    DEFB    4                           ;eb5a  04            1545   1573 
+    DEFM    'PIP '                      ;eb5b  50 49 50 20   1546   1574 
+    DEFB    0                           ;eb5f  00            1547   1575 
+    DEFS    10-FUNS                     ;eb60                1548   1576 
+                                        ;                    1549   1577 
+    DEFB    4                           ;eb62  04            1550   1578 
+    DEFM    'STAT '                     ;eb63  53 54 41 54   1551   1579 
+                                        ;eb67  20            1551   1580
+    DEFB    0                           ;eb68  00            1552   1581 
+    DEFS    10-FUNS                     ;eb69                1553   1582 
+                                        ;                    1554   1583 
+    DEFB    3                           ;eb6b  03            1555   1584 
+    DEFM    'ED '                       ;eb6c  45 44 20      1556   1585 
+    DEFB    0                           ;eb6f  00            1557   1586 
+    DEFS    11-FUNS                     ;eb70                1558   1587 
+                                        ;                    1559   1588 
+    DEFB    4                           ;eb73  04            1560   1589 
+    DEFM    'ASM '                      ;eb74  41 53 4d 20   1561   1590 
+    DEFB    0                           ;eb78  00            1562   1591 
+    DEFS    10-FUNS                     ;eb79                1563   1592 
+                                        ;                    1564   1593 
+    DEFB    4                           ;eb7b  04            1565   1594 
+    DEFM    'DDT '                      ;eb7c  44 44 54 20   1566   1595 
+    DEFB    0                           ;eb80  00            1567   1596 
+    DEFS    10-FUNS                     ;eb81                1568   1597 
+                                        ;                    1569   1598 ;
+KEYDT1: DEFW    0F500h                  ;eb83  00 f5         1570   1599 ;8009  No Shift
+    DEFM    '-0                         ;eb85  2d 30 3b      1571   1600 ;'                      ;'		;'
+    DEFW    06F6Ch                      ;eb88  6c 6f         1572   1601 ;LO
+    DEFM    '9'                         ;eb8a  39            1573   1602 ;9
+    DEFW    0F400h                      ;eb8b  00 f4         1574   1603 ;8008
+    DEFB    01Fh                        ;eb8d  1f            1575   1604 
+    DEFM    ':/'                        ;eb8e  3a 2f         1576   1605 ;/
+    DEFW    0696Bh                      ;eb90  6b 69         1577   1606 ;KI
+    DEFM    '8'                         ;eb92  38            1578   1607 
+    DEFW    0F300h                      ;eb93  00 f3         1579   1608 ;8007
+    DEFW    0701Eh                      ;eb95  1e 70         1580   1609 ;P
+    DEFM    '.'                         ;eb97  2e            1581   1610 ;
+    DEFW    0756Ah                      ;eb98  6a 75         1582   1611 ;JU
+    DEFM    '7'                         ;eb9a  37            1583   1612 
+    DEFW    0F200h                      ;eb9b  00 f2         1584   1613 ;8006
+    DEFW    07840h                      ;eb9d  40 78         1585   1614 ;X
+    DEFM    ','                         ;eb9f  2c            1586   1615 
+    DEFW    07968h                      ;eba0  68 79         1587   1616 ;HV
+    DEFM    '6'                         ;eba2  36            1588   1617 
+    DEFW    0F100h                      ;eba3  00 f1         1589   1618 ;8005
+    DEFW    05D1Dh                      ;eba5  1d 5d         1590   1619 
+    DEFW    0676Dh                      ;eba7  6d 67         1591   1620 ;MG
+    DEFW    03574h                      ;eba9  74 35         1592   1621 ;T5
+    DEFW    00000h                      ;ebab  00 00         1593   1622 ;8004
+    DEFW    07C1Ch                      ;ebad  1c 7c         1594   1623 
+    DEFW    0666Eh                      ;ebaf  6e 66         1595   1624 ;NF
+    DEFW    03472h                      ;ebb1  72 34         1596   1625 ;R4
+    DEFW    00008h                      ;ebb3  08 00         1597   1626 ;DEL ;8003
+    DEFW    05B1Bh                      ;ebb5  1b 5b         1598   1627 
+    DEFW    06462h                      ;ebb7  62 64         1599   1628 ;BD
+    DEFW    03365h                      ;ebb9  65 33         1600   1629 ;E3
+    DEFW    00016h                      ;ebbb  16 00         1601   1630 ;LOCK ;8002
+    DEFW    05D7Ah                      ;ebbd  7a 5d         1602   1631 ;Z^
+    DEFW    07376h                      ;ebbf  76 73         1603   1632 ;VS
+    DEFW    03277h                      ;ebc1  77 32         1604   1633 ;W2
+    DEFW    00B5Eh                      ;ebc3  5e 0b         1605   1634 ;HOME ;8001
+    DEFW    00D20h                      ;ebc5  20 0d         1606   1635 
+    DEFW    06163h                      ;ebc7  63 61         1607   1636 ;CA
+    DEFW    03171h                      ;ebc9  71 31         1608   1637 ;Q1
+                                        ;                    1609   1638 ;
+                                        ;                    1610   1639 ;
+                                        ;                    1611   1640 ;
+KEYDT2: DEFW    0FA00h                  ;ebcb  00 fa         1612   1641 ; Shift
+    DEFM    '=0+LO)'                    ;ebcd  3d 30 2b 4c   1613   1642 
+                                        ;ebd1  4f 29         1613   1643
+    DEFW    0F900h                      ;ebd3  00 f9         1614   1644 
+    DEFB    01Fh                        ;ebd5  1f            1615   1645 
+    DEFM    '*?KI('                     ;ebd6  2a 3f 4b 49   1616   1646 
+                                        ;ebda  28            1616   1647
+    DEFW    0F800h                      ;ebdb  00 f8         1617   1648 
+    DEFB    01Eh                        ;ebdd  1e            1618   1649 
+    DEFM    'P>JU'                      ;ebde  50 3e 4a 55   1619   1650 
+    DEFB    027h                        ;ebe2  27            1620   1651 
+    DEFW    0F700h                      ;ebe3  00 f7         1621   1652 
+    DEFB    060h                        ;ebe5  60            1622   1653 
+    DEFM    'X<HY&'                     ;ebe6  58 3c 48 59   1623   1654 
+                                        ;ebea  26            1623   1655
+    DEFW    0F600h                      ;ebeb  00 f6         1624   1656 
+    DEFW    07D1Dh                      ;ebed  1d 7d         1625   1657 
+    DEFM    'MGT%'                      ;ebef  4d 47 54 25   1626   1658 
+    DEFW    00000h                      ;ebf3  00 00         1627   1659 
+    DEFW    07F1Ch                      ;ebf5  1c 7f         1628   1660 
+    DEFM    'NFR$'                      ;ebf7  4e 46 52 24   1629   1661 
+    DEFW    00012h                      ;ebfb  12 00         1630   1662 ;INST
+    DEFW    07B1Bh                      ;ebfd  1b 7b         1631   1663 
+    DEFM    'BDE#'                      ;ebff  42 44 45 23   1632   1664 
+    DEFW    00017h                      ;ec03  17 00         1633   1665 ;LOCK
+    DEFM    'Z'                         ;ec05  5a            1634   1666 
+    DEFB    07Dh                        ;ec06  7d            1635   1667 
+    DEFM    'VSW"'                      ;ec07  56 53 57 22   1636   1668 
+    DEFW    00C7Eh                      ;ec0b  7e 0c         1637   1669 ;CLR
+    DEFW    00D20h                      ;ec0d  20 0d         1638   1670 
+    DEFM    'CAQ!'                      ;ec0f  43 41 51 21   1639   1671 
+    REF                                 ;                    1640   1672 ;of BIOS
+                                        ;                    1641   1673 
+                                        ;                    1642   1674 ;
+                                        ;                    1643   1675 ;	the remainder of the CBIOS is reserved uninitialized
+                                        ;                    1644   1676 ;	data area, and does not need to be a part of the
+                                        ;                    1645   1677 ;	system memory image (the space must be available,
+                                        ;                    1646   1678 ;	however, between "begdat" and "enddat").
+                                        ;                    1647   1679 ;
+                                        ;                    1648   1680 ;	scratch ram area for BDOS use
+                                        ;                    1649   1681 ;
+BEGDAT  EQU $                           ;ec13                1650   1682 ;beginning of data area
+DIRBF:  DEFS    128                     ;ec13                1651   1683 ;scratch directory area
+ALL00:  DEFS    31                      ;ec93                1652   1684 ;allocation vector 0
+ALL01:  DEFS    31                      ;ecb2                1653   1685 ;allocation vector 1
+ALL02:  DEFS    31                      ;ecd1                1654   1686 ;allocation vector 2
+ALL03:  DEFS    31                      ;ecf0                1655   1687 ;allocation vector 3
+ALLHD1: DEFS    255                     ;ed0f                1656   1688 ;allocation vector harddisk 1
+ALLHD2: DEFS    255                     ;ee0e                1657   1689 ;allocation vector harddisk 2
+CHK00:  DEFS    16                      ;ef0d                1658   1690 ;check vector 0
+CHK01:  DEFS    16                      ;ef1d                1659   1691 ;check vector 1
+CHK02:  DEFS    16                      ;ef2d                1660   1692 ;check vector 2
+CHK03:  DEFS    16                      ;ef3d                1661   1693 ;check vector 3
+CHKHD1: DEFS    0                       ;ef4d                1662   1694 ;check vector harddisk 1
+CHKHD2: DEFS    0                       ;ef4d                1663   1695 ;check vector harddisk 2
+                                        ;                    1664   1696 ;KEYBUF: DEFS    40h
+INKYBF: DEFS    040h                    ;ef4d                1665   1697 ;1206                2876   2883 ; key input buffer
+TABBUF: DEFS    32                      ;ef8d                1666   1698 ;1246                2877   2884 ; TAB flag
+VDISP:  defs 64*24                      ;efad                1667   1699 ;virtual display address
+DISKDATA: DEFS  256                     ;f5ad                1668   1700 
+                                        ;                    1669   1701 ;
+ENDDAT  EQU $                           ;f6ad                1670   1702 ;end of data area
+DATSIZ  EQU $-BEGDAT                    ;0a9a                1671   1703 ;size of data area
+                                        ;                    1672   1704 ;
+                                        ;                    1673   1705 
+;Z80-Assembler		Release 1.6				Page 2
+;Source file: spc-1000_cpm_bios.asm
+;Title:       Symboltable
+
+VRAM     0000	SDINIT   0000	CONSTA   0000	CONDAT   0001	
+SDWRITE  0001	PRTSTA   0002	SDREAD   0002	PRTDAT   0003	
+SDSEND   0003	IOBYTE   0003	SDCOPY   0004	CDISK    0004	
+SDFORMAT 0005	AUXDAT   0005	SDSTATUS 0006	SDDRVSTS 0007	
+SDRAMTST 0008	FUNS     0008	SDTRANS2 0009	FDCD     000a	
+SDNOACT  000a	SDTRANS1 000b	FDCT     000b	SDRCVE   000c	
+FDCS     000c	SDGO     000d	FDCOP    000d	FDCST    000e	
+SDLOAD   000e	SDSAVE   000f	DMAL     000f	SDLDNGO  0010	
+DMAH     0010	NSECTS   002c	MSIZE    003a	DATSIZ   0a9a	
+KEYBUF   7a4f	BIAS     9800	CCP      cc00	BDOS     d406	
+BIOS     e200	WBOOTE   e203	DPBASE   e233	TRANS    e253	
+DPBLK    e26d	SIGNON   e27c	LDERR    e2af	PRTMSG   e2c5	
+BOOT     e2d0	CLS3     e2e1	WBOOT    e2f9	LOAD1    e30d	
+LOAD2    e328	GOCPM    e343	CONST    e364	CONIN    e36c	
+CONOUT   e370	ASCPRT   e371	LIST     e377	LISTST   e379	
+PUNCHS   e37c	READER   e37e	HOME     e37f	SELDSK   e384	
+SELFD    e38d	SELFD$   e399	SETTRK   e3a8	SETSEC   e3b7	
+SETSEC0  e3ca	SECTRAN  e3cf	SECT1    e3da	SETDMA   e3e0	
+READ     e3e5	BUFCHECK e3ec	REALREAD e3f2	SYM1     e41d	
+BUFCOPY  e427	ODDREAD  e42f	EVENREAD e430	WRITE    e43b	
+WRITEC   e43b	ODDWRIT  e448	EVENWRIT e449	CHKWCPY  e450	
+CHKWFLG  e450	WRITEM   e450	READ1    e47d	WAITIO   e4a5	
+SENDCOM  e4a6	SENDDAT  e4ae	CHKRFD1  e4b2	CHKDAC2  e4c9	
+CHKDAC3  e4d6	GETDATA  e4dd	CHKDAV0  e4e8	CHKDAV1  e4ff	
+FDD#N    e50c	FDD#D    e50d	FDD#T    e50e	FDD#S    e50f	
+DATADDR  e510	CHGFLG   e512	PRESEC   e513	BRKEY    e514	
+ASCGET1  e51b	BUFCEK   e525	GETRET   e533	BUFSET   e537	
+FLASHF   e538	BRKGTR   e544	KEYGT    e54b	ZERORT   e55a	
+ZEROR2   e55d	FLGET    e560	REPETS   e570	KEYBFA   e574	
+KEYBFD   e577	NEWKYS   e57e	REPTSW   e582	KEYST2   e584	
+SETLP1   e58e	SETPL2   e595	SETPL3   e59e	SETPL4   e5a2	
+KYBFSR   e5a6	FLASHS   e5b1	FLASHG   e5b2	FLASHA   e5b3	
+FLASHD   e5b6	FLASHC   e5b7	L0D28    e5c0	FLASHO   e5c2	
+FLASHE   e5c5	FLSHGT   e5cd	FLGTLP   e5d3	REPETF   e5e8	
+FLSHL3   e5f6	FLGTL2   e5f9	FLSHRT   e602	KEYSEN   e60b	
+KEYSN0   e60e	KEYSN1   e610	KEYSN2   e61d	KEYSN3   e627	
+L0D9D    e62e	L0DA5    e636	L0DB1    e642	L0DB9    e64a	
+NEWCEK   e64c	NEWPL1   e654	SAMECK   e662	SAMELP   e66a	
+NEWFLG   e672	FLGLP1   e67a	FLGLP2   e690	FLGLP4   e69d	
+FLGLP3   e69f	FLGLP5   e6a4	FLGLP6   e6a8	FLGLP9   e6b2	
+FLGLP7   e6b6	FLGLP8   e6bd	KYBFST   e6c6	L0E4C    e6dd	
+CTRLNO   e6ed	SETKY    e6fa	NONKEY   e6fd	NONKE?   e700	
+SETKY2   e708	FUNCTN   e723	FUNCLP   e735	BFSTSB   e73e	
+NONSET   e757	NORET    e759	CTL      e75a	NOINC1   e763	
+JPHL     e767	CTLTBL   e768	ACCPRT1  e7a8	CTLLF    e7ba	
+LOWEST   e7d7	MOVEN1   e7e4	MOVEN2   e7f3	SETAD    e7fb	
+CTLCR    e814	CTLUP    e81a	CTLRHT   e823	RHTOK    e837	
+CTLLFT   e83a	LFTOK    e84a	CTLHOM   e84e	CTLCLS   e856	
+LOOP1    e868	CTLESC   e871	CTLNUL   e876	ESC      e877	
+ESC3     e87d	XOK      e88d	YOK      e89a	ESC2     e8a0	
+ESC1     e8aa	ESCEQ    e8bf	ESCT     e8c5	ESCTLP   e8d3	
+ESCY     e8db	ESCYLP   e8df	CALCAD   e8f3	COPYCHR  e902	
+XEVEN    e921	XODD     e94e	INCCSR   e979	FONT     e989	
+CAPS     eb09	ESCMOD   eb0a	ESCEQY   eb0b	TIME     eb0c	
+CSRX     eb0d	CSRY     eb0e	CSRAD    eb0f	CSRATT   eb11	
+CSROUT   eb13	WIDTH    eb14	HEIGHT   eb15	VDAREA   eb17	
+GMODEF   eb18	CURX     eb19	CURY     eb1a	OLDBUF   eb1b	
+NEWBUF   eb25	NEWMOD   eb2e	LOCKMD   eb2f	POINT1   eb30	
+POINT2   eb31	FUNBUF   eb32	KEYDT1   eb83	KEYDT2   ebcb	
+DIRBF    ec13	BEGDAT   ec13	ALL00    ec93	ALL01    ecb2	
+ALL02    ecd1	ALL03    ecf0	ALLHD1   ed0f	ALLHD2   ee0e	
+CHK00    ef0d	CHK01    ef1d	CHK02    ef2d	CHK03    ef3d	
+CHKHD2   ef4d	INKYBF   ef4d	CHKHD1   ef4d	TABBUF   ef8d	
+VDISP    efad	DISKDATA f5ad	ENDDAT   f6ad	
+
+No undefined symbol.

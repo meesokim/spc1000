@@ -1,0 +1,199 @@
+;Z80-Assembler		Release 1.6				Page 1
+;Source file: spc-1000_cpm_boot.asm
+;Title:       
+
+;SOURCE CODE   LOC   OBJECT CODE   
+                                        ;                       1      1 ;CP/M2.2 boot loader for SPC-1000
+                                        ;                       2      2 ; by Miso Kim
+                                        ;                       3      3 
+                                        ;                       4      4 ;	include "spc-1000_all.inc"	
+                                        ;                       5      5 ;   include "spc-1000_cpm.inc"
+                                        ;                       6      6 
+MSIZE   EQU 58                          ;003a                   7      7 ;mem size in kbytes
+                                        ;                       8      8 ;
+BIAS    EQU (MSIZE-20)*1024             ;9800                   9      9 ;offset from 20k system
+CCP     EQU 3400H+BIAS                  ;cc00                  10     10 ;base of the ccp
+BIOS    EQU CCP+1600H                   ;e200                  11     11 ;base of the bios
+BIOSL   EQU 0300H                       ;0300                  12     12 ;length of the bios
+BOOT    EQU BIOS                        ;e200                  13     13 
+SIZE    EQU BIOS+BIOSL-CCP              ;1900                  14     14 ;size of cp/m system
+SECTS   EQU SIZE/128                    ;0032                  15     15 ;# of sectors to load
+DSKIX   EQU 0fa00h-33                   ;f9df                  16     16 
+CPM_RUN EQU 0CB00H                      ;cb00                  17     17 
+CLR2        EQU 00AD5H                  ;0ad5                  18     18 
+CLS     EQU 1b42h                       ;1b42                  19     19 
+                                        ;                      20     20 
+SDINIT      EQU 0                       ;0000                  21     21 
+SDWRITE     EQU 1                       ;0001                  22     22 
+SDREAD      EQU 2                       ;0002                  23     23 
+SDSEND      EQU 3                       ;0003                  24     24 
+SDCOPY      EQU 4                       ;0004                  25     25 
+SDFORMAT    EQU 5                       ;0005                  26     26 
+SDSTATUS    EQU 6                       ;0006                  27     27 
+SDDRVSTS    EQU 7                       ;0007                  28     28 
+SDRAMTST    EQU 8                       ;0008                  29     29 
+SDTRANS2    EQU 9                       ;0009                  30     30 
+SDNOACT     EQU 0Ah                     ;000a                  31     31 
+SDTRANS1    EQU 0Bh                     ;000b                  32     32 
+SDRCVE      EQU 0Ch                     ;000c                  33     33 
+SDGO        EQU 0Dh                     ;000d                  34     34 
+SDLOAD      EQU 0Eh                     ;000e                  35     35 
+SDSAVE      EQU 0Fh                     ;000f                  36     36 
+SDLDNGO     EQU 010h                    ;0010                  37     37 
+                                        ;                      38     38 
+    ORG CPM_RUN                         ;                      39     39 
+                                        ;                      40     40 
+                                        ;                      41     41 ;	DEFB "SYS"
+                                        ;                      42     42 
+                                        ;                      43     43 ;CCP=a800-b005 (track0,sector2-track0,sector10)
+                                        ;                      44     44 ;BDOS=b006-bdff (track0,sector10-track1,sector7)
+                                        ;                      45     45 ;BIOS jump table and work area=be00-bfff (track1,sector8-9)
+                                        ;                      46     46 ;BIOS program=c800-cdff (track1,sector10-15)
+                                        ;                      47     47 
+    LD  IX,DSKIX                        ;cb00  dd 21 df f9     48     48 
+    LD  SP,DSKIX                        ;cb04  31 df f9        49     49 
+    call CLR2                           ;cb07  cd d5 0a        50     50 
+LOADCPM:                                ;                      51     51 
+    ld  d, 017h                         ;cb0a  16 17           52     52 
+    call SENDCOM                        ;cb0c  cd 78 cb        53     53 
+    ld  d, 3                            ;cb0f  16 03           54     54 
+    call SENDDAT                        ;cb11  cd 80 cb        55     55 
+    ld  bc,0002h                        ;cb14  01 02 00        56     56 ;track0,sector2
+    ld  h,15                            ;cb17  26 0f           57     57 ;15 sectors
+    ld  de,CCP                          ;cb19  11 00 cc        58     58 
+    call    LOAD1                       ;cb1c  cd 48 cb        59     59 
+    ld  bc,0101h                        ;cb1f  01 01 01        60     60 
+    ld  h,16                            ;cb22  26 10           61     61 
+    call    LOAD1                       ;cb24  cd 48 cb        62     62 
+    ld  bc,0201h                        ;cb27  01 01 02        63     63 
+    ld  h,2                             ;cb2a  26 02           64     64 
+    call    LOAD1                       ;cb2c  cd 48 cb        65     65 
+    jp  BIOS                            ;cb2f  c3 00 e2        66     66 
+                                        ;                      67     67 
+LOAD:                                   ;                      68     68 
+    push bc                             ;cb32  c5              69     69 
+    push hl                             ;cb33  e5              70     70 
+    ld h,1                              ;cb34  26 01           71     71 
+    call LOAD1                          ;cb36  cd 48 cb        72     72 
+    pop hl                              ;cb39  e1              73     73 
+    pop bc                              ;cb3a  c1              74     74 
+    ld a,h                              ;cb3b  7c              75     75 
+    dec a                               ;cb3c  3d              76     76 
+    ret z                               ;cb3d  c8              77     77 
+    ld h,a                              ;cb3e  67              78     78 
+    inc c                               ;cb3f  0c              79     79 
+    ld a,16                             ;cb40  3e 10           80     80 
+    dec c                               ;cb42  0d              81     81 
+    jr nc, LOAD                         ;cb43  30 ed           82     82 
+    inc b                               ;cb45  04              83     83 
+    jr LOAD                             ;cb46  18 ea           84     84 
+LOAD1:                                  ;                      85     85 
+    PUSH HL                             ;cb48  e5              86     86 
+    PUSH DE                             ;cb49  d5              87     87 
+    PUSH BC                             ;cb4a  c5              88     88 
+    LD  D,SDREAD                        ;cb4b  16 02           89     89 ; 
+    CALL    SENDCOM                     ;cb4d  cd 78 cb        90     90 ;
+    LD  D,H                             ;cb50  54              91     91 ; # of sectors
+    CALL    SENDDAT                     ;cb51  cd 80 cb        92     92 ;
+    LD  D,0                             ;cb54  16 00           93     93 ; drive
+    CALL    SENDDAT                     ;cb56  cd 80 cb        94     94 ;
+    POP  HL                             ;cb59  e1              95     95 ;
+    LD  D,H                             ;cb5a  54              96     96 ; track
+    CALL    SENDDAT                     ;cb5b  cd 80 cb        97     97 ;
+    LD  D,L                             ;cb5e  55              98     98 ; sector
+    CALL    SENDDAT                     ;cb5f  cd 80 cb        99     99 ;
+    LD  D,SDSEND                        ;cb62  16 03          100    100 ;
+    CALL    SENDCOM                     ;cb64  cd 78 cb       101    101 ;
+    POP HL                              ;cb67  e1             102    102 
+    POP BC                              ;cb68  c1             103    103 
+    LD  C,000h                          ;cb69  0e 00          104    104 ;
+SYM1:                                   ;                     105    105 
+    CALL    GETDATA                     ;cb6b  cd af cb       106    106 ;
+    LD  (HL),D                          ;cb6e  72             107    107 ;r
+    INC HL                              ;cb6f  23             108    108 ;#
+    DEC BC                              ;cb70  0b             109    109 ;
+    LD A,B                              ;cb71  78             110    110 
+    OR C                                ;cb72  b1             111    111 
+    JR  NZ,SYM1                         ;cb73  20 f6          112    112 ;
+    LD D,H                              ;cb75  54             113    113 
+    LD E,L                              ;cb76  5d             114    114 
+    RET                                 ;cb77  c9             115    115 
+SENDCOM:                                ;                     116    116 
+    LD  B,0C0h                          ;cb78  06 c0          117    117 ;
+    LD  C,002h                          ;cb7a  0e 02          118    118 ;
+    SET 7,A                             ;cb7c  cb ff          119    119 
+    OUT (C),A                           ;cb7e  ed 79          120    120 ;y
+SENDDAT:                                ;                     121    121 
+    LD  B,0C0h                          ;cb80  06 c0          122    122 ;
+    LD  C,002h                          ;cb82  0e 02          123    123 ;
+CHKRFD1:    IN  A,(C)                   ;cb84  ed 78          124    124 ;x
+    AND 002h                            ;cb86  e6 02          125    125 ;
+    JR  Z,CHKRFD1                       ;cb88  28 fa          126    126 ;(
+    LD  C,002h                          ;cb8a  0e 02          127    127 ;
+    XOR A                               ;cb8c  af             128    128 ;
+    OUT (C),A                           ;cb8d  ed 79          129    129 ; ATN=0
+    LD  C,000h                          ;cb8f  0e 00          130    130 ;
+    OUT (C),D                           ;cb91  ed 51          131    131 ;
+    LD  C,002h                          ;cb93  0e 02          132    132 ;
+                                        ;                     133    133 ;    LD	A,010h         	;
+    SET 4,A                             ;cb95  cb e7          134    134 
+    OUT (C),A                           ;cb97  ed 79          135    135 ;
+    LD  C,002h                          ;cb99  0e 02          136    136 ;
+CHKDAC2:    IN  A,(C)                   ;cb9b  ed 78          137    137 ;x
+    AND 004h                            ;cb9d  e6 04          138    138 ;
+    JR  Z,CHKDAC2                       ;cb9f  28 fa          139    139 ;(
+    LD  C,002h                          ;cba1  0e 02          140    140 ;
+    XOR A                               ;cba3  af             141    141 ;
+    OUT (C),A                           ;cba4  ed 79          142    142 ;y
+    LD  C,002h                          ;cba6  0e 02          143    143 ;
+CHKDAC3:    IN  A,(C)                   ;cba8  ed 78          144    144 ;x
+    AND 004h                            ;cbaa  e6 04          145    145 ;
+    JR  NZ,CHKDAC3                      ;cbac  20 fa          146    146 ; 
+    RET                                 ;cbae  c9             147    147 ;
+GETDATA:                                ;                     148    148 
+    PUSH    BC                          ;cbaf  c5             149    149 ;
+    LD  C,002h                          ;cbb0  0e 02          150    150 ;
+    LD  B,0C0h                          ;cbb2  06 c0          151    151 ;
+    LD  A,020h                          ;cbb4  3e 20          152    152 ;> 
+    SET 5,A                             ;cbb6  cb ef          153    153 
+    OUT (C),A                           ;cbb8  ed 79          154    154 ;y
+    LD  C,002h                          ;cbba  0e 02          155    155 ;
+CHKDAV0:    IN  A,(C)                   ;cbbc  ed 78          156    156 ;x
+    AND 001h                            ;cbbe  e6 01          157    157 ;
+    JR  Z,CHKDAV0                       ;cbc0  28 fa          158    158 ;(
+    LD  C,002h                          ;cbc2  0e 02          159    159 ;
+    XOR A                               ;cbc4  af             160    160 ;
+    OUT (C),A                           ;cbc5  ed 79          161    161 ;y
+    LD  C,001h                          ;cbc7  0e 01          162    162 ;
+    IN  D,(C)                           ;cbc9  ed 50          163    163 ;P
+    LD  C,002h                          ;cbcb  0e 02          164    164 ;
+                                        ;                     165    165 ;    LD	A,040h         	;>@
+    SET 6,A                             ;cbcd  cb f7          166    166 
+    OUT (C),A                           ;cbcf  ed 79          167    167 ;y
+    LD  C,002h                          ;cbd1  0e 02          168    168 ;
+CHKDAV1:    IN  A,(C)                   ;cbd3  ed 78          169    169 ;x
+    AND 001h                            ;cbd5  e6 01          170    170 ;
+    JR  NZ,CHKDAV1                      ;cbd7  20 fa          171    171 ; 
+    LD  C,002h                          ;cbd9  0e 02          172    172 ;
+    XOR A                               ;cbdb  af             173    173 ;
+    OUT (C),A                           ;cbdc  ed 79          174    174 ;y
+    POP BC                              ;cbde  c1             175    175 ;
+    RET                                 ;cbdf  c9             176    176 ;	
+    END                                 ;cbe0                 177    177 
+;Z80-Assembler		Release 1.6				Page 2
+;Source file: spc-1000_cpm_boot.asm
+;Title:       Symboltable
+
+SDINIT   0000	SDWRITE  0001	SDREAD   0002	SDSEND   0003	
+SDCOPY   0004	SDFORMAT 0005	SDSTATUS 0006	SDDRVSTS 0007	
+SDRAMTST 0008	SDTRANS2 0009	SDNOACT  000a	SDTRANS1 000b	
+SDRCVE   000c	SDGO     000d	SDLOAD   000e	SDSAVE   000f	
+SDLDNGO  0010	SECTS    0032	MSIZE    003a	BIOSL    0300	
+CLR2     0ad5	SIZE     1900	CLS      1b42	BIAS     9800	
+CPM_RUN  cb00	LOADCPM  cb0a	LOAD     cb32	LOAD1    cb48	
+SYM1     cb6b	SENDCOM  cb78	SENDDAT  cb80	CHKRFD1  cb84	
+CHKDAC2  cb9b	CHKDAC3  cba8	GETDATA  cbaf	CHKDAV0  cbbc	
+CHKDAV1  cbd3	CCP      cc00	BOOT     e200	BIOS     e200	
+DSKIX    f9df	
+
+No undefined symbol.
