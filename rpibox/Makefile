@@ -4,7 +4,7 @@
 
 CIRCLEHOME = ~/circle
 
-OBJS	= main.o kernel.o
+OBJS	= main.o kernel.o screen8.o tms9918.o
 
 LIBS	= $(CIRCLEHOME)/lib/libcircle$(RASPPI).a \
 		  $(CIRCLEHOME)/addon/SDCard/libsdcard$(RASPPI).a \
