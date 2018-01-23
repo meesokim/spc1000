@@ -29,7 +29,7 @@ int main (int argc, char **argv)
      Abort ("Cannot open %s\n", argv[1]);
 
   i = atoi(argv[2]);
-  while ((ch = fgetc(inFile)) != EOF)
+  while ((ch = fgetc(inFile)) != EOF && i > 0)
   {
 	  buf[0] = ch;
     //fputc(ch, stdout);

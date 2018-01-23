@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <circle/types.h>
 #include "tms9918.h"
 #include "ui.h"
 #include "video.h"
@@ -17,18 +18,6 @@
 #define TF_ADDRWRITE 1
 
 /* VDP structure definition */
-
-struct _tms9918 {
-    unsigned char flags;
-    unsigned char readahead;
-    unsigned char addrsave;
-    unsigned char status;
-    unsigned char *memory;
-    unsigned char regs[8];
-    unsigned short address;
-    unsigned short scanline;
-    u8 palette[16];
-};
 
 /* palette definition */
 

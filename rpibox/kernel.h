@@ -28,6 +28,7 @@
 #include <circle/serial.h>
 #include <circle/logger.h>
 #include <circle/types.h>
+#include <circle/multicore.h>
 #include <SDCard/emmc.h>
 #include <fatfs/ff.h>
 
@@ -38,6 +39,35 @@ enum TShutdownMode
 	ShutdownReboot
 };
 
+#ifdef ARM_ALLOW_MULTI_CORE
+class MyMulticore 
+: public CMultiCoreSupport 
+{
+	tms9918 vdp;
+public:	
+	MyMulticore (CMemorySystem *pMemorySystem)
+	: CMultiCoreSupport (pMemorySystem)
+	{}
+	void Initialize(tms9918 vdp)  
+	{
+		this->vdp = vdp;
+		CMultiCoreSupport::Initialize();
+	}
+	void Run (unsigned nCore)
+	{
+		int time = 0;
+		while(true)
+		{
+			time++;
+			if (time > 250000000/30/261)
+			{
+				tms9918_periodic(vdp);
+				time = 0;
+			};
+		}
+	}
+};
+#endif
 class CKernel
 {
 public:
@@ -51,6 +81,7 @@ public:
 private:
 	// do not change this order
 	CMemorySystem		m_Memory;
+	//MyMulticore	m_Core;
 	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;

@@ -30,6 +30,7 @@ int split = 0;
 int fpos = 0;
 int bin = 0;
 int reverse = 0;
+int cas = 0;
 char binfilename[256];
 HEADER *head;
 
@@ -131,6 +132,7 @@ int main(int argc, char **argv) {
 	int length = 0;
 	int pos = 0;
 	char c, prev;
+	char *point;
 	IN = 0;
 	if (argc < 2) {
 		IN = stdin;
@@ -157,6 +159,12 @@ int main(int argc, char **argv) {
 	strict = 1;
 	if (IN == 0)
 		IN = fopen(argv[1], "rb");
+	if((point = strrchr(argv[1],'.')) != NULL ) {
+		if(strcmp(point,".cas") == 0) {
+			cas = 1;
+			printf("cas = 1\n");
+		}
+	}
 	if (pos != 0) {
 		fseek(IN, pos, SEEK_SET);
 	}
@@ -241,18 +249,33 @@ int main(int argc, char **argv) {
 int fgetc2(FILE *f)
 {
 	int i;
-	do {
-		i = fgetc(f);
-		fpos++;
-		//printf("%c", i);
-		if (i == '|')
-			i = '1';
-		else if (i == '@')
-			i = '0';
-		if (feof(f))
-			break;
-	} while (i != '0' && i != '1' && i != '#');
-	
+	static char pos = 0;
+	static unsigned char value = 0;
+	if (cas)
+	{
+		if (pos == 0)
+		{
+			value = fgetc(f);
+		}
+		i = (value >> (7-pos++)) & 1 ? '1' : '0';
+		if (pos > 7)
+			pos = 0;
+	}
+	else
+	{
+		do {
+			i = fgetc(f);
+			fpos++;
+			//printf("%c", i);
+			if (i == '|')
+				i = '1';
+			else if (i == '@')
+				i = '0';
+			if (feof(f))
+				break;
+		} while (i != '0' && i != '1' && i != '#');
+	}
+	//printf("%c", i);	
 	return i;
 }
 
@@ -313,6 +336,7 @@ int dump(int len) {
 		csum1 = ~csum1;
 		csum1 &= 0xffff;
 	}
+	csum = csum & 0xffff;
 	if (d == 128) 
 	{
 		head = (HEADER *) b;

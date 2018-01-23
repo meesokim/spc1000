@@ -18,11 +18,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "kernel.h"
+#include <circle/types.h>
+#include <stdint.h>
 extern "C" {
 #include "tms9918.h"
 #include "video.h"
+#include "lib.h"
 };
+
+#include "kernel.h"
+
+
 #include <circle/string.h>
 #include <circle/debug.h>
 #include <circle/memio.h>
@@ -99,6 +105,23 @@ static const char FromKernel[] = "kernel";
 int wgap = 0;
 int hgap = 0;
 tms9918 vdp;
+
+void core1_main(void) __attribute__((naked));
+
+void core1_main(void)
+{
+	int time = 0;
+	while(true)
+	{
+		time++;
+		if (time > 250000000/30/261)
+		{
+			tms9918_periodic(vdp);
+			Kernel.m_Screen.Write('V');
+			time = 0;
+		};
+	}
+}
 	
 void video_setsize(int x, int y)
 {
@@ -107,9 +130,9 @@ void video_setsize(int x, int y)
 }
 void video_setpal(int num_colors, int *red, int *green, int *blue)
 {
-	for(int i = 0; i < num_colors; i++)
+	for(int i = 3; i < num_colors; i++)
 	{
-		Kernel.m_Screen.SetPalette(i, (u32)COLOR32(red[i], green[i], blue[i], 0xff));
+		Kernel.m_Screen.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
 	}
 	Kernel.m_Screen.UpdatePalette();	
 }
@@ -125,6 +148,7 @@ void video_display_buffer()
 
 CKernel::CKernel (void)
 ://	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+//	m_Core(&m_Memory),
 	m_Screen(320,240),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel ()),
@@ -162,8 +186,12 @@ boolean CKernel::Initialize (void)
 		bOK = m_EMMC.Initialize ();
 	}
 	
-	//vdp = malloc(sizeof vdp);
-	//vdp->memory = char[32768];
+	if (bOK)
+	{
+		vdp = tms9918_create();
+		start_core1(core1_main);
+	}
+	
 	return bOK;
 }
 #define GPIO (read32 (ARM_GPIO_GPLEV0))
@@ -176,7 +204,7 @@ char * CKernel::fnRPI_FILES(char *drive, char *pattern)
 	DIR Directory;
 	FILINFO FileInfo;
 	CString FileName;
-	FRESULT Result = f_findfirst (&Directory, &FileInfo,  DRIVE "/", "*.tap");
+	FRESULT Result = f_findfirst (&Directory, &FileInfo,  DRIVE "/", "*.cas");
 	int len = 0, len2= 0, length = 0;
 	memset(files, 0, 256*256);
 	memset(files2, 0, 256*256);
@@ -198,6 +226,17 @@ char * CKernel::fnRPI_FILES(char *drive, char *pattern)
 	FileName.Format ("%s\n", files);
 	m_Screen.Write ((const char *) FileName, FileName.GetLength ());			
 	return files;
+}
+
+char *strrchr(const char *s, int ch)
+{
+    char *start = (char *) s;
+
+    while (*s++);
+    while (--s != start && *s != (char) ch);
+    if (*s == (char) ch) return (char *) s;
+
+    return 0;
 }
 
 TShutdownMode CKernel::Run (void)
@@ -262,11 +301,14 @@ TShutdownMode CKernel::Run (void)
 //	spinlock.Release();
 	memset(buffer, 0, 256*256);
 	int cmd = 0;
+	//int time = 0;
 	data0 = 0xff;
 	CString Message;
 	while(1)
 	{
+	//	time++;
 #if 0		
+
 		if (!(GPIO & RPSPC_RST))
 		{
 			datain = 0;
@@ -292,6 +334,7 @@ TShutdownMode CKernel::Run (void)
 						tms9918_writeport1(vdp, a & 0xff);
 					else
 						tms9918_writeport0(vdp, a & 0xff);
+					//m_Screen.Write('W');
 				}
 				else
 				{
@@ -300,6 +343,7 @@ TShutdownMode CKernel::Run (void)
 						GPIO_SET(tms9918_readport1(vdp));
 					else
 						GPIO_SET(tms9918_readport0(vdp));
+					//m_Screen.Write('R');
 				}
 			}
 			else
@@ -471,7 +515,25 @@ TShutdownMode CKernel::Run (void)
 													else
 													{
 														unsigned nBytesRead;
-														f_read(&File, tapbuf, fno.fsize, &nBytesRead);
+														char *point;
+														if((point = strrchr(filename,'.')) != 0 ) {
+															if(strcmp(point,".cas") == 0) {
+																f_read(&File, buffer, fno.fsize, &nBytesRead);
+																for(unsigned i = 15; i < nBytesRead; i++)
+																{
+																	tapbuf[i*8]   = ((buffer[i] >> 7) & 1) + '0';
+																	tapbuf[i*8+1] = ((buffer[i] >> 6) & 1) + '0';
+																	tapbuf[i*8+2] = ((buffer[i] >> 5) & 1) + '0';
+																	tapbuf[i*8+3] = ((buffer[i] >> 4) & 1) + '0';
+																	tapbuf[i*8+4] = ((buffer[i] >> 3) & 1) + '0';
+																	tapbuf[i*8+5] = ((buffer[i] >> 2) & 1) + '0';
+																	tapbuf[i*8+6] = ((buffer[i] >> 1) & 1) + '0';
+																	tapbuf[i*8+7] = ((buffer[i] >> 0) & 1) + '0';
+																}
+															}
+														}
+														else														
+															f_read(&File, tapbuf, fno.fsize, &nBytesRead);
 														f_close (&File);
 														FileName.Format ("loading successful: %s\n", filename);
 														m_Screen.Write ((const char *) FileName, FileName.GetLength ());

@@ -17,6 +17,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+#include <circle/types.h>
+extern "C" {
+#include "tms9918.h"
+#include "video.h"
+};
 #include "kernel.h"
 #include <circle/startup.h>
 

@@ -123,8 +123,8 @@ public:
 	void Rotor (unsigned nIndex,		// 0..3
 		    unsigned nCount);		// 0..3
 
-private:
 	void Write (char chChar);
+private:
 
 	void CarriageReturn (void);
 	void ClearDisplayEnd (void) MAXOPT;

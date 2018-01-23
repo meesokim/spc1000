@@ -11,6 +11,18 @@
 
 typedef struct _tms9918 *tms9918;
 
+struct _tms9918 {
+    unsigned char flags;
+    unsigned char readahead;
+    unsigned char addrsave;
+    unsigned char status;
+    unsigned char *memory;
+    unsigned char regs[8];
+    unsigned short address;
+    unsigned short scanline;
+    u8 palette[16];
+};
+
 unsigned char tms9918_readport0(tms9918 vdp);
 unsigned char tms9918_readport1(tms9918 vdp);
 void tms9918_writeport0(tms9918 vdp, unsigned char data);
