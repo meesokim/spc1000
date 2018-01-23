@@ -230,6 +230,7 @@ MVRFY3:
 ;	JP	Z,MVRFY6
 ;	RET
 ;
+	.org 0x259 
 VBLOAD: 
 	PUSH	BC
 	PUSH	DE

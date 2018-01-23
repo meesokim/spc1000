@@ -31,6 +31,8 @@ int fpos = 0;
 int bin = 0;
 int reverse = 0;
 char binfilename[256];
+HEADER *head;
+
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
 {
@@ -65,6 +67,22 @@ void binfile(byte *b, int len)
 	{
 		fwrite(b, 1, len, f); 
 		fclose(f);
+	}
+}
+
+void getfilename(char *fname, char *title)
+{
+	char c;
+	for(int i = 15; i >= 0; i--)
+	{
+		c = title[i];
+		if (c == '\"')
+			c = '\'';
+		else if (c == '>')
+			c = '_';
+		else if (c == '=')
+			c = '_';
+		fname[i] = c <= '~' && c >= ' ' ? c : 0; 
 	}
 }
 
@@ -112,6 +130,7 @@ int main(int argc, char **argv) {
 
 	int length = 0;
 	int pos = 0;
+	char c, prev;
 	IN = 0;
 	if (argc < 2) {
 		IN = stdin;
@@ -146,6 +165,68 @@ int main(int argc, char **argv) {
 		return 2;
 	}//if
 	strcpy(binfilename, argv[1]);
+	int zero = 0, ones = 0, header = 0, body = 0;
+	int headerpos[100];
+	int tailpos[100];
+	char fname[16], filename[256];
+	prev = 0;
+	if (split)
+	{
+		printf("split\n");
+		split = 0;
+		int no = 0;
+		while(!feof(IN))
+		{
+			c = fgetc(IN);
+			zero = (c == '0' ? (prev == '1' ? 1 : zero + 1) : zero);
+			if (c == '1' && zero == 40 && ones == 40)
+			{
+				headerpos[no] = ftell(IN)-81;
+				printf("%c %02d %02d\n", c, zero, ones);
+				printf("header found:%d\n", headerpos[no]);
+				header = 1;
+			}
+			if (header && zero == 20 && ones == 20)
+			{
+				printf("body found:%d\n", ftell(IN)-40);
+				body = 1;
+				header = 0;
+			}
+			if (body && zero > 20)
+			{
+				tailpos[no] = ftell(IN);
+				printf("tail found:%d\n", tailpos[no]);
+				body = 0;
+				no++;
+			}
+			ones = (c == '1' ? (prev == '0' ? 1 : ones + 1) : ones);
+			prev = c;
+		}
+		FILE *f;
+		char *tapbin = malloc(1024 * 1024 * 5);
+		for(int p = 0; p < no; p++)
+		{
+			fseek(IN, headerpos[p], SEEK_SET);
+			dump(128);
+			fseek(IN, headerpos[p], SEEK_SET);
+			getfilename(fname, head->name);
+			sprintf(filename, "%d_%s.tap", p+1, fname);
+			length = tailpos[p] - headerpos[p];
+			f = fopen(filename, "wb");
+			if (f)
+			{
+				printf("write binary file:%s(%d)\n", filename, length);
+			#if 1
+				fread(tapbin, 1, length, IN);
+				fwrite(tapbin, 1, length, f);
+			#endif
+				fclose(f);
+			}
+		}
+		free(tapbin);
+		exit(0);
+	}
+	fseek(IN, 0, SEEK_SET);
 	while (1)
 	{
 		length = dump(length);
@@ -198,7 +279,6 @@ int tag() {
 	return 0;
 }
 int dump(int len) {
-	HEADER *head;
 	char filename[1024];
 	char name[16];
 	char c = 0;
@@ -258,17 +338,7 @@ int dump(int len) {
 		printf("File Position: %d\n\n", pos);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
-		for(int i = 15; i >= 0; i--)
-		{
-			c = head->name[i];
-			if (c == '\"')
-				c = '\'';
-			else if (c == '>')
-				c = '_';
-			else if (c == '=')
-				c = '_';
-			name[i] = c <= '~' && c >= ' ' ? c : 0; 
-		}
+		getfilename(name, head->name); 
 		if (split)
 		{
 			if (TAP)

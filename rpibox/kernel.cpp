@@ -285,238 +285,257 @@ TShutdownMode CKernel::Run (void)
 			addr = (a & ADDR) >> RPSPC_A0_PIN;
 			wr = (a & RPSPC_RD) != 0;
 			if (a & RPSPC_A11)
-				
-			switch (addr)
 			{
-				case 0:
-					if (wr) 
-					{
-						datain = a & 0xff;
-					}
+				if (wr)
+				{
+					if (addr & 1)
+						tms9918_writeport1(vdp, a & 0xff);
 					else
-					{
-						GPIO_CLR(0xff);
-						GPIO_SET(data0);
-					}
-					break;
-				case 1:
-					if (!wr)
-					{
-						GPIO_CLR(0xff);
-						GPIO_SET(dataout);
-						dataout = 0;
-					}
-					break;
-				case 2:
-					if (wr)
-					{
-						switch (a & 0xf0)
+						tms9918_writeport0(vdp, a & 0xff);
+				}
+				else
+				{
+					GPIO_CLR(0xff);
+					if (addr & 1)
+						GPIO_SET(tms9918_readport1(vdp));
+					else
+						GPIO_SET(tms9918_readport0(vdp));
+				}
+			}
+			else
+			{
+				switch (addr)
+				{
+					case 0:
+						if (wr) 
 						{
-							case rATN: // 0x80 --> 0x02
-								cflag = wRFD; 
-								p = 0;
-								break;
-							case rDAV: // 0x10 --> 0x04
-								if (!(cflag & wDAC))
-								{
-									cflag |= wDAC;
-									if (p < 10)
-										params[p] = datain;
-									if (p == 0)
+							datain = a & 0xff;
+						}
+						else
+						{
+							GPIO_CLR(0xff);
+							GPIO_SET(data0);
+						}
+						break;
+					case 1:
+						if (!wr)
+						{
+							GPIO_CLR(0xff);
+							GPIO_SET(dataout);
+							dataout = 0;
+						}
+						break;
+					case 2:
+						if (wr)
+						{
+							switch (a & 0xf0)
+							{
+								case rATN: // 0x80 --> 0x02
+									cflag = wRFD; 
+									p = 0;
+									break;
+								case rDAV: // 0x10 --> 0x04
+									if (!(cflag & wDAC))
 									{
-										Message.Format ("cmd:0x%02x\n", datain);
-										m_Screen.Write ((const char *) Message, Message.GetLength ());
-									}
-									q = 0;
-									switch (params[0])
-									{
-										case SDINIT:
-											buffer[0] = 100;
-											Message.Format ("SDINIT\n");
+										cflag |= wDAC;
+										if (p < 10)
+											params[p] = datain;
+										if (p == 0)
+										{
+											Message.Format ("cmd:0x%02x\n", datain);
 											m_Screen.Write ((const char *) Message, Message.GetLength ());
-											FIL File;
-											Result = f_open (&File, DRIVE FILENAME, FA_READ | FA_OPEN_EXISTING);
-											if (Result != FR_OK)
-											{
-												FileName.Format ("loading failed: %s\n", FILENAME);
-												m_Screen.Write ((const char *) FileName, FileName.GetLength ());
-											}
-											else
-											{
-												m_Screen.Write ((const char *) FileName, FileName.GetLength ());
-												unsigned nBytesRead;
-												f_read(&File, f, sizeof f, &nBytesRead);
-												f_close (&File);
-												FileName.Format ("loading file: %s\n", FILENAME);
-											}
-											
-											break;
-										case SDWRITE:
-											if (p == 4)
-											{
-												blocks = params[1];
-												drv = params[2];
-												tracks = params[3];
-												sectors = params[4];
-												tmpbuf = fdd[drv] + (tracks * 16 + (sectors - 1))*256;
-											} else if (p > 4)
-											{
-												tmpbuf[p - 5] = datain;
-											}
-											break;
-										case SDREAD:
-											if (p == 4) 
-											{
-												blocks = params[1];
-												drv = params[2];
-												tracks = params[3];
-												sectors = params[4];												
-												readsize = 256 * blocks;
-												memcpy(diskbuf, fdd[drv]+(tracks * 16 + (sectors - 1))*256, readsize);
-												Message.Format ("SDREAD(%d) %d block(s), drive %d, track %d, sector %d, %dbytes)\n", p, blocks, drv, tracks, sectors, readsize);
+										}
+										q = 0;
+										switch (params[0])
+										{
+											case SDINIT:
+												buffer[0] = 100;
+												Message.Format ("SDINIT\n");
 												m_Screen.Write ((const char *) Message, Message.GetLength ());
-											}
-											break;
-										case SDSEND:
-											memcpy(buffer, diskbuf, readsize);
-											Message.Format ("SDSEND(%d) %02x %02x %02x\n", p, buffer[0],  buffer[1], buffer[2]);
-											m_Screen.Write ((const char *) Message, Message.GetLength ());
-											break;
-										case SDCOPY:
-											memcpy(fdd[params[5]]+(params[6] * 16 + (params[7]-1))*256, fdd[params[2]]+(params[3]*16+(params[4]-1))*256, 256 * params[1]);
-											break;
-										case SDSTATUS:
-											buffer[0] = 0xc0;
-											Message.Format ("SDSTATUS\n");
-											m_Screen.Write ((const char *) Message, Message.GetLength ());
-											break;
-										case ((int)SDDRVSTS):
-											buffer[0] = 0xff;
-											Message.Format ("SDDRVSTS\n");
-											m_Screen.Write ((const char *) Message, Message.GetLength ());
-											break;
-										case RPI_FILES:
-											if (p == 0)
-											{
-												rpi_idx = 0;
-												strcpy(drive, "SD:/");
-												strcpy(pattern, "*.tap");
-												rpibuf = drive;
-											} 
-											if (datain == 0)
-											{
-												if (rpibuf == pattern || p == 0)
-												{
-													tmpbuf = fnRPI_FILES(drive, pattern);
-													strcpy(buffer, files2);
-													Message.Format ("RPI_FILES: drive=%s, pattern=%s\n%s\n", drive, pattern, files2);
-													m_Screen.Write ((const char *) Message, Message.GetLength ());
-												}
-											}
-											else if (params[p] == '\\')
-											{
-												rpibuf[rpi_idx] = 0;
-												rpi_idx = 0;
-												rpibuf = pattern;
-											}
-											else
-												rpibuf[rpi_idx++] = datain;
-											break;
-										case RPI_LOAD:
-											if (p == 2)
-											{
-												oldnum = fileno = params[1] + params[2] * 256;
-												Message.Format ("fileno:%d\n", fileno);
-												m_Screen.Write ((const char *) Message, Message.GetLength ());											
-												len0 = 0;
-												len = 0;
-												while(len0 < fileno)
-												{
-													if (files[len++] == '\\')
-														len0++;
-												}	
-												len0 = 0;
-												while(files[len+len0++] != '\\'); 
-												memcpy(filename, "SD:/", 5);
-												memcpy(filename+4, files+len, len0);
-												*(filename+4+len0-1)=0;
-												FILINFO fno;
-												f_stat(filename, &fno);
-												Message.Format ("RPI_LOAD: No.%d %s (%d)\n", fileno, filename, fno.fsize);
-												m_Screen.Write ((const char *) Message, Message.GetLength ());
-												Result = f_open (&File, filename, FA_READ | FA_OPEN_EXISTING);
+												FIL File;
+												Result = f_open (&File, DRIVE FILENAME, FA_READ | FA_OPEN_EXISTING);
 												if (Result != FR_OK)
 												{
-													FileName.Format ("loading failed: %s\n", filename);
+													FileName.Format ("loading failed: %s\n", FILENAME);
 													m_Screen.Write ((const char *) FileName, FileName.GetLength ());
 												}
 												else
 												{
-													unsigned nBytesRead;
-													f_read(&File, tapbuf, fno.fsize, &nBytesRead);
-													f_close (&File);
-													FileName.Format ("loading successful: %s\n", filename);
 													m_Screen.Write ((const char *) FileName, FileName.GetLength ());
-													t = 0;
+													unsigned nBytesRead;
+													f_read(&File, f, sizeof f, &nBytesRead);
+													f_close (&File);
+													FileName.Format ("loading file: %s\n", FILENAME);
 												}
-											}
-											break;
-										case RPI_OLDNUM:
-											buffer[0] = oldnum & 0xff;
-											buffer[1] = oldnum >> 8;
-											q = 0;
-//											printf("oldnum = %d\n", oldnum);
-											break;								
-										default:
-											buffer[0] = cmd * cmd;
-											break;
+												
+												break;
+											case SDWRITE:
+												if (p == 4)
+												{
+													blocks = params[1];
+													drv = params[2];
+													tracks = params[3];
+													sectors = params[4];
+													tmpbuf = fdd[drv] + (tracks * 16 + (sectors - 1))*256;
+												} else if (p > 4)
+												{
+													tmpbuf[p - 5] = datain;
+												}
+												break;
+											case SDREAD:
+												if (p == 4) 
+												{
+													blocks = params[1];
+													drv = params[2];
+													tracks = params[3];
+													sectors = params[4];												
+													readsize = 256 * blocks;
+													memcpy(diskbuf, fdd[drv]+(tracks * 16 + (sectors - 1))*256, readsize);
+													Message.Format ("SDREAD(%d) %d block(s), drive %d, track %d, sector %d, %dbytes)\n", p, blocks, drv, tracks, sectors, readsize);
+													m_Screen.Write ((const char *) Message, Message.GetLength ());
+												}
+												break;
+											case SDSEND:
+												memcpy(buffer, diskbuf, readsize);
+												Message.Format ("SDSEND(%d) %02x %02x %02x\n", p, buffer[0],  buffer[1], buffer[2]);
+												m_Screen.Write ((const char *) Message, Message.GetLength ());
+												break;
+											case SDCOPY:
+												memcpy(fdd[params[5]]+(params[6] * 16 + (params[7]-1))*256, fdd[params[2]]+(params[3]*16+(params[4]-1))*256, 256 * params[1]);
+												break;
+											case SDSTATUS:
+												buffer[0] = 0xc0;
+												Message.Format ("SDSTATUS\n");
+												m_Screen.Write ((const char *) Message, Message.GetLength ());
+												break;
+											case ((int)SDDRVSTS):
+												buffer[0] = 0xff;
+												Message.Format ("SDDRVSTS\n");
+												m_Screen.Write ((const char *) Message, Message.GetLength ());
+												break;
+											case RPI_FILES:
+												if (p == 0)
+												{
+													rpi_idx = 0;
+													strcpy(drive, "SD:/");
+													strcpy(pattern, "*.tap");
+													rpibuf = drive;
+												} 
+												if (datain == 0)
+												{
+													if (rpibuf == pattern || p == 0)
+													{
+														tmpbuf = fnRPI_FILES(drive, pattern);
+														strcpy(buffer, files2);
+														Message.Format ("RPI_FILES: drive=%s, pattern=%s\n%s\n", drive, pattern, files2);
+														m_Screen.Write ((const char *) Message, Message.GetLength ());
+													}
+												}
+												else if (params[p] == '\\')
+												{
+													rpibuf[rpi_idx] = 0;
+													rpi_idx = 0;
+													rpibuf = pattern;
+												}
+												else
+													rpibuf[rpi_idx++] = datain;
+												break;
+											case RPI_LOAD:
+												if (p == 2)
+												{
+													oldnum = fileno = params[1] + params[2] * 256;
+													Message.Format ("fileno:%d\n", fileno);
+													m_Screen.Write ((const char *) Message, Message.GetLength ());											
+													len0 = 0;
+													len = 0;
+													while(len0 < fileno)
+													{
+														if (files[len++] == '\\')
+															len0++;
+													}	
+													len0 = 0;
+													while(files[len+len0++] != '\\'); 
+													memcpy(filename, "SD:/", 5);
+													memcpy(filename+4, files+len, len0);
+													*(filename+4+len0-1)=0;
+													FILINFO fno;
+													f_stat(filename, &fno);
+													Message.Format ("RPI_LOAD: No.%d %s (%d)\n", fileno, filename, fno.fsize);
+													m_Screen.Write ((const char *) Message, Message.GetLength ());
+													Result = f_open (&File, filename, FA_READ | FA_OPEN_EXISTING);
+													if (Result != FR_OK)
+													{
+														FileName.Format ("loading failed: %s\n", filename);
+														m_Screen.Write ((const char *) FileName, FileName.GetLength ());
+													}
+													else
+													{
+														unsigned nBytesRead;
+														f_read(&File, tapbuf, fno.fsize, &nBytesRead);
+														f_close (&File);
+														FileName.Format ("loading successful: %s\n", filename);
+														m_Screen.Write ((const char *) FileName, FileName.GetLength ());
+														t = 0;
+													}
+												}
+												break;
+											case RPI_OLDNUM:
+												buffer[0] = oldnum & 0xff;
+												buffer[1] = oldnum >> 8;
+												q = 0;
+	//											printf("oldnum = %d\n", oldnum);
+												break;								
+											default:
+												buffer[0] = cmd * cmd;
+												break;
+										}
+									}									
+									break;
+								case rRFD: // 0x20 --> 0x01
+									cflag |= wDAV;
+									break;
+								case rDAC: // 0x40 --> 0x00
+									if (cflag & wDAV)
+									{
+										cflag &= ~wDAV;
+										q++;
+	//									data3 = q;
 									}
-								}									
-								break;
-							case rRFD: // 0x20 --> 0x01
-								cflag |= wDAV;
-								break;
-							case rDAC: // 0x40 --> 0x00
-								if (cflag & wDAV)
-								{
-									cflag &= ~wDAV;
-									q++;
-//									data3 = q;
-								}
-								break;
-							case 0: // 0x00 --> 0x00
-								if (cflag & wDAC)
-								{
-									cflag &= ~wDAC;
-									p++;
-								}
-								else if (cflag & wDAV)
-								{
-									dataout = buffer[q];
-								}
-								break;
-							default:
-								break;
+									break;
+								case 0: // 0x00 --> 0x00
+									if (cflag & wDAC)
+									{
+										cflag &= ~wDAC;
+										p++;
+									}
+									else if (cflag & wDAV)
+									{
+										dataout = buffer[q];
+									}
+									break;
+								default:
+									break;
+							}
 						}
-					}
-					else
-					{
-						GPIO_CLR(0xff);
-						GPIO_SET(cflag);
-					}
-					break;
-				case 3:
-					if (!wr)
-					{
-						GPIO_CLR(0xff);
-						GPIO_SET(data3);
-					}
-					else
-					{
-						data3 = tapbuf[t++] == '1' ? 1 : 0;	
-					}
-				default:
-					break;
+						else
+						{
+							GPIO_CLR(0xff);
+							GPIO_SET(cflag);
+						}
+						break;
+					case 3:
+						if (!wr)
+						{
+							GPIO_CLR(0xff);
+							GPIO_SET(data3);
+						}
+						else
+						{
+							data3 = tapbuf[t++] == '1' ? 1 : 0;	
+						}
+					default:
+						break;
+				}
 			}
 			while(!(GPIO & RPSPC_EXT));
 		}

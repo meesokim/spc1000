@@ -52,7 +52,7 @@ blog.naver.com/mayhouse
 #define MTEXEC   	0x13ac
 #define FILEFG   	0x3385
 #define CONTFG		0x2208
-#define PLOAD_FAKE  0x0288
+#define PLOAD_FAKE  0x02C1
 
 #define KEY_F1	0x81
 #define KEY_F2	0x82
