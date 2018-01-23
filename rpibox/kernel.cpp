@@ -19,6 +19,10 @@
 //
 
 #include "kernel.h"
+extern "C" {
+#include "tms9918.h"
+#include "video.h"
+};
 #include <circle/string.h>
 #include <circle/debug.h>
 #include <circle/memio.h>
@@ -88,16 +92,47 @@
 #define DRIVE		"SD:"
 #define FILENAME	"/spc1000.bin" 
 
+extern CKernel Kernel;
 static const char FromKernel[] = "kernel";
+#define WIDTH 320
+#define HEIGHT 240
+int wgap = 0;
+int hgap = 0;
+tms9918 vdp;
+	
+void video_setsize(int x, int y)
+{
+	wgap = (WIDTH-x)/2;
+	hgap = (HEIGHT-y)/2;
+}
+void video_setpal(int num_colors, int *red, int *green, int *blue)
+{
+	for(int i = 0; i < num_colors; i++)
+	{
+		Kernel.m_Screen.SetPalette(i, (u32)COLOR32(red[i], green[i], blue[i], 0xff));
+	}
+	Kernel.m_Screen.UpdatePalette();	
+}
+
+unsigned char *video_get_vbp(int line)
+{
+	return Kernel.m_Screen.GetBuffer() + hgap * WIDTH + wgap;
+}
+
+void video_display_buffer()
+{
+}
 
 CKernel::CKernel (void)
-:	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+://	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+	m_Screen(320,240),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel ()),
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)	
 {
 	m_ActLED.Blink (1);	// show we are alive
 }
+
 
 CKernel::~CKernel (void)
 {
@@ -125,8 +160,10 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_EMMC.Initialize ();
-	}	
+	}
 	
+	//vdp = malloc(sizeof vdp);
+	//vdp->memory = char[32768];
 	return bOK;
 }
 #define GPIO (read32 (ARM_GPIO_GPLEV0))
@@ -247,6 +284,8 @@ TShutdownMode CKernel::Run (void)
 			a = GPIO;
 			addr = (a & ADDR) >> RPSPC_A0_PIN;
 			wr = (a & RPSPC_RD) != 0;
+			if (a & RPSPC_A11)
+				
 			switch (addr)
 			{
 				case 0:
