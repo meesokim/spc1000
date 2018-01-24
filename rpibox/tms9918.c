@@ -612,9 +612,9 @@ tms9918 tms9918_create(void)
 {
     tms9918 retval;
 
-    retval = calloc(1, sizeof(struct _tms9918));
+    retval = malloc(sizeof(struct _tms9918));
     if (retval) {
-	retval->memory = calloc(1, TMS_RAMSIZE);
+	retval->memory = malloc(TMS_RAMSIZE);
 	if (retval->memory) {
 	    retval->scanline = 0;
             video_setsize(256, 192);
@@ -627,7 +627,7 @@ tms9918 tms9918_create(void)
     }
     
     if (!retval) {
-	//deb_printf("tms9918_create(): out of memory.\n");
+		vvprintf("tms9918_create(): out of memory.\n");
     }
 
     return retval;

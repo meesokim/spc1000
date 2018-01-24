@@ -20,16 +20,13 @@
 
 #include <circle/types.h>
 #include <stdint.h>
-extern "C" {
-#include "tms9918.h"
-#include "video.h"
-#include "lib.h"
-};
-
-#include "kernel.h"
+#include <stdio.h>
+#include <circle/stdarg.h>
+#include <string.h>
 
 
-#include <circle/string.h>
+
+
 #include <circle/debug.h>
 #include <circle/memio.h>
 #include <circle/bcm2835.h>
@@ -98,13 +95,36 @@ extern "C" {
 #define DRIVE		"SD:"
 #define FILENAME	"/spc1000.bin" 
 
+#include "kernel.h"
+
 extern CKernel Kernel;
+
+extern "C" {
+#include "tms9918.h"
+#include "video.h"
+#include "lib.h"
+#include <circle/string.h>
+void vvprintf(const char* format, ...)
+{
+	char buf[2048];
+	va_list argptr;
+    va_start(argptr, format);
+    //sprintf(buf, format, argptr);
+    va_end(argptr);
+	Kernel.m_Screen.Write(buf, strlen(buf));
+}
+};
+
 static const char FromKernel[] = "kernel";
 #define WIDTH 320
 #define HEIGHT 240
 int wgap = 0;
 int hgap = 0;
 tms9918 vdp;
+
+extern int tms9918_palbase_red[];
+extern int tms9918_palbase_green[];
+extern int tms9918_palbase_blue[];
 
 void core1_main(void) __attribute__((naked));
 
@@ -135,6 +155,7 @@ void video_setpal(int num_colors, int *red, int *green, int *blue)
 		Kernel.m_Screen.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
 	}
 	Kernel.m_Screen.UpdatePalette();	
+	Kernel.m_Screen.Write ("PALETTE\n", 8);	
 }
 
 unsigned char *video_get_vbp(int line)
@@ -169,6 +190,7 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
+		vdp = tms9918_create();
 	}
 	
 	if (bOK)
@@ -188,7 +210,6 @@ boolean CKernel::Initialize (void)
 	
 	if (bOK)
 	{
-		vdp = tms9918_create();
 		start_core1(core1_main);
 	}
 	
@@ -605,3 +626,5 @@ TShutdownMode CKernel::Run (void)
 //	spinlock.Release();
 	return ShutdownReboot;
 }
+
+
