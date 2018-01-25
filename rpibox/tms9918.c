@@ -622,6 +622,7 @@ tms9918 tms9918_create(void)
 	    tms9918_init_palette(retval);
 	} else {
 	    free(retval);
+		vvprintf("tms9918_create(): out of memory.\n");
 	    retval = NULL;
 	}
     }
