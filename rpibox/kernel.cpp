@@ -20,16 +20,10 @@
 
 #include <circle/types.h>
 #include <stdint.h>
-extern "C" {
-#include "tms9918.h"
-#include "video.h"
-#include "lib.h"
-};
+#include <stdio.h>
+#include <circle/stdarg.h>
+#include <string.h>
 
-#include "kernel.h"
-
-
-#include <circle/string.h>
 #include <circle/debug.h>
 #include <circle/memio.h>
 #include <circle/bcm2835.h>
@@ -98,7 +92,31 @@ extern "C" {
 #define DRIVE		"SD:"
 #define FILENAME	"/spc1000.bin" 
 
+
+extern "C" {
+#include "tms9918.h"
+#include "video.h"
+#include "lib.h"
+#include <circle/string.h>
+extern void ExtraCoreSetup (void);
+};
+
+#include "kernel.h"
+
 extern CKernel Kernel;
+
+extern "C" {
+void vvprintf(const char* format, ...)
+{
+	CString str;
+	va_list argptr;
+    va_start(argptr, format);
+    str.FormatV(format, argptr);
+    va_end(argptr);
+	Kernel.m_Screen.Write(str, strlen(str));
+};	
+};
+
 static const char FromKernel[] = "kernel";
 #define WIDTH 320
 #define HEIGHT 240
@@ -106,11 +124,45 @@ int wgap = 0;
 int hgap = 0;
 tms9918 vdp;
 
-void core1_main(void) __attribute__((naked));
+extern int tms9918_palbase_red[];
+extern int tms9918_palbase_green[];
+extern int tms9918_palbase_blue[];
+
+extern volatile uint32_t setStackPtr;
+extern volatile uint32_t setIrqStackPtr;
+
+#define CORE0_MBOX3_SET             0x4000008C
+
+typedef int func(void);
+
+uint32_t get_core_id(void)
+{
+    uint32_t core_id;
+    asm volatile ("mrc p15, 0, %0, c0, c0,  5" : "=r" (core_id));
+    return core_id & 0x3;
+}
+ 
+static void core_enable(uint32_t core, uint32_t addr)
+{
+    // http://www.raspberrypi.org/forums/viewtopic.php?f=72&t=98904&start=25
+    volatile uint32_t *p;
+	setStackPtr = 0x4000;
+	setIrqStackPtr = 0x7000;  
+    p = (uint32_t*)(CORE0_MBOX3_SET + 0x10 * core);
+    *p = addr;
+	while (setStackPtr != 0);
+	if (get_core_id()==core)
+	{
+		func* f = (func*)addr;
+		f();
+	}
+}
 
 void core1_main(void)
 {
 	int time = 0;
+	asm ("mrc p15, 0, r0, c0, c0, 5");
+	vvprintf("core1_main\n");
 	while(true)
 	{
 		time++;
@@ -135,6 +187,7 @@ void video_setpal(int num_colors, int *red, int *green, int *blue)
 		Kernel.m_Screen.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
 	}
 	Kernel.m_Screen.UpdatePalette();	
+	Kernel.m_Screen.Write ("PALETTE\n", 8);	
 }
 
 unsigned char *video_get_vbp(int line)
@@ -169,6 +222,7 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
+		vdp = tms9918_create();
 	}
 	
 	if (bOK)
@@ -188,8 +242,9 @@ boolean CKernel::Initialize (void)
 	
 	if (bOK)
 	{
-		vdp = tms9918_create();
-		start_core1(core1_main);
+		core_enable(1, (uint32_t)core1_main);
+		core_enable(2, (uint32_t)core1_main);
+		core_enable(3, (uint32_t)core1_main);
 	}
 	
 	return bOK;
@@ -605,3 +660,5 @@ TShutdownMode CKernel::Run (void)
 //	spinlock.Release();
 	return ShutdownReboot;
 }
+
+
