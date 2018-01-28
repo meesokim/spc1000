@@ -22,12 +22,16 @@
 static const char FromKernel[] = "kernel";
 
 CKernel::CKernel (void)
-://	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+:
+#ifdef ARM_ALLOW_MULTI_CORE
 	m_Screen(320,240),
+#else	
+	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+#endif
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
-	m_Core (&m_Memory)
+	m_Rpibox (&m_Screen, &m_Logger, &m_EMMC, &m_Memory)
 {
 	m_ActLED.Blink (5);	// show we are alive
 }
@@ -39,7 +43,7 @@ CKernel::~CKernel (void)
 boolean CKernel::Initialize (void)
 {
 	boolean bOK = TRUE;
-
+		
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
@@ -60,22 +64,20 @@ boolean CKernel::Initialize (void)
 	{
 		bOK = m_Timer.Initialize ();
 	} 
+#ifdef ARM_ALLOW_MULTI_CORE	
 	if (bOK)
 	{
-		bOK = m_Core.Initialize(vdp = tms9918_create());
+		bOK = m_Rpibox.Initialize(tms9918_create());
 	}
-	
+#endif	
 	return bOK;
 }
-#define GPIO (read32 (ARM_GPIO_GPLEV0))
-#define GPIO_CLR(x) write32 (ARM_GPIO_GPCLR0, x)
-#define GPIO_SET(x) write32 (ARM_GPIO_GPSET0, x)
-
-
 
 TShutdownMode CKernel::Run (void)
 {
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-//	m_Mandelbrot.Run (0);
+	m_Logger.Write (FromKernel, LogNotice, "SPC-1000 Extension");	
+	printf("RpiBox Started (Kernel)\n");
+	m_Rpibox.Run (0);
 	return ShutdownHalt;
 }

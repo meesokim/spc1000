@@ -34,8 +34,7 @@
 #include <circle/multicore.h>
 #include <SDCard/emmc.h>
 #include <fatfs/ff.h>
-#include "tms9918.h"
-
+#include "rpibox.h"
 
 #ifdef ARM_ALLOW_MULTI_CORE
 class MyMulticore 
@@ -99,7 +98,7 @@ public:
 		m_Screen.UpdatePalette();
 	}
 	TScreenColor *GetBuffer(void)
-	{
+	{	
 		return m_Screen.GetBuffer();
 	}
 	int printf(const char *format, ...)
@@ -128,7 +127,7 @@ private:
 	FATFS			m_FileSystem;
 
 	//CMandelbrotCalculator	m_Mandelbrot;
-	MyMulticore		m_Core;
+	CRpiBox			m_Rpibox;
 	tms9918 vdp;
 };
 

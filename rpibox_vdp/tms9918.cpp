@@ -33,7 +33,7 @@ void video_setsize(int x, int y)
 }
 void video_setpal(int num_colors, int *red, int *green, int *blue)
 {
-	for(int i = 0; i < num_colors; i++)
+	for(int i = 3; i < num_colors; i++)
 	{
 		Kernel.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
 	}
