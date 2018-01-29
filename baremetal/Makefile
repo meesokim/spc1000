@@ -16,7 +16,7 @@ BMP = samsung
 GCC = gcc
 
 #OBJS	= main.o kernel.o
-OBJS = main.o kernel.o Z80SPC.o spcall.o MC6847.o AY8910.o pwmsound.o tap.o samsung.bmp.o casswindow.o screen8.o
+OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o pwmsound.o spcall.o tap.o samsung.bmp.o 
 
 LIBS =ugui/libugui$(RASPPI).a \
 	  $(CIRCLEHOME)/lib/usb/libusb$(RASPPI).a \
@@ -25,7 +25,7 @@ LIBS =ugui/libugui$(RASPPI).a \
 	  $(CIRCLEHOME)/lib/fs/libfs$(RASPPI).a \
 	  $(CIRCLEHOME)/lib/libcircle$(RASPPI).a 
 
-EXTRACLEAN = sound.h samsung.bmp.c tap.c
+EXTRACLEAN = sound.h samsung.bmp.c tap.c *.bak *.lis *.bin *.inc
 
 
 include $(CIRCLEHOME)/Rules.mk
@@ -33,6 +33,33 @@ include $(CIRCLEHOME)/Rules.mk
 $(BMP).bmp.o: bmp2bin 
 	./bmp2bin $(BMP).bmp
 	$(CC) $(CFLAGS) -c -o $(BMP).bmp.o $(BMP).bmp.c
+
+ugui/libugui$(RASPPI).a:
+	$(MAKE) -C ugui
+	
+$(CIRCLEHOME)/lib/usb/libusb$(RASPPI).a:
+	$(MAKE) -C $(CIRCLEHOME)/lib/usb clean
+	$(MAKE) -C $(CIRCLEHOME)/lib/usb
+
+$(CIRCLEHOME)/lib/input/libinput$(RASPPI).a:
+	$(MAKE) -C $(CIRCLEHOME)/lib/input clean
+	$(MAKE) -C $(CIRCLEHOME)/lib/input clean
+	
+$(CIRCLEHOME)/lib/fs/libfs$(RASPPI).a:
+	$(MAKE) -C $(CIRCLEHOME)/lib/fs	clean	
+	$(MAKE) -C $(CIRCLEHOME)/lib/fs		
+
+$(CIRCLEHOME)/lib/fs/fat/libfatfs$(RASPPI).a:
+	$(MAKE) -C $(CIRCLEHOME)/lib/fs/fat clean
+	$(MAKE) -C $(CIRCLEHOME)/lib/fs/fat
+
+$(CIRCLEHOME)/lib/libcircle$(RASPPI).a:
+	$(MAKE) -C $(CIRCLEHOME)/lib clean
+	$(MAKE) -C $(CIRCLEHOME)/lib
+	
+z80asm:
+	$(MAKE) -C ../z80/z80asm
+	cp ../z80/z80asm/z80asm .
 	
 bmp2bin:
 	$(GCC) -o $@ $@.c
@@ -46,9 +73,9 @@ tap.o: $(TAP_FILE)
 
 %.bin: %.asm
 	z80asm -fb -l -sa $< 
+
 spcall.c: spc-1000_all.bin spc-1000_ipl.bin
 	cat spc-1000_all.bin spc-1000_ipl.bin > spcall.rom
 	bin2c.py spcall.rom ROM
 
-bootcode: bootcode.bin start.elf fixup.dat
-	wget https://github.com/raspberrypi/firmware/blob/master/boot/$<?raw=true -O $<	
+all: z80asm $(OBJS) bmp2bin sound.h %.bin

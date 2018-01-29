@@ -6,6 +6,7 @@
 
 /* $Id: tms9918.c,v 1.24 2000/11/23 16:22:23 nyef Exp $ */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <circle/types.h>
@@ -622,13 +623,13 @@ tms9918 tms9918_create(void)
 	    tms9918_init_palette(retval);
 	} else {
 	    free(retval);
-		vvprintf("tms9918_create(): out of memory.\n");
+		printf("tms9918_create(): out of memory.\n");
 	    retval = NULL;
 	}
     }
     
     if (!retval) {
-		vvprintf("tms9918_create(): out of memory.\n");
+		printf("tms9918_create(): out of memory.\n");
     }
 
     return retval;

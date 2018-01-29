@@ -40,31 +40,32 @@ enum TShutdownMode
 };
 
 #ifdef ARM_ALLOW_MULTI_CORE
+typedef int func(void);	
 class MyMulticore 
 : public CMultiCoreSupport 
 {
-	tms9918 vdp;
+	int core[4];
 public:	
 	MyMulticore (CMemorySystem *pMemorySystem)
 	: CMultiCoreSupport (pMemorySystem)
-	{}
-	void Initialize(tms9918 vdp)  
 	{
-		this->vdp = vdp;
-		CMultiCoreSupport::Initialize();
+		core[0] = 0;
+		core[1] = 0;
+		core[2] = 0;
+		core[3] = 0;
+	}
+	void CoreEnable(int c, void *addr)
+	{
+		core[c] = (int) addr;
 	}
 	void Run (unsigned nCore)
 	{
-		int time = 0;
-		while(true)
+		if (core[nCore] != 0)
 		{
-			time++;
-			if (time > 250000000/30/261)
-			{
-				tms9918_periodic(vdp);
-				time = 0;
-			};
+			func* f = (func*)core[nCore];
+			f();
 		}
+			
 	}
 };
 #endif
@@ -81,7 +82,6 @@ public:
 private:
 	// do not change this order
 	CMemorySystem		m_Memory;
-	//MyMulticore	m_Core;
 	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
@@ -96,6 +96,9 @@ private:
 	char drive[256];
 	char pattern[256];
 	char *fnRPI_FILES(char *drive, char *pattern);
+#ifdef ARM_ALLOW_MULTI_CORE
+	MyMulticore	m_Core;
+#endif	
 };
 
 #endif

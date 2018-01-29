@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # convert binary file to C bytes array
 # for embedding into other program
 # (c) Alexander Belchenko, 2004-2006

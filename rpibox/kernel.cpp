@@ -106,7 +106,7 @@ extern void ExtraCoreSetup (void);
 extern CKernel Kernel;
 
 extern "C" {
-void vvprintf(const char* format, ...)
+int printf(const char* format, ...)
 {
 	CString str;
 	va_list argptr;
@@ -114,6 +114,7 @@ void vvprintf(const char* format, ...)
     str.FormatV(format, argptr);
     va_end(argptr);
 	Kernel.m_Screen.Write(str, strlen(str));
+	return 0;
 };	
 };
 
@@ -134,6 +135,9 @@ extern volatile uint32_t setIrqStackPtr;
 #define CORE0_MBOX3_SET             0x4000008C
 
 typedef int func(void);
+typedef void (*fn)(void);
+
+#ifdef ARM_ALLOW_MULTI_CORE
 
 uint32_t get_core_id(void)
 {
@@ -145,24 +149,26 @@ uint32_t get_core_id(void)
 static void core_enable(uint32_t core, uint32_t addr)
 {
     // http://www.raspberrypi.org/forums/viewtopic.php?f=72&t=98904&start=25
-    volatile uint32_t *p;
-	setStackPtr = 0x4000;
-	setIrqStackPtr = 0x7000;  
-    p = (uint32_t*)(CORE0_MBOX3_SET + 0x10 * core);
-    *p = addr;
-	while (setStackPtr != 0);
-	if (get_core_id()==core)
-	{
-		func* f = (func*)addr;
-		f();
-	}
+//    volatile uint32_t *p;
+//	setStackPtr = 0x4000;
+//	setIrqStackPtr = 0x7000;  
+    *(uint32_t*)(CORE0_MBOX3_SET + 0x10 * core) = addr;
+	printf("core=%u\n", get_core_id());
+//	while (setStackPtr != 0);
+//	if (get_core_id()==core)
+//	{
+//		func* f = (func*)addr;
+//		f();
+//	}
 }
+
+#endif
 
 void core1_main(void)
 {
 	int time = 0;
 	asm ("mrc p15, 0, r0, c0, c0, 5");
-	vvprintf("core1_main\n");
+	printf("core1_main\n");
 	while(true)
 	{
 		time++;
@@ -201,11 +207,14 @@ void video_display_buffer()
 
 CKernel::CKernel (void)
 ://	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
-//	m_Core(&m_Memory),
 	m_Screen(320,240),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel ()),
-	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)	
+	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
+#ifdef ARM_ALLOW_MULTI_CORE	
+	,m_Core(&m_Memory)
+#endif	
+
 {
 	m_ActLED.Blink (1);	// show we are alive
 }
@@ -239,14 +248,12 @@ boolean CKernel::Initialize (void)
 	{
 		bOK = m_EMMC.Initialize ();
 	}
-	
+#ifdef ARM_ALLOW_MULTI_CORE	
 	if (bOK)
 	{
-		core_enable(1, (uint32_t)core1_main);
-		core_enable(2, (uint32_t)core1_main);
-		core_enable(3, (uint32_t)core1_main);
+		bOK = m_Core.Initialize();
 	}
-	
+#endif	
 	return bOK;
 }
 #define GPIO (read32 (ARM_GPIO_GPLEV0))

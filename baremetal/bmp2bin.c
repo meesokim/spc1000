@@ -110,7 +110,8 @@ int main(int argc, char *argv[])
 	fprintf(outf, "char %s[] = {\n", name);
 
 	fseek(inf, bmpinfo.offset, SEEK_SET);
-	fread(&bitmap[y*bmpinfo.width], 1, bmpinfo.height * bmpinfo.width, inf);
+	printf("offset=%d\n", bmpinfo.offset);
+	fread(&bitmap[0], 1, bmpinfo.height * bmpinfo.width, inf);
 	for (y = bmpinfo.height - 1; y >= 0; y--)
 	{
 		fprintf(outf, "\t");
