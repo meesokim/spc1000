@@ -613,9 +613,9 @@ tms9918 tms9918_create(void)
 {
     tms9918 retval;
 
-    retval = malloc(sizeof(struct _tms9918));
+    retval = (tms9918)malloc(sizeof(struct _tms9918));
     if (retval) {
-	retval->memory = malloc(TMS_RAMSIZE);
+	retval->memory = (unsigned char *)malloc(TMS_RAMSIZE);
 	if (retval->memory) {
 	    retval->scanline = 0;
             video_setsize(256, 192);

@@ -2,7 +2,7 @@
 # Makefile
 #
 
-CIRCLEHOME = ~/circle
+CIRCLEHOME = ~/c2
 
 OBJS	= main.o kernel.o screen8.o tms9918.o lib.o
 

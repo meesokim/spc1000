@@ -92,11 +92,11 @@
 #define DRIVE		"SD:"
 #define FILENAME	"/spc1000.bin" 
 
-
-extern "C" {
 #include "tms9918.h"
 #include "video.h"
 #include "lib.h"
+
+extern "C" {
 #include <circle/string.h>
 extern void ExtraCoreSetup (void);
 };
