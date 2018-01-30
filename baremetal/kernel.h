@@ -70,7 +70,7 @@ private:
 	CTimer				m_Timer;
 	CLogger				m_Logger;
 
-	CDWHCIDevice		m_DWHCI;
+	//CDWHCIDevice		m_DWHCI;
 	CPWMSound			m_PWMSound; 
 //	CPWMSoundDevice		m_PWMSoundDevice;
 	//void OutZ80(register word Port,register byte Value);

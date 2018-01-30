@@ -65,7 +65,7 @@ CKernel::CKernel (void)
 	m_Memory (TRUE),
 	m_Timer(&m_Interrupt),
 	m_Logger (LogPanic, &m_Timer),
-	m_DWHCI (&m_Interrupt, &m_Timer),
+	//m_DWHCI (&m_Interrupt, &m_Timer),
 	m_ShutdownMode (ShutdownNone)
    ,ay8910(&m_Timer)
    ,m_PWMSound (&m_Interrupt)
@@ -137,7 +137,7 @@ boolean CKernel::Initialize (void)
 	}
 	if (bOK)
 	{
-		bOK = m_DWHCI.Initialize ();
+		//bOK = m_DWHCI.Initialize ();
 	}                       	
 	int num = 0;
 
@@ -195,7 +195,7 @@ TShutdownMode CKernel::Run (void)
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	//m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 //	CCassWindow CassWindow (0, 0);	
-	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+	CUSBKeyboardDevice *pKeyboard = 0;// = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
 	if (pKeyboard == 0)
 	{
 		m_Logger.Write (FromKernel, LogError, "Keyboard not found");

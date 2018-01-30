@@ -43,7 +43,7 @@ $(CIRCLEHOME)/lib/usb/libusb$(RASPPI).a:
 
 $(CIRCLEHOME)/lib/input/libinput$(RASPPI).a:
 	$(MAKE) -C $(CIRCLEHOME)/lib/input clean
-	$(MAKE) -C $(CIRCLEHOME)/lib/input clean
+	$(MAKE) -C $(CIRCLEHOME)/lib/input 
 	
 $(CIRCLEHOME)/lib/fs/libfs$(RASPPI).a:
 	$(MAKE) -C $(CIRCLEHOME)/lib/fs	clean	
@@ -72,10 +72,10 @@ tap.o: $(TAP_FILE)
 	$(CC) $(CFLAGS) -c -o $@ tap.c
 
 %.bin: %.asm
-	z80asm -fb -l -sa $< 
+	./z80asm -fb -l -sa $< 
 
 spcall.c: spc-1000_all.bin spc-1000_ipl.bin
 	cat spc-1000_all.bin spc-1000_ipl.bin > spcall.rom
-	bin2c.py spcall.rom ROM
+	python bin2c.py spcall.rom ROM
 
 all: z80asm $(OBJS) bmp2bin sound.h %.bin
