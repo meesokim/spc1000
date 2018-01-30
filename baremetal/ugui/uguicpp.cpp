@@ -70,7 +70,7 @@ void CUGUI::Update (void)
 
 	if (m_pMouseDevice != 0)
 	{
-		m_pMouseDevice->UpdateCursor ();
+	//	m_pMouseDevice->UpdateCursor ();
 	}
 
 	if (m_pTouchScreen != 0)

@@ -64,8 +64,8 @@ CKernel::CKernel (void)
 :	m_Screen(320,240),
 	m_Memory (TRUE),
 	m_Timer(&m_Interrupt),
-	m_Logger (LogPanic, &m_Timer),
-	//m_DWHCI (&m_Interrupt, &m_Timer),
+//	m_Logger (LogPanic, &m_Timer),
+	m_DWHCI (&m_Interrupt, &m_Timer),
 	m_ShutdownMode (ShutdownNone)
    ,ay8910(&m_Timer)
    ,m_PWMSound (&m_Interrupt)
@@ -118,33 +118,33 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
-		CDevice *pTarget = m_DeviceNameService.GetDevice (m_Options.GetLogDevice (), FALSE);
-		if (pTarget == 0)
-		{
-			pTarget = &m_Serial;
-		}
-		bOK = m_Logger.Initialize (pTarget);
+//		bOK = m_Logger.Initialize (&m_Screen);
 	}
 //	memset(m_Screen.GetBuffer(), 0xff, 320*240);
+	//printf("Screen!!!\n");
 	if (bOK)
 	{
 		bOK = m_Interrupt.Initialize ();
 	}
+	printf("m_Interrupt!!!\n");
 
 	if (bOK)
 	{
 		bOK = m_Timer.Initialize ();
 	}
+	printf("m_Timer!!!\n");	
 	if (bOK)
 	{
-		//bOK = m_DWHCI.Initialize ();
+		bOK = m_DWHCI.Initialize ();
 	}                       	
 	int num = 0;
-
+	printf("m_DWHCI!!!\n");	
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);
+	printf("spcKeyMap!!!\n");	
 	reset();
+	printf("reset!!!\n");	
 	return bOK;
 }
 
@@ -182,6 +182,7 @@ int CKernel::dspcallback(u32 *stream, int len)
 int count = 0;
 int tapsize = 0;
 #define WAITTIME 983
+Uint8 screenbuffer[320*240];
 TShutdownMode CKernel::Run (void)
 {
 	int frame = 0, ticks = 0, pticks = 0, d = 0;
@@ -190,20 +191,23 @@ TShutdownMode CKernel::Run (void)
 	int time = 0;
 	tapsize = strlen(tap0);
 	CString Message;
-	m_PWMSound.Play(this);//, SOUND_CHANNELS, SOUND_BITS,Sound, SOUND_SAMPLES );
+	//m_PWMSound.Play(this);//, SOUND_CHANNELS, SOUND_BITS,Sound, SOUND_SAMPLES );
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
-	//m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-//	CCassWindow CassWindow (0, 0);	
-	CUSBKeyboardDevice *pKeyboard = 0;// = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+//	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	printf("Keyboard Start!\n");	
+//	CCassWindow CassWindow (0, 0);
+#if 1
+	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
 	if (pKeyboard == 0)
 	{
-		m_Logger.Write (FromKernel, LogError, "Keyboard not found");
+	//	m_Logger.Write (FromKernel, LogError, "Keyboard not found");
 	} 
 	else
 	{
 		pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw); 		
 	}
+#endif	
 	Z80 *R = &spcsys.Z80R;	
 	reset_flag = 1;
 	while(1)
@@ -287,7 +291,7 @@ void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned cha
 				keyMatrix[map->keyMatIdx] &= ~ map->keyMask;
 		}
 	}
-//	printf(Message);
+	//printf(Message);
 }
 
 int CKernel::printf(const char *format, ...)
@@ -296,7 +300,7 @@ int CKernel::printf(const char *format, ...)
 	va_list args;
     va_start(args, format);
 	Message.FormatV(format, args);
-//	s_pThis->m_Logger.Write (Message);
+	s_pThis->m_Screen.Write (Message, Message.GetLength());
     va_end(args);	
 	return 0;
 }
@@ -317,7 +321,7 @@ int ReadVal(void)
 
 void OutZ80(register word Port,register byte Value)
 {
-	printf("VRAM[%x]=%x\n", Port, Value);
+	//printf("VRAM[%x]=%x\n", Port, Value);
 
 	if ((Port & 0xE000) == 0x0000) // VRAM area
 	{
@@ -536,9 +540,9 @@ int printf(const char *format, ...)
 	CString str;
 	str.FormatV(format, args);
 	va_end(args);
-	//m_Logger.Write (str);
+	s_pThis->m_Screen.Write (str, str.GetLength());
 	return 1;
-}
+}	
 void memset(byte *p, int length, int b)
 {
 	for (int i=0; i<length; i++)
