@@ -9,7 +9,7 @@
 #LIBCIRCLE = libcircle
 #endif
 
-CIRCLEHOME = ~/cc
+CIRCLEHOME = ~/cm
 INCLUDE = -I$(CIRCLEHOME)/addon
 TAP_FILE = apple.tap
 BMP = samsung

@@ -126,25 +126,25 @@ boolean CKernel::Initialize (void)
 	{
 		bOK = m_Interrupt.Initialize ();
 	}
-	printf("m_Interrupt!!!\n");
+	//printf("m_Interrupt!!!\n");
 
 	if (bOK)
 	{
 		bOK = m_Timer.Initialize ();
 	}
-	printf("m_Timer!!!\n");	
+	//printf("m_Timer!!!\n");	
 	if (bOK)
 	{
 		bOK = m_DWHCI.Initialize ();
 	}                       	
 	int num = 0;
-	printf("m_DWHCI!!!\n");	
+	//printf("m_DWHCI!!!\n");	
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);
-	printf("spcKeyMap!!!\n");	
+	//printf("spcKeyMap!!!\n");	
 	reset();
-	printf("reset!!!\n");	
+	//printf("reset!!!\n");	
 	return bOK;
 }
 
@@ -195,7 +195,7 @@ TShutdownMode CKernel::Run (void)
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 //	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	printf("Keyboard Start!\n");	
+	//printf("Keyboard Start!\n");	
 //	CCassWindow CassWindow (0, 0);
 #if 1
 	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
@@ -335,7 +335,7 @@ void OutZ80(register word Port,register byte Value)
 	{
 		spcsys.GMODE = Value;
 #ifdef DEBUG_MODE
-		printf("GMode:%02X\n", Value);
+		//printf("GMode:%02X\n", Value);
 #endif
 	}
 	else if ((Port & 0xE000) == 0x6000) // SMODE
@@ -540,7 +540,7 @@ int printf(const char *format, ...)
 	CString str;
 	str.FormatV(format, args);
 	va_end(args);
-	s_pThis->m_Screen.Write (str, str.GetLength());
+	//s_pThis->m_Screen.Write (str, str.GetLength());
 	return 1;
 }	
 void memset(byte *p, int length, int b)

@@ -2,7 +2,7 @@
 # Makefile
 #
 
-CIRCLEHOME = ~/cc
+CIRCLEHOME = ~/c1
 
 OBJS	= main.o kernel.o screen8.o tms9918.o rpibox.o
 
