@@ -2,9 +2,9 @@
 # Makefile
 #
 
-CIRCLEHOME = ~/c1
+CIRCLEHOME = ~/cm
 
-OBJS	= main.o kernel.o screen8.o tms9918.o rpibox.o
+OBJS	= main.o kernel.o screen8.o tms9918.o rpibox0.o
 
 LIBS	= $(CIRCLEHOME)/lib/libcircle$(RASPPI).a \
 		  $(CIRCLEHOME)/addon/SDCard/libsdcard$(RASPPI).a \

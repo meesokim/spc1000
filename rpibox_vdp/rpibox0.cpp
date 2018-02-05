@@ -19,98 +19,8 @@
 //
 #include "rpibox.h"
 
-#include <circle/types.h>
-#include <circle/stdarg.h>
-#include <string.h> 
-#include <circle/memio.h>
-#include <circle/bcm2835.h>
-#include <circle/gpiopin.h>
-#include <circle/util.h>
-#include <assert.h>
-
-#define RPSPC_D0	(1 << 0)
-#define MD00_PIN	0
-#define RPSPC_WR	(1 << 14)
-#define RPSPC_RD	(1 << 15)
-#define RPSPC_EXT	(1 << 17)
-#define RPSPC_RST   (1 << 27)
-#define RPSPC_CLK	(1 << 18)
-
-#define RPSPC_A0	(1 << 22)
-#define RPSPC_A1	(1 << 23)
-#define RPSPC_A11	(1 << 24)
-#define RPSPC_A0_PIN 22
-
-#define ADDR  (RPSPC_A0 | RPSPC_A1)
-#define ADDR0 0
-#define ADDR1 RPSPC_A0
-#define ADDR2 RPSPC_A1
-
-#define SDINIT		0
-#define SDWRITE		1
-#define SDREAD		2
-#define SDSEND  	3
-#define SDCOPY		4
-#define SDFORMAT	5
-#define SDSTATUS	6
-#define SDDRVSTS	7
-#define SDRAMTST	8
-#define SDTRANS2	9
-#define SDNOACT		10
-#define SDTRANS1	11
-#define SDRCVE		12
-#define SDGO		13
-#define SDLOAD		14
-#define SDSAVE		15
-#define SDLDNGO		16
-#define RPI_FILES	0x20
-#define RPI_LOAD	0x21
-#define RPI_OLDNUM	0x23
-
-#define READY 			0
-#define READ_FOR_DATA  	1
-#define DATA_VALID 		2
-#define RECEIVED		3
-#define rATN 0x80
-#define rDAC 0x40
-#define rRFD 0x20
-#define rDAV 0x10
-#define wDAC 0x04
-#define wRFD 0x02
-#define wDAV 0x01
-
-#define DRIVE		"SD:"
-#define FILENAME	"/spc1000.bin" 
-
-#define GPIO (read32 (ARM_GPIO_GPLEV0))
-#define GPIO_CLR(x) write32 (ARM_GPIO_GPCLR0, x)
-#define GPIO_SET(x) write32 (ARM_GPIO_GPSET0, x)
-//#define writeData(x) {write32 (ARM_GPIO_GPCLR0, 0xff); write32 (ARM_GPIO_GPSET0, x);}
-
-inline void writeData(int x)
-{
-	write32 (ARM_GPIO_GPCLR0, 0xff); 
-	write32 (ARM_GPIO_GPSET0, x);
-}
-
-#if 0
-	static int a, addr, wr, datain, dataout, data3, readsize, data0;
-	static unsigned char diskbuf[258*256*8], buffer[256*256*32], tapbuf[256*256*32], f[256*256];
-	static unsigned char cflag, blocks, drv, tracks, sectors;
-	static char *tmpbuf, *rpibuf;
-	static int params[10], p, q, t, rpi_idx, len, len0, fileno, cmd, nBytesRead;
-	static unsigned char * fdd[3];
-	static char filename[256];
-	static int oldnum = 0;
-	static CString FileName;
-	static CString Message;
-	static FRESULT Result;
-		char pattern[256];
-	char files[256*256];
-	char files2[256*256];
-	char drive[256];
-#endif
-	extern tms9918 vdp;
+extern tms9918 vdp;
+CScreenDevice8 *m_Screen;
 
 CRpiBox::CRpiBox (CScreenDevice8 *pScreen, CLogger *pLogger, CEMMCDevice *pEmmc, CMemorySystem *pMemorySystem)
 :	
@@ -119,10 +29,9 @@ CRpiBox::CRpiBox (CScreenDevice8 *pScreen, CLogger *pLogger, CEMMCDevice *pEmmc,
 #endif
 	m_pScreen (pScreen),
 	m_pEmmc (pEmmc),
-	m_pLogger (pLogger)
+	m_pLogger (pLogger)	
 {
-	vdp = tms9918_create();
-//	memset(buffer, 0, 256*256);
+	::m_Screen = pScreen;
 }
 
 CRpiBox::~CRpiBox (void)
@@ -147,7 +56,33 @@ void CRpiBox::Run (unsigned nCore)
 	}
 }
 
-#if 0
+int CRpiBox::printf(const char* format, ...)
+{
+	CString str;
+	va_list argptr;
+    va_start(argptr, format);
+    str.FormatV(format, argptr);
+    va_end(argptr);
+	m_pScreen->Write(str, str.GetLength());	
+	return 0;
+}
+
+	static int a, addr, wr, datain, dataout, data3, readsize, data0;
+	static unsigned char diskbuf[258*256*8], buffer[256*256*32], tapbuf[256*256*32], f[256*256];
+	static unsigned char cflag, blocks, drv, tracks, sectors;
+	static char *tmpbuf, *rpibuf;
+	static int params[10], p, q, t, rpi_idx, len, len0, fileno, cmd, nBytesRead;
+	static unsigned char * fdd[3];
+	static char filename[256];
+	static int oldnum = 0;
+	static CString FileName;
+	static CString Message;
+	static FRESULT Result;
+		char pattern[256];
+	char files[256*256];
+	char files2[256*256];
+	char drive[256];
+
 char *CRpiBox::strrchr(const char *s, int ch)
 {
     char *start = (char *) s;
@@ -188,11 +123,8 @@ char * CRpiBox::fnRPI_FILES(char *drive, char *pattern)
 	return files;
 }
 
-#endif
-
 void CRpiBox::Storage()
 {
-#if 0
 	p = 0;
 	q = 0;
 	t = 0;
@@ -214,7 +146,6 @@ void CRpiBox::Storage()
 	readsize = 0;
 	tmpbuf = 0;
 	data0 = 0xff;
-#endif	
 	CSpinLock spinlock;
 	bool vdp_enable = false;
 	// Mount file system
@@ -227,7 +158,6 @@ void CRpiBox::Storage()
 	write32 (ARM_GPIO_GPFSEL0, 0x249249);
 	write32 (ARM_GPIO_GPFSEL0+4, 0);
 	write32 (ARM_GPIO_GPFSEL0+8, 0);
-#if 0	
 	while(1)
 	{
 		if (!(GPIO & RPSPC_EXT))
@@ -349,10 +279,8 @@ void CRpiBox::Storage()
 			while(!(GPIO & RPSPC_EXT));
 		}
 	}
-#endif	
 }
 
-#if 0
 void CRpiBox::readCommand(int cmd)
 {
 	switch (cmd)
@@ -500,15 +428,14 @@ void CRpiBox::readCommand(int cmd)
 	}
 }
 
-#endif
-
 #ifdef ARM_ALLOW_MULTI_CORE
 void CRpiBox::VdpBox()
 {
 	int time = 0;
+	vdp = tms9918_create();	
 	while(true)
 	{
-		if (time++ > (int)(250000000/30/261))
+		if (time++ > (int)(100000000/30/261))
 		{
 			tms9918_periodic(vdp);
 			time = 0;
@@ -516,15 +443,3 @@ void CRpiBox::VdpBox()
 	}	
 }
 #endif
-
-int CRpiBox::printf(const char* format, ...)
-{
-	CString str;
-	va_list argptr;
-    va_start(argptr, format);
-    str.FormatV(format, argptr);
-    va_end(argptr);
-	m_pScreen->Write(str, str.GetLength());	
-	return 0;
-}
-

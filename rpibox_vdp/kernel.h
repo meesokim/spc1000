@@ -31,43 +31,10 @@
 #include <circle/timer.h>
 #include <circle/logger.h>
 #include <circle/types.h>
-#include <circle/multicore.h>
 #include <SDCard/emmc.h>
-#include <fatfs/ff.h>
+
 #include "rpibox.h"
 
-#ifdef ARM_ALLOW_MULTI_CORE
-class MyMulticore 
-: public CMultiCoreSupport 
-{
-	tms9918 vdp;
-public:	
-	MyMulticore (CMemorySystem *pMemorySystem)
-	: CMultiCoreSupport (pMemorySystem)
-	{}
-	boolean Initialize(tms9918 vdp)
-	{
-		this->vdp = vdp;
-		return CMultiCoreSupport::Initialize();
-	}
-	void Run (unsigned nCore)
-	{
-		if (nCore == 1)
-		{
-			int time = 0;
-			while(true)
-			{
-				time++;
-				if (time > (int)(250000000/30/261))
-				{
-					tms9918_periodic(vdp);
-					time = 0;
-				};
-			}
-		}
-	}
-};
-#endif
 enum TShutdownMode
 {
 	ShutdownNone,
@@ -82,35 +49,8 @@ public:
 	~CKernel (void);
 
 	boolean Initialize (void);
-
 	TShutdownMode Run (void);
-
-	void SetPalette(u8 num, u16 color)
-	{
-		m_Screen.SetPalette(num, color);
-	}
-	void SetPalette(u8 num, u32 color)
-	{
-		m_Screen.SetPalette(num, color);
-	}
-	void UpdatePalette(void)
-	{
-		m_Screen.UpdatePalette();
-	}
-	TScreenColor *GetBuffer(void)
-	{	
-		return m_Screen.GetBuffer();
-	}
-	int printf(const char *format, ...)
-	{
-		CString str;
-		va_list argptr;
-		va_start(argptr, format);
-		str.FormatV(format, argptr);
-		va_end(argptr);
-		m_Screen.Write(str, str.GetLength());		
-		return 0;
-	}
+	
 private:
 	// do not change this order
 	CMemorySystem		m_Memory;
@@ -124,11 +64,9 @@ private:
 	CTimer			m_Timer;
 	CLogger			m_Logger;
 	CEMMCDevice		m_EMMC;
-	FATFS			m_FileSystem;
+	//CMandelbrotCalculator		*m_Mandelbrot;
+	CRpiBox		m_Rpibox;
 
-	//CMandelbrotCalculator	m_Mandelbrot;
-	CRpiBox			m_Rpibox;
-	tms9918 vdp;
 };
 
 #endif

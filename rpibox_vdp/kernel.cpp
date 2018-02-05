@@ -22,16 +22,13 @@
 static const char FromKernel[] = "kernel";
 
 CKernel::CKernel (void)
-:
-#ifdef ARM_ALLOW_MULTI_CORE
-	m_Screen(320,240),
-#else	
-	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
-#endif
+:	m_Screen (WIDTH, HEIGHT),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
-	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
-	m_Rpibox (&m_Screen, &m_Logger, &m_EMMC, &m_Memory)
+	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
+//	m_Mandelbrot (&m_Screen, &m_Memory)
+,	m_Rpibox (&m_Screen, &m_Logger, &m_EMMC, &m_Memory)
+//	m_Rpibox (&m_Memory)
 {
 	m_ActLED.Blink (5);	// show we are alive
 }
@@ -43,18 +40,36 @@ CKernel::~CKernel (void)
 boolean CKernel::Initialize (void)
 {
 	boolean bOK = TRUE;
-		
+
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
 	}
+
 	if (bOK)
 	{
-		bOK = m_Logger.Initialize (&m_Screen);
+		bOK = m_Serial.Initialize (115200);
 	}
+
+	if (bOK)
+	{
+		CDevice *pTarget = m_DeviceNameService.GetDevice (m_Options.GetLogDevice (), FALSE);
+		if (pTarget == 0)
+		{
+			pTarget = &m_Screen;
+		}
+
+		bOK = m_Logger.Initialize (pTarget);
+	}
+
 	if (bOK)
 	{
 		bOK = m_Interrupt.Initialize ();
+	}
+
+	if (bOK)
+	{
+		bOK = m_Timer.Initialize ();
 	}
 	if (bOK)
 	{
@@ -62,22 +77,20 @@ boolean CKernel::Initialize (void)
 	}
 	if (bOK)
 	{
-		bOK = m_Timer.Initialize ();
-	} 
-#ifdef ARM_ALLOW_MULTI_CORE	
-	if (bOK)
-	{
-		bOK = m_Rpibox.Initialize(tms9918_create());
+		//m_Mandelbrot = new CMandelbrotCalculator(&m_Screen, &m_Memory);
+		//bOK = m_Mandelbrot->Initialize ();	// must be initialized at last
+		bOK = m_Rpibox.Initialize();
 	}
-#endif	
+//	m_Rpibox = new CRpiBox(&m_Screen, &m_Logger, &m_EMMC, &m_Memory);
+//	m_Rpibox->Initialize();
 	return bOK;
 }
 
 TShutdownMode CKernel::Run (void)
 {
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	m_Logger.Write (FromKernel, LogNotice, "SPC-1000 Extension");	
-	printf("RpiBox Started (Kernel)\n");
+
 	m_Rpibox.Run (0);
+
 	return ShutdownHalt;
 }

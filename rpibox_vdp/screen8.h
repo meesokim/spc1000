@@ -26,6 +26,7 @@
 #include <circle/spinlock.h>
 #include <circle/macros.h>
 #include <circle/types.h>
+#include <circle/string.h>
 
 #define DEPTH 8
 
@@ -115,6 +116,16 @@ public:
 	boolean SetStatus (TScreenStatus Status);	// returns FALSE on failure
 
 	int Write (const void *pBuffer, unsigned nCount);
+	int printf(const char *format, ...)
+	{
+		CString str;
+		va_list argptr;
+		va_start(argptr, format);
+		str.FormatV(format, argptr);
+		va_end(argptr);
+		Write(str, str.GetLength());		
+		return 0;
+	}
 
 	void SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor Color);
 	void SetXY (int x, int y);
@@ -122,9 +133,9 @@ public:
 
 	void Rotor (unsigned nIndex,		// 0..3
 		    unsigned nCount);		// 0..3
-
-	void Write (char chChar);
+			
 private:
+	void Write (char chChar);
 
 	void CarriageReturn (void);
 	void ClearDisplayEnd (void) MAXOPT;

@@ -19,11 +19,10 @@
 #define TF_ADDRWRITE 1
 
 #if 1
-extern CKernel Kernel;
-#define WIDTH 320
-#define HEIGHT 240
+extern CScreenDevice8* m_Screen;
 int wgap = 0;
 int hgap = 0;
+unsigned char *framebuffer;
 tms9918 vdp;
 
 void video_setsize(int x, int y)
@@ -35,14 +34,14 @@ void video_setpal(int num_colors, int *red, int *green, int *blue)
 {
 	for(int i = 3; i < num_colors; i++)
 	{
-		Kernel.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
+		m_Screen->SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
 	}
-	Kernel.UpdatePalette();
+	m_Screen->UpdatePalette();
 }
 
 unsigned char *video_get_vbp(int line)
 {
-	return Kernel.GetBuffer() + hgap * WIDTH + wgap;
+	return framebuffer + (hgap+line) * WIDTH + wgap;
 }
 
 void video_display_buffer()
@@ -641,30 +640,31 @@ void tms9918_init_palette(tms9918 vdp)
 	vdp->palette[i] = i;//vid_pre_xlat[i];
     }
 }
-
 tms9918 tms9918_create(void)
 {
-    tms9918 retval;
-
-    retval = (tms9918) calloc(1, sizeof(struct _tms9918));
-    if (retval) {
-		retval->memory = (unsigned char *) calloc(1, TMS_RAMSIZE);
-		if (retval->memory) {
-			retval->scanline = 0;
-			video_setsize(256, 192);
-			video_setpal(16, tms9918_palbase_red, tms9918_palbase_green, tms9918_palbase_blue);
-			tms9918_init_palette(retval);
-		} else {
-			free(retval);
-			retval = NULL;
+    tms9918 retval = 0;
+	if (m_Screen != 0)
+	{
+		framebuffer = m_Screen->GetBuffer();
+		m_Screen->printf("tms9918_create(): Ok\n");
+		retval = (tms9918) calloc(1, sizeof(struct _tms9918));
+		if (retval) {
+			retval->memory = (unsigned char *) calloc(1, TMS_RAMSIZE);
+			if (retval->memory) {
+				retval->scanline = 0;
+				video_setsize(256, 192);
+				video_setpal(16, tms9918_palbase_red, tms9918_palbase_green, tms9918_palbase_blue);
+				tms9918_init_palette(retval);
+			} else {
+				//free(retval);
+				retval = NULL;
+			}
 		}
-    }
-    
-    if (!retval) {
-	//deb_printf("tms9918_create(): out of memory.\n");
-		return 0;
-    }
-	Kernel.printf("tms9918_create(): Ok\n");
+		if (!retval) {
+		//deb_printf("tms9918_create(): out of memory.\n");
+			return 0;
+		}
+	}
     return retval;
 }
 
