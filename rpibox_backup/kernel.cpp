@@ -93,8 +93,8 @@
 
 extern CKernel Kernel;
 static const char FromKernel[] = "kernel";
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 256
+#define HEIGHT 192
 int wgap = 0;
 int hgap = 0;
 tms9918 vdp;
@@ -115,7 +115,7 @@ void video_setpal(int num_colors, int *red, int *green, int *blue)
 
 unsigned char *video_get_vbp(int line)
 {
-	return Kernel.m_Screen.GetBuffer() + hgap * WIDTH + wgap;
+	return Kernel.m_Screen.GetBuffer() + (hgap + line) * WIDTH + wgap;
 }
 
 void video_display_buffer()
@@ -124,7 +124,7 @@ void video_display_buffer()
 
 CKernel::CKernel (void)
 ://	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
-	m_Screen(320,240),
+	m_Screen(WIDTH,HEIGHT),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
@@ -285,7 +285,7 @@ TShutdownMode CKernel::Run (void)
 #ifndef ARM_ALLOW_MULTI_CORE
 			if (vdp_enable)
 			{
-				if (time++ > (int)(250000000/30/261))
+				if (time++ > (int)(100000000/30/261))
 				{
 					tms9918_periodic(vdp);
 					time = 0;
