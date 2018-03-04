@@ -78,10 +78,10 @@ def generate_tap(wavefile):
         if nchannels > 1:
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
-        if samplewidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames)) /100.0
+        if samplewidth == 2:
+			msdata = np.array(struct.unpack('h'*(len(frames)/2), str(frames))) /100.0
         else:
-            msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) / 10.0
+            msdata = (128 - np.array(struct.unpack('B'*(len(frames)), str(frames)))) / 10.0
         x = np.where(msdata[1:-1] - msdata[0:-2]>=0,1,-1)
         y = np.zeros(len(x))
         mx = np.zeros(len(x))
