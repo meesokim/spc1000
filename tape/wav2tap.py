@@ -71,6 +71,8 @@ def generate_tap(wavefile):
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
+        if pos + 50 > wavefile.getnframes():
+			return
         frames = bytearray(wavefile.readframes(400))
         if not frames:
             break
