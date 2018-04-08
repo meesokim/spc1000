@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 	char c, prev;
 	char *point;
 	IN = 0;
-	if (argc < 2) {
+	if (argc < 1) {
 		IN = stdin;
 		if (getchar() < 0)
 		{
@@ -154,17 +154,22 @@ int main(int argc, char **argv) {
 			reverse = 1;
 			split = 1;
 		}
-	} else if (argc <= 2) {
-	}
+	} 
 	strict = 1;
-	if (IN == 0)
-		IN = fopen(argv[1], "rb");
-	if((point = strrchr(argv[1],'.')) != NULL ) {
-		if(strcmp(point,".cas") == 0) {
-			cas = 1;
-			printf("cas = 1\n");
+	if (argc > 1)
+	{
+		if (IN == 0)
+			IN = fopen(argv[1], "rb");
+		if((point = strrchr(argv[1],'.')) != NULL ) {
+			if(strcmp(point,".cas") == 0) {
+				cas = 1;
+				printf("cas = 1\n");
+			}
 		}
+		strcpy(binfilename, argv[1]);
 	}
+    else
+        IN = stdin;
 	if (pos != 0) {
 		fseek(IN, pos, SEEK_SET);
 	}
@@ -172,7 +177,6 @@ int main(int argc, char **argv) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
 	}//if
-	strcpy(binfilename, argv[1]);
 	int zero = 0, ones = 0, header = 0, body = 0;
 	int headerpos[100];
 	int tailpos[100];

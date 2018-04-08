@@ -1,4 +1,4 @@
-#!/mingw32/bin/python
+#!/usr/bin/python
 # kcs_decode.py
 #
 # Author : David Beazley (http://www.dabeaz.com)
@@ -67,39 +67,41 @@ def generate_tap(wavefile):
     max = 0
     rev = 0
     det = 0
+    msdata = np.zeros(1);
     while True:
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
         if pos + 50 > wavefile.getnframes():
-			return
-        frames = bytearray(wavefile.readframes(400))
-        if not frames:
+            return
+        frames = bytearray(wavefile.readframes(1000))
+        if not frames or len(frames) == 0:
             break
         # Extract most significant bytes from left-most audio channel
         if nchannels > 1:
             del frames[samplewidth::4]    # Delete the right stereo channel    
             del frames[samplewidth::3]
         if samplewidth == 2:
-			msdata = np.array(struct.unpack('h'*(len(frames)/2), str(frames))) /100.0
+            msdata = np.append(msdata,np.array(struct.unpack('h'*(len(frames)/2), str(frames))) /100.0)
         else:
-            msdata = (128 - np.array(struct.unpack('B'*(len(frames)), str(frames)))) / 10.0
+            msdata = np.append(msdata,(128 - np.array(struct.unpack('B'*(len(frames)), str(frames)))) / 10.0)
         x = np.where(msdata[1:-1] - msdata[0:-2]>=0,1,-1)
-        y = np.zeros(len(x))
-        mx = np.zeros(len(x))
+        size = len(x)
+        x = np.zeros(size)
+        y = np.zeros(size)
+        mx = np.zeros(size)
+        mn = np.zeros(size)
+        df = np.zeros(size)
         p = 1
-        for i in range(12, len(x)-12):
-            mx[i] = np.max(msdata[i-12:i+12]) if msdata[i] > 0 else np.min(msdata[i-12:i+12])
+        for i in range(0, size):
+            mx[i] = np.max(msdata[i-12 if i > 12 else 0:i+12])
+            mn[i] = np.min(msdata[i-12 if i > 12 else 0:i+12])
+            df[i] = np.sign(msdata[i] - msdata[i-1])
         for i in range(0, len(y)):
-            if abs(mx[i]) > 20:
-                if msdata[i] == mx[i]: 
-                    if msdata[i] > 0:
-                        p = -1
-                    else:
-                        p = 1                
-                y[i] = p
-            else:
-                y[i] = 0
+            if mx[i] == msdata[i]:
+                y[i] = 1
+            elif mn[i] == msdata[i]:
+                y[i] = -1
         p = 1
         cnt = 0
         max = 0
@@ -111,52 +113,43 @@ def generate_tap(wavefile):
         p = y[0]
         error = 0
         p = np.sign (y[11])
-        num = 0;
-        for i in range(12,len(x)-12):
-            if y[i] < 0:
-                if p >= 0:
-                    cnt = 0
-                else:
-                    cnt = cnt + 1
-            elif y[i] > 0 and p < 0:
-                rev = len(x) - i + 12
-                if cnt < min:
-                    min = cnt
-                if cnt > 7 and cnt < 16:
-                    yield 0
-                elif cnt > 18 and cnt < 33:
+        num = 0
+        sum0 = 0
+        i = 0
+        k = 0
+        for i in range(0, size-20):
+            if k > i:
+                i = k
+            if i < size-20 and y[i] > 0:
+                j = i + 3
+                while j < size and y[j] >= 0:
+                    j = j + 1
+                cnt = cnt + 1
+                sum0 = j - i
+                if sum0 > 12:
+                    x[(j+i)/2] = 1
                     yield 1
                 else:
-                    error = 1
-                    if cnt <= 8:
-                        yield '@'
-                    elif cnt > 15 and cnt < 19:
-                        yield '#'
-                    else:
-                        yield '|'
-                #print (cnt)
-                val[num] = (i, cnt)
-                num = num + 1
-                if cnt < 100 and cnt > 15:
-                    st[cnt] = st[cnt] + 1
-                if cnt > max:
-                    max = cnt
-                cnt = 1
-            p = y[i]
+                    x[(j+i)/2] = -1
+                    yield 0
+                #print (',',i,j)
+                k = j
+        last = j + 1
 #        print (st, min, rev)
         if error == 1 and num < 4:
             _, ax = plt.subplots(1, 1, figsize=(12, 6))
-            ax.plot(x*10, 'b', lw=1)
-            ax.plot(y*20, 'r', lw=2)
-            ax.plot(msdata, 'k', lw=1)
-            ax.plot(mx, 'c', lw=1)
+            #ax = plt.plot(figsize=(12, 6))
+            #ax.plot(x[0:last-1]*50, 'b', lw=1)
+            ax.plot(y[0:last-1]*2, 'b', lw=2)
+            ax.plot(msdata[0:last-1], 'k', lw=1)
+            ax.plot(x[0:last-1]*20, 'r', lw=1)
             ax.set_title('%d' % pos)
             if num > 0:
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
-            #plt.show()
-            plt.savefig("f%d.png" % (pos))            
-        
+            plt.show()
+            #plt.savefig("f%d.png" % (pos)) 
+        msdata = msdata[last:]
 
 if __name__ == '__main__':
     import wave
