@@ -68,13 +68,18 @@ def generate_tap(wavefile):
     rev = 0
     det = 0
     msdata = np.zeros(1);
+    dataheader = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1]
+    di = 0
+    d = 0
+    checkbit = 0
+    dx = 0
     while True:
         if rev > 0:
             wavefile.setpos(wavefile.tell()-rev)
         pos = wavefile.tell()
         if pos + 50 > wavefile.getnframes():
             return
-        frames = bytearray(wavefile.readframes(1000))
+        frames = bytearray(wavefile.readframes(1500))
         if not frames or len(frames) == 0:
             break
         # Extract most significant bytes from left-most audio channel
@@ -117,24 +122,55 @@ def generate_tap(wavefile):
         sum0 = 0
         i = 0
         k = 0
+        idx = 0
         for i in range(0, size-20):
             if k > i:
                 i = k
             if i < size-20 and y[i] > 0:
                 j = i + 3
-                while j < size and y[j] >= 0:
+                while j < size and y[j] == 0:
                     j = j + 1
                 cnt = cnt + 1
                 sum0 = j - i
-                if sum0 > 12:
-                    x[(j+i)/2] = 1
-                    yield 1
+                if j >= size:
+                    break
+                if y[j] < 0:
+                    last = j + 1
+                    idx = (j+i)/2
+                    if sum0 > 12:
+                        x[idx] = 1
+                        d = 1
+                    else:
+                        x[idx] = -1
+                        d = 0
                 else:
-                    x[(j+i)/2] = -1
-                    yield 0
+                    last = i+(j-i)/4
+                    idx = i+(j-i)/4
+                    if sum0 > 24:
+                        x[idx] = 1
+                        d = 1
+                    else:
+                        x[idx] = -1
+                        d = 0
                 #print (',',i,j)
                 k = j
-        last = j + 1
+                yield d
+                if checkbit == 0:
+                    if dataheader[di] == d:
+                        di = di + 1
+                        if di == 42:
+                            checkbit = 1
+                            dx = 0
+                    else:
+                        di = 0
+                else:
+                    dx = dx + 1
+                    if dx % 9 == 0:
+                        if d <> 1:
+                            error = 1
+                            x[idx] = -2
+                        else:
+                            x[idx] = 2
 #        print (st, min, rev)
         if error == 1 and num < 4:
             _, ax = plt.subplots(1, 1, figsize=(12, 6))
@@ -148,6 +184,7 @@ def generate_tap(wavefile):
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
             plt.show()
+            error = 0
             #plt.savefig("f%d.png" % (pos)) 
         msdata = msdata[last:]
 
