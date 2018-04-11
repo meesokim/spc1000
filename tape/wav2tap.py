@@ -79,6 +79,7 @@ def generate_tap(wavefile):
         pos = wavefile.tell()
         if pos + 50 > wavefile.getnframes():
             return
+        fpos = wavefile.tell()
         frames = bytearray(wavefile.readframes(1500))
         if not frames or len(frames) == 0:
             break
@@ -123,6 +124,8 @@ def generate_tap(wavefile):
         i = 0
         k = 0
         idx = 0
+        last = 0
+        erridx = 0
         for i in range(0, size-20):
             if k > i:
                 i = k
@@ -132,6 +135,12 @@ def generate_tap(wavefile):
                     j = j + 1
                 cnt = cnt + 1
                 sum0 = j - i
+                #print (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])))
+                if sum(np.abs(msdata[i:j])) < 100:
+                    #print (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])))
+                    checkbit = 0
+                    di = 0
+                    continue
                 if j >= size:
                     break
                 if y[j] < 0:
@@ -168,6 +177,7 @@ def generate_tap(wavefile):
                     if dx % 9 == 0:
                         if d <> 1:
                             error = 1
+                            erridx = i
                             x[idx] = -2
                         else:
                             x[idx] = 2
@@ -179,14 +189,18 @@ def generate_tap(wavefile):
             ax.plot(y[0:last-1]*2, 'b', lw=2)
             ax.plot(msdata[0:last-1], 'k', lw=1)
             ax.plot(x[0:last-1]*20, 'r', lw=1)
-            ax.set_title('%d' % pos)
+            t = (fpos+erridx)
+            ax.set_title('%d:%f' % (t/60/rate, ((t-60*(int(t/60)))/float(rate))))
             if num > 0:
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
             plt.show()
             error = 0
-            #plt.savefig("f%d.png" % (pos)) 
-        msdata = msdata[last:]
+            #plt.savefig("f%d.png" % (pos))
+        if last > 0:
+            msdata = msdata[last:]
+        else:
+            msdata = [];
 
 if __name__ == '__main__':
     import wave
@@ -204,14 +218,10 @@ if __name__ == '__main__':
     byte_stream = generate_tap(wf)
     # Output the byte stream in 80-byte chunks
     outf = sys.stdout
-    while True:
-        #buffer = islice(byte_stream,80)
-        #print ( sum(1 for _ in byte_stream))
-        if not byte_stream:
+    #buffer = islice(byte_stream,80)
+    #print ( sum(1 for _ in byte_stream))
+    for c in byte_stream:
+        if c == '':
             break
-        for c in byte_stream:
-            if c == '':
-                break
-            print (c,end='')
-            sys.stdout.flush()        
-    print (st)
+        print (c,end='')
+        sys.stdout.flush()        
