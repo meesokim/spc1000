@@ -182,6 +182,7 @@ def generate_tap(wavefile):
                         else:
                             x[idx] = 2
 #        print (st, min, rev)
+        t = (wavefile.tell()+erridx)
         if error == 1 and num < 4:
             _, ax = plt.subplots(1, 1, figsize=(12, 6))
             #ax = plt.plot(figsize=(12, 6))
@@ -189,13 +190,14 @@ def generate_tap(wavefile):
             ax.plot(y[0:last-1]*2, 'b', lw=2)
             ax.plot(msdata[0:last-1], 'k', lw=1)
             ax.plot(x[0:last-1]*20, 'r', lw=1)
-            t = (fpos+erridx)
-            ax.set_title('%f %d:%f' % (t/float(rate), t/60/rate, (t-((int(t/60/rate))*60*rate)/float(rate)))
+            ax.set_title('%f %d:%f' % (t/float(rate), t/60/rate, ((t-(int(t/60/rate))*60*rate)/float(rate))))
             if num > 0:
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
             plt.show()
             error = 0
+#        else:
+#            print ('%f %d:%f' % (t/float(rate), t/60/rate, ((t-(int(t/60/rate))*60*rate)/float(rate))))
             #plt.savefig("f%d.png" % (pos))
         if last > 0:
             msdata = msdata[last:]
