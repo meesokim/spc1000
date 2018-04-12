@@ -190,7 +190,7 @@ def generate_tap(wavefile):
             ax.plot(msdata[0:last-1], 'k', lw=1)
             ax.plot(x[0:last-1]*20, 'r', lw=1)
             t = (fpos+erridx)
-            ax.set_title('%d:%f' % (t/60/rate, ((t-60*(int(t/60)))/float(rate))))
+            ax.set_title('%f %d:%f' % (t/float(rate), t/60/rate, (t-((int(t/60/rate))*60*rate)/float(rate)))
             if num > 0:
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
