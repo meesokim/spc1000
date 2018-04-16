@@ -99,14 +99,18 @@ def generate_tap(wavefile):
         mn = np.zeros(size)
         df = np.zeros(size)
         p = 1
-        for i in range(0, size):
-            mx[i] = np.max(msdata[i-12 if i > 12 else 0:i+12])
-            mn[i] = np.min(msdata[i-12 if i > 12 else 0:i+12])
+        for i in range(0, size-15):
+            mx[i] = np.max(msdata[i-15 if i > 15 else 0:i+15])
+            mn[i] = np.min(msdata[i-15 if i > 15 else 0:i+15])
             df[i] = np.sign(msdata[i] - msdata[i-1])
+        xk = -10
+        nk = -10
         for i in range(0, len(y)):
-            if mx[i] == msdata[i]:
+            if mx[i] == msdata[i] and (xk + 10 <= i  or (xk > 0 and xk + 10 > i and msdata[xk] != msdata[i])):
+                xk = i
                 y[i] = 1
-            elif mn[i] == msdata[i]:
+            elif mn[i] == msdata[i] and (nk + 10 <= i or (nk > 0 and nk + 10 > i and msdata[nk] != msdata[i])):
+                nk = i
                 y[i] = -1
         p = 1
         cnt = 0
@@ -131,8 +135,11 @@ def generate_tap(wavefile):
                 i = k
             if i < size-20 and y[i] > 0:
                 j = i + 3
-                while j < size and y[j] == 0:
+                while j < size-10 and y[j] != -1:
                     j = j + 1
+                if y[j] != -1:
+                    last = j
+                    break
                 cnt = cnt + 1
                 sum0 = j - i
                 #print (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])))
@@ -143,8 +150,8 @@ def generate_tap(wavefile):
                     continue
                 if j >= size:
                     break
+                last = j + 1
                 if y[j] < 0:
-                    last = j + 1
                     idx = (j+i)/2
                     if sum0 > 12:
                         x[idx] = 1
@@ -153,7 +160,6 @@ def generate_tap(wavefile):
                         x[idx] = -1
                         d = 0
                 else:
-                    last = i+(j-i)/4
                     idx = i+(j-i)/4
                     if sum0 > 24:
                         x[idx] = 1
@@ -200,6 +206,13 @@ def generate_tap(wavefile):
 #            print ('%f %d:%f' % (t/float(rate), t/60/rate, ((t-(int(t/60/rate))*60*rate)/float(rate))))
             #plt.savefig("f%d.png" % (pos))
         if last > 0:
+            last0 = last
+            while last < len(y) and y[last] != -1:
+                last = last + 1
+            if last == len(y):
+                last = last0
+                while y[last] != -1:
+                    last = last - 1
             msdata = msdata[last:]
         else:
             msdata = [];
