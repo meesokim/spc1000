@@ -22,6 +22,7 @@ import numpy as np
 import pylab
 import matplotlib.pyplot as plt
 import array
+import sys
 
 st = np.ndarray(100, dtype=int)
 st[0:100] = 0
@@ -84,13 +85,16 @@ def generate_tap(wavefile):
         if not frames or len(frames) == 0:
             break
         # Extract most significant bytes from left-most audio channel
-        if nchannels > 1:
-            del frames[samplewidth::4]    # Delete the right stereo channel    
-            del frames[samplewidth::3]
+#        if nchannels > 1:
+#            frames = frames[0:][::2]
+        #    del frames[samplewidth::1]    # Delete the left stereo channel    
+        #    del frames[samplewidth::2]
         if samplewidth == 2:
-            msdata = np.append(msdata,np.array(struct.unpack('h'*(len(frames)/2), str(frames))) /100.0)
+            msdata = np.append(msdata,np.array(struct.unpack('h'*(int(len(frames)/2)), frames)) /100.0)
         else:
-            msdata = np.append(msdata,(128 - np.array(struct.unpack('B'*(len(frames)), str(frames)))) / 10.0)
+            msdata = np.append(msdata,(128 - np.array(struct.unpack('B'*(int(len(frames))), frames))) / 10.0)
+        if nchannels > 1:
+            msdata = msdata[1::2]
         x = np.where(msdata[1:-1] - msdata[0:-2]>=0,1,-1)
         size = len(x)
         x = np.zeros(size)
@@ -99,17 +103,19 @@ def generate_tap(wavefile):
         mn = np.zeros(size)
         df = np.zeros(size)
         p = 1
-        for i in range(0, size-15):
-            mx[i] = np.max(msdata[i-15 if i > 15 else 0:i+15])
-            mn[i] = np.min(msdata[i-15 if i > 15 else 0:i+15])
+        ww = 5
+        wx = 13
+        for i in range(0, size-wx):
+            mx[i] = np.max(msdata[i-wx if i > wx else 0:i+wx])
+            mn[i] = np.min(msdata[i-wx if i > wx else 0:i+wx])
             df[i] = np.sign(msdata[i] - msdata[i-1])
-        xk = -10
-        nk = -10
+        xk = -ww
+        nk = -ww
         for i in range(0, len(y)):
-            if mx[i] == msdata[i] and (xk + 10 <= i  or (xk > 0 and xk + 10 > i and msdata[xk] != msdata[i])):
+            if mx[i] == msdata[i] and (xk + ww <= i  or (xk > 0 and xk + ww > i and msdata[xk] != msdata[i])):
                 xk = i
                 y[i] = 1
-            elif mn[i] == msdata[i] and (nk + 10 <= i or (nk > 0 and nk + 10 > i and msdata[nk] != msdata[i])):
+            elif mn[i] == msdata[i] and (nk + ww <= i or (nk > 0 and nk + ww > i and msdata[nk] != msdata[i])):
                 nk = i
                 y[i] = -1
         p = 1
@@ -134,8 +140,8 @@ def generate_tap(wavefile):
             if k > i:
                 i = k
             if i < size-20 and y[i] > 0:
-                j = i + 3
-                while j < size-10 and y[j] != -1:
+                j = i + 2
+                while j < size-ww and y[j] != -1:
                     j = j + 1
                 if y[j] != -1:
                     last = j
@@ -143,8 +149,8 @@ def generate_tap(wavefile):
                 cnt = cnt + 1
                 sum0 = j - i
                 #print (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])))
-                if sum(np.abs(msdata[i:j])) < 100:
-                    #print (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])))
+                if sum(np.abs(msdata[i:j]))/sum0 < 8:
+                    #print ("rejected:[%d:%d],%d,%d %f" % (i,j,sum(msdata[i:j]), sum(np.abs(msdata[i:j])), sum(np.abs(msdata[i:j]))/sum0), file=sys.stderr)
                     checkbit = 0
                     di = 0
                     continue
@@ -152,7 +158,7 @@ def generate_tap(wavefile):
                     break
                 last = j + 1
                 if y[j] < 0:
-                    idx = (j+i)/2
+                    idx = int((j+i)/2)
                     if sum0 > 12:
                         x[idx] = 1
                         d = 1
@@ -160,7 +166,7 @@ def generate_tap(wavefile):
                         x[idx] = -1
                         d = 0
                 else:
-                    idx = i+(j-i)/4
+                    idx = int(i+(j-i)/4)
                     if sum0 > 24:
                         x[idx] = 1
                         d = 1
@@ -181,14 +187,14 @@ def generate_tap(wavefile):
                 else:
                     dx = dx + 1
                     if dx % 9 == 0:
-                        if d <> 1:
+                        if d != 1:
                             error = 1
                             erridx = i
                             x[idx] = -2
                         else:
                             x[idx] = 2
 #        print (st, min, rev)
-        t = (wavefile.tell()+erridx)
+        t = (fpos+erridx)
         if error == 1 and num < 4:
             _, ax = plt.subplots(1, 1, figsize=(12, 6))
             #ax = plt.plot(figsize=(12, 6))
@@ -196,7 +202,7 @@ def generate_tap(wavefile):
             ax.plot(y[0:last-1]*2, 'b', lw=2)
             ax.plot(msdata[0:last-1], 'k', lw=1)
             ax.plot(x[0:last-1]*20, 'r', lw=1)
-            ax.set_title('%f %d:%f' % (t/float(rate), t/60/rate, ((t-(int(t/60/rate))*60*rate)/float(rate))))
+            ax.set_title('%d %.2f %d:%.2f' % (t, t/float(rate), t/60/rate, ((t-(int(t/60/rate))*60*rate)/float(rate))))
             if num > 0:
                 for x, v in val[0:num-1]:
                     ax.text(x-v/2, -50, '%d' % v, ha='center', va= 'bottom')
@@ -220,7 +226,9 @@ def generate_tap(wavefile):
 if __name__ == '__main__':
     import wave
     import sys
-    if len(sys.argv) < 2:
+    length = len(sys.argv)
+    print ("args=%d" % length)
+    if length < 2:
         print("Usage: %s infile" % sys.argv[0])
         raise SystemExit(1)
 

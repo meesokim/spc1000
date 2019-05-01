@@ -17,7 +17,8 @@ int main (int argc, char **argv)
   FILE  *inFile;
   FILE  *outFile = stdout;
   time_t now     = time (NULL);
-  int    ch, i;
+  unsigned char    ch;
+  int i;
 
   if (argc != 2)
      Abort ("Usage: %s bin-file [> result]", argv[0]);
@@ -31,12 +32,14 @@ int main (int argc, char **argv)
            argv[1], ctime(&now));
 
   i = 0;
-  while ((ch = fgetc(inFile)) != EOF)
-  {
-    if (i++ % 12 == 0)
-       fputs ("\n  ", outFile);
+  while(1) {
+	ch = fgetc(inFile);
+    if (i++ % 16 == 0)
+       fprintf (outFile, " // %04x\n  ", i-1);
+	if (feof(inFile))
+		break;
     fprintf (outFile, "0x%02X,", ch);
-  }
+  };
   fputc ('\n', outFile);
   fclose (inFile);
   return (0);

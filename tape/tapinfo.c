@@ -108,7 +108,7 @@ int getByte(FILE *in)
 			error = 1;
 		if (strict) {
 			printf("%02x=>check bit error(%ld)!\n", v, fpos);
-			exit(0);
+//			exit(0);
 		}
 	}
 	else
@@ -373,7 +373,7 @@ int dump(int len) {
 				fclose(TAP);
 			sprintf(filename, "%d_%s.tap", ++num, name);
 			TAP = fopen(filename, "w+");
-			printf ("file:%s=%x\n",filename, (int)TAP);
+			printf ("file:%s\n",filename);
 			writefile(TAP, b, d, csum);
 		}
 		return head->size;

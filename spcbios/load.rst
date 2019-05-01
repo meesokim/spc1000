@@ -47,7 +47,7 @@ Hexadecimal [16-Bits]
    0122                      40 FLOAD1: 
                              41 	;CALL	MOTON
                              42 	;JP	C,CLOAD5
-   0122 CD 4E 02      [17]   43 	CALL	MKRD
+   0122 CD 87 02      [17]   43 	CALL	MKRD
                              44 ;	JP	C,CLOAD5
    0125 CD 4C 01      [17]   45 	CALL	CLOAD
    0128 C3 91 01      [10]   46 	JP	CLOAD4
@@ -101,7 +101,7 @@ Hexadecimal [16-Bits]
    0168 E5            [11]   89 	PUSH	HL
                              90 ;
    0169                      91 CLOAD1: 
-   0169 CD 20 02      [17]   92 	CALL	VBLOAD
+   0169 CD 59 02      [17]   92 	CALL	VBLOAD
    016C DA A4 01      [10]   93 	JP	C,CLOAD5
    016F 77            [ 7]   94 	LD	(HL),A
    0170 23            [ 6]   95 	INC	HL
@@ -110,10 +110,10 @@ Hexadecimal [16-Bits]
    0173 B1            [ 4]   98 	OR	C
    0174 C2 69 01      [10]   99 	JP	NZ,CLOAD1
    0177 2A E3 11      [16]  100 	LD	HL,(CKSMF1)
-   017A CD 20 02      [17]  101 	CALL	VBLOAD
+   017A CD 59 02      [17]  101 	CALL	VBLOAD
    017D DA A4 01      [10]  102 	JP	C,CLOAD5
    0180 5F            [ 4]  103 	LD	E,A
-   0181 CD 20 02      [17]  104 	CALL	VBLOAD
+   0181 CD 59 02      [17]  104 	CALL	VBLOAD
    0184 DA A4 01      [10]  105 	JP	C,CLOAD5
    0187 BD            [ 4]  106 	CP	L
    0188 C2 96 01      [10]  107 	JP	NZ,CLOAD2
@@ -166,7 +166,7 @@ Hexadecimal [16-Bits]
    01CE CD 9E 03      [17]  149 	CALL	#CKSUM
                             150 ;	CALL	MOTON
    01D1 DA A4 01      [10]  151 	JP	C,CLOAD5
-   01D4 CD 4E 02      [17]  152 	CALL	MKRD
+   01D4 CD 87 02      [17]  152 	CALL	MKRD
    01D7 DA A4 01      [10]  153 	JP	C,CLOAD5
    01DA CD E0 01      [17]  154 	CALL	MVRFY1
    01DD C3 91 01      [10]  155 	JP	CLOAD4
@@ -205,7 +205,7 @@ Hexadecimal [16-Bits]
    01F5 E5            [11]  183 	PUSH	HL
                             184 ;
    01F6                     185 MVRFY3: 
-   01F6 CD 20 02      [17]  186 	CALL	VBLOAD
+   01F6 CD 59 02      [17]  186 	CALL	VBLOAD
    01F9 DA A4 01      [10]  187 	JP	C,CLOAD5
    01FC BE            [ 7]  188 	CP	(HL)
    01FD C2 9E 01      [10]  189 	JP	NZ,CLOAD3
@@ -215,10 +215,10 @@ Hexadecimal [16-Bits]
    0203 B1            [ 4]  193 	OR	C
    0204 C2 F6 01      [10]  194 	JP	NZ,MVRFY3
    0207 2A E5 11      [16]  195 	LD	HL,(CKSMF2)
-   020A CD 20 02      [17]  196 	CALL	VBLOAD
+   020A CD 59 02      [17]  196 	CALL	VBLOAD
    020D BC            [ 4]  197 	CP	H
    020E C2 9E 01      [10]  198 	JP	NZ,CLOAD3
-   0211 CD 20 02      [17]  199 	CALL	VBLOAD
+   0211 CD 59 02      [17]  199 	CALL	VBLOAD
    0214 BD            [ 4]  200 	CP	L
    0215 C2 9E 01      [10]  201 	JP	NZ,CLOAD3
    0218 15            [ 4]  202 	DEC	D
@@ -257,274 +257,275 @@ Hexadecimal [16-Bits]
                             230 ;	JP	Z,MVRFY6
                             231 ;	RET
                             232 ;
-   0220                     233 VBLOAD: 
-   0220 C5            [11]  234 	PUSH	BC
-   0221 D5            [11]  235 	PUSH	DE
-   0222 E5            [11]  236 	PUSH	HL
-   0223 21 00 08      [10]  237 	LD	HL,#0x0800
-   0226 01 03 C0      [10]  238 	LD	BC,#0xC003
-                            239 ;	LD	A,14
-                            240 ;	OUT	(C),A
-   0229                     241 VBLOD1: 
-                            242 ;	JP	C,VBLOD3
-                            243 ;	CALL	WAITR
-                            244 ;	LD	A,040h
-                            245 ;	IN	A,(1)		;IN A,(4001H)
-                            246 ;	AND	080h
-   0229 CB CF         [ 8]  247 	SET 1, A
-   022B ED 79         [12]  248 	OUT (C), A
-   022D ED 78         [12]  249 	IN A, (C)
-   022F CA 3C 02      [10]  250 	JP	Z,VBLOD2
-   0232 E5            [11]  251 	PUSH	HL
-   0233 2A E3 11      [16]  252 	LD	HL,(CKSMF1)
-   0236 23            [ 6]  253 	INC	HL
-   0237 22 E3 11      [16]  254 	LD	(CKSMF1),HL
-   023A E1            [10]  255 	POP	HL
-   023B 37            [ 4]  256 	SCF
-                            257 ;
-   023C 7D            [ 4]  258 VBLOD2: LD	A,L
-   023D 17            [ 4]  259 	RLA
-   023E 6F            [ 4]  260 	LD	L,A
-   023F 25            [ 4]  261 	DEC	H
-   0240 C2 29 02      [10]  262 	JP	NZ,VBLOD1
-                            263 ;	CALL	EDGE
-   0243 CB CF         [ 8]  264 	SET 1,A
-   0245 ED 79         [12]  265 	OUT (C),A
-   0247 ED 78         [12]  266 	IN A,(C)
-   0249 7D            [ 4]  267 	LD	A,L
-                            268 ;
-   024A E1            [10]  269 VBLOD3: POP	HL
-   024B D1            [10]  270 	POP	DE
-   024C C1            [10]  271 	POP	BC
-   024D C9            [10]  272 	RET
-                            273 ;
+   0259                     233 	.org 0x259 
+   0259                     234 VBLOAD: 
+   0259 C5            [11]  235 	PUSH	BC
+   025A D5            [11]  236 	PUSH	DE
+   025B E5            [11]  237 	PUSH	HL
+   025C 21 00 08      [10]  238 	LD	HL,#0x0800
+   025F 01 03 C0      [10]  239 	LD	BC,#0xC003
+                            240 ;	LD	A,14
+                            241 ;	OUT	(C),A
+   0262                     242 VBLOD1: 
+                            243 ;	JP	C,VBLOD3
+                            244 ;	CALL	WAITR
+                            245 ;	LD	A,040h
+                            246 ;	IN	A,(1)		;IN A,(4001H)
+                            247 ;	AND	080h
+   0262 CB CF         [ 8]  248 	SET 1, A
+   0264 ED 79         [12]  249 	OUT (C), A
+   0266 ED 78         [12]  250 	IN A, (C)
+   0268 CA 75 02      [10]  251 	JP	Z,VBLOD2
+   026B E5            [11]  252 	PUSH	HL
+   026C 2A E3 11      [16]  253 	LD	HL,(CKSMF1)
+   026F 23            [ 6]  254 	INC	HL
+   0270 22 E3 11      [16]  255 	LD	(CKSMF1),HL
+   0273 E1            [10]  256 	POP	HL
+   0274 37            [ 4]  257 	SCF
+                            258 ;
+   0275 7D            [ 4]  259 VBLOD2: LD	A,L
+   0276 17            [ 4]  260 	RLA
+   0277 6F            [ 4]  261 	LD	L,A
+   0278 25            [ 4]  262 	DEC	H
+   0279 C2 62 02      [10]  263 	JP	NZ,VBLOD1
+                            264 ;	CALL	EDGE
+   027C CB CF         [ 8]  265 	SET 1,A
+   027E ED 79         [12]  266 	OUT (C),A
+   0280 ED 78         [12]  267 	IN A,(C)
+   0282 7D            [ 4]  268 	LD	A,L
+                            269 ;
+   0283 E1            [10]  270 VBLOD3: POP	HL
+   0284 D1            [10]  271 	POP	DE
+   0285 C1            [10]  272 	POP	BC
+   0286 C9            [10]  273 	RET
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 6.
 Hexadecimal [16-Bits]
 
 
 
-   024E                     274 MKRD:
-   024E C5            [11]  275 	PUSH	BC
-   024F D5            [11]  276 	PUSH	DE
-   0250 E5            [11]  277 	PUSH	HL
-   0251 21 28 28      [10]  278 	LD	HL,#0x2828
-   0254 7B            [ 4]  279 	LD	A,E
-   0255 FE CC         [ 7]  280 	CP	#0xCC
-   0257 CA 5D 02      [10]  281 	JP	Z,MKRD1
-   025A 21 14 14      [10]  282 	LD	HL,#0x1414
-                            283 ;
-   025D                     284 MKRD1:
-   025D 22 E7 11      [16]  285 	LD	(MKLEN),HL
-   0260 01 03 C0      [10]  286 	LD	BC,#0xC003
-   0263                     287 MKRD4:
-   0263 2A E7 11      [16]  288 	LD	HL,(MKLEN)
-   0266                     289 MKRD5:	
-                            290 ;	CALL	EDGE
-                            291 ;	JP	C,MKRD3
-                            292 ;	CALL	WAITR
-                            293 ;	LD	A,040h
-                            294 ;	IN	A,(1)		;IN A,(4001H)
-                            295 ;	AND	080h
-   0266 CB CF         [ 8]  296 	SET 1,A
-   0268 ED 79         [12]  297 	OUT (C),A
-   026A ED 78         [12]  298 	IN  A,(C)
-   026C CA 63 02      [10]  299 	JP	Z,MKRD4
-   026F 25            [ 4]  300 	DEC	H
-   0270 C2 66 02      [10]  301 	JP	NZ,MKRD5
-                            302 ;
-   0273                     303 MKRD2:
-                            304 ;	CALL	EDGE
-                            305 ;	JP	C,MKRD3
-                            306 ;	CALL	WAITR
-                            307 ;	LD	A,040h
-                            308 ;	IN	A,(1)		;IN A,(4001H)
-                            309 ;	AND	080h
-   0273 CB CF         [ 8]  310 	SET 1, A
-   0275 ED 79         [12]  311 	OUT  (C),A
-   0277 ED 78         [12]  312 	IN  A,(C)
-   0279 C2 63 02      [10]  313 	JP	NZ,MKRD4
-   027C 2D            [ 4]  314 	DEC	L
-   027D C2 73 02      [10]  315 	JP	NZ,MKRD2
-   0280 CB CF         [ 8]  316 	SET 1, A
-   0282 ED 79         [12]  317 	OUT (C),A
-                            318 ;	CALL	EDGE
-                            319 ;
-   0284                     320 MKRD3:
-   0284 E1            [10]  321 	POP	HL
-   0285 D1            [10]  322 	POP	DE
-   0286 C1            [10]  323 	POP	BC
-   0287 C9            [10]  324 	RET
-                            325 ;
-                            326 
-                            327 ;MOTON:	PUSH	BC
-                            328 ;	PUSH	DE
+                            274 ;
+   0287                     275 MKRD:
+   0287 C5            [11]  276 	PUSH	BC
+   0288 D5            [11]  277 	PUSH	DE
+   0289 E5            [11]  278 	PUSH	HL
+   028A 21 28 28      [10]  279 	LD	HL,#0x2828
+   028D 7B            [ 4]  280 	LD	A,E
+   028E FE CC         [ 7]  281 	CP	#0xCC
+   0290 CA 96 02      [10]  282 	JP	Z,MKRD1
+   0293 21 14 14      [10]  283 	LD	HL,#0x1414
+                            284 ;
+   0296                     285 MKRD1:
+   0296 22 E7 11      [16]  286 	LD	(MKLEN),HL
+   0299 01 03 C0      [10]  287 	LD	BC,#0xC003
+   029C                     288 MKRD4:
+   029C 2A E7 11      [16]  289 	LD	HL,(MKLEN)
+   029F                     290 MKRD5:	
+                            291 ;	CALL	EDGE
+                            292 ;	JP	C,MKRD3
+                            293 ;	CALL	WAITR
+                            294 ;	LD	A,040h
+                            295 ;	IN	A,(1)		;IN A,(4001H)
+                            296 ;	AND	080h
+   029F CB CF         [ 8]  297 	SET 1,A
+   02A1 ED 79         [12]  298 	OUT (C),A
+   02A3 ED 78         [12]  299 	IN  A,(C)
+   02A5 CA 9C 02      [10]  300 	JP	Z,MKRD4
+   02A8 25            [ 4]  301 	DEC	H
+   02A9 C2 9F 02      [10]  302 	JP	NZ,MKRD5
+                            303 ;
+   02AC                     304 MKRD2:
+                            305 ;	CALL	EDGE
+                            306 ;	JP	C,MKRD3
+                            307 ;	CALL	WAITR
+                            308 ;	LD	A,040h
+                            309 ;	IN	A,(1)		;IN A,(4001H)
+                            310 ;	AND	080h
+   02AC CB CF         [ 8]  311 	SET 1, A
+   02AE ED 79         [12]  312 	OUT  (C),A
+   02B0 ED 78         [12]  313 	IN  A,(C)
+   02B2 C2 9C 02      [10]  314 	JP	NZ,MKRD4
+   02B5 2D            [ 4]  315 	DEC	L
+   02B6 C2 AC 02      [10]  316 	JP	NZ,MKRD2
+   02B9 CB CF         [ 8]  317 	SET 1, A
+   02BB ED 79         [12]  318 	OUT (C),A
+                            319 ;	CALL	EDGE
+                            320 ;
+   02BD                     321 MKRD3:
+   02BD E1            [10]  322 	POP	HL
+   02BE D1            [10]  323 	POP	DE
+   02BF C1            [10]  324 	POP	BC
+   02C0 C9            [10]  325 	RET
+                            326 ;
+                            327 
+                            328 ;MOTON:	PUSH	BC
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 7.
 Hexadecimal [16-Bits]
 
 
 
-                            329 ;	PUSH	HL
-                            330 ;	LD	BC,#0x4000
-                            331 ;	LD	A,14		;A PORT SELECT
-                            332 ;	OUT	(C),A
-                            333 ;	LD	L,#0x0A
-                            334 ;	LD	BC,06000h
-                            335 ;MOTON1: LD	A,040h
-                            336 ;	IN	A,(1)		;IN A,(4001H)
-                            337 ;	AND	040h
-                            338 ;	JP	NZ,MOTON5
-                            339 ;
-                            340 ;MOTON6: XOR	A
-                            341 ;
-                            342 ;MOTON4: POP	HL
-                            343 ;	POP	DE
-                            344 ;	POP	BC
-                            345 ;	RET
-                            346 ;
-                            347 ;MOTON5: LD	A,(IO6000)
-                            348 ;	RES	1,A
-                            349 ;	OUT	(C),A
-                            350 ;	SET	1,A
-                            351 ;	OUT	(C),A
-                            352 ;	LD	(IO6000),A
-                            353 ;	DEC	L
-                            354 ;	JP	NZ,MOTON1
-                            355 ;	CALL	CR2
-                            356 ;	LD	A,D
-                            357 ;	CP	0D7h
-                            358 ;	JR	Z,MOTON2
-                            359 ;	LD	DE,MBUF6
-                            360 ;	CALL	DEPRT
-                            361 ;	JR	MOTON3
-                            362 ;
-                            363 ;MOTON2: LD	DE,MBUF7
-                            364 ;	CALL	DEPRT
-                            365 ;	LD	DE,MBUF6A
-                            366 ;	CALL	DEPRT
-                            367 ;
-                            368 ;MOTON3: CALL	CR2
-                            369 ;	LD	A,040h
-                            370 ;	IN	A,(1)		;IN A,(4001H)
-                            371 ;	AND	040h
-                            372 ;	JP	Z,MOTON6
-                            373 ;	LD	A,080h
-                            374 ;	IN	A,(0)		;IN A,(8000H)
-                            375 ;	AND	012h
-                            376 ;	JP	NZ,MOTON3
-                            377 ;	SCF
-                            378 ;	JP	MOTON4
-                            379 ;
-                            380 ;MOTCH:	PUSH	AF
-                            381 ;	PUSH	BC
-                            382 ;	PUSH	DE
-                            383 ;	LD	D,00Ah
+                            329 ;	PUSH	DE
+                            330 ;	PUSH	HL
+                            331 ;	LD	BC,#0x4000
+                            332 ;	LD	A,14		;A PORT SELECT
+                            333 ;	OUT	(C),A
+                            334 ;	LD	L,#0x0A
+                            335 ;	LD	BC,06000h
+                            336 ;MOTON1: LD	A,040h
+                            337 ;	IN	A,(1)		;IN A,(4001H)
+                            338 ;	AND	040h
+                            339 ;	JP	NZ,MOTON5
+                            340 ;
+                            341 ;MOTON6: XOR	A
+                            342 ;
+                            343 ;MOTON4: POP	HL
+                            344 ;	POP	DE
+                            345 ;	POP	BC
+                            346 ;	RET
+                            347 ;
+                            348 ;MOTON5: LD	A,(IO6000)
+                            349 ;	RES	1,A
+                            350 ;	OUT	(C),A
+                            351 ;	SET	1,A
+                            352 ;	OUT	(C),A
+                            353 ;	LD	(IO6000),A
+                            354 ;	DEC	L
+                            355 ;	JP	NZ,MOTON1
+                            356 ;	CALL	CR2
+                            357 ;	LD	A,D
+                            358 ;	CP	0D7h
+                            359 ;	JR	Z,MOTON2
+                            360 ;	LD	DE,MBUF6
+                            361 ;	CALL	DEPRT
+                            362 ;	JR	MOTON3
+                            363 ;
+                            364 ;MOTON2: LD	DE,MBUF7
+                            365 ;	CALL	DEPRT
+                            366 ;	LD	DE,MBUF6A
+                            367 ;	CALL	DEPRT
+                            368 ;
+                            369 ;MOTON3: CALL	CR2
+                            370 ;	LD	A,040h
+                            371 ;	IN	A,(1)		;IN A,(4001H)
+                            372 ;	AND	040h
+                            373 ;	JP	Z,MOTON6
+                            374 ;	LD	A,080h
+                            375 ;	IN	A,(0)		;IN A,(8000H)
+                            376 ;	AND	012h
+                            377 ;	JP	NZ,MOTON3
+                            378 ;	SCF
+                            379 ;	JP	MOTON4
+                            380 ;
+                            381 ;MOTCH:	PUSH	AF
+                            382 ;	PUSH	BC
+                            383 ;	PUSH	DE
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 8.
 Hexadecimal [16-Bits]
 
 
 
-                            384 ;	LD	BC,04000h
-                            385 ;	LD	A,14
-                            386 ;	OUT	(C),A
-                            387 ;	LD	BC,06000h
-                            388 ;MOTCH1: LD	A,040h
-                            389 ;	IN	A,(1)		;IN A,(4001H)
-                            390 ;	AND	040h
-                            391 ;	JR	Z,MOTCH2
-                            392 ;	POP	DE
-                            393 ;	POP	BC
-                            394 ;	POP	AF
-                            395 ;	RET
-                            396 ;
-                            397 ;MOTCH2: LD	A,(IO6000)
-                            398 ;	RES	1,A
-                            399 ;	OUT	(C),A
-                            400 ;	SET	1,A
-                            401 ;	OUT	(C),A
-                            402 ;	LD	(IO6000),A
-                            403 ;	DEC	D
-                            404 ;	JP	NZ,MOTCH1
-                            405 ;	POP	DE
-                            406 ;	POP	BC
-                            407 ;	POP	AF
-                            408 ;	RET
-                            409 
-                     3385   410 FILEFG	= 0x3385
-                     2208   411 CONTFG  = 0x2208
-                     39AE   412 NEW     = 0x39ae
-                     7C4E   413 TEXTST  = 0x7c4e
-                     7A4D   414 MEMEND	= 0x7a4d
-                     39B9   415 CVLOAD  = 0x39b9
-                     15C3   416 RUN	    = 0x15c3
-                     33E9   417 MEMSET	   =   0x33e9
-                     7A49   418 MEMMAX   = 0x7a49
-                     0056   419 INITSB	   =   0x0056
-                     1B95   420 GRAPH	   =   0x1b95
-                     1BEA   421 GSAVES = 0x1bea
-                     0AD5   422 CLR2     = 0xad5
-                     08A9   423 PSGST  = 0x08a9
-                            424 
-   0288                     425 _pload:
-   0288 32 85 33      [13]  426 	LD	(FILEFG),A
-   028B 32 08 22      [13]  427 	LD	(CONTFG),A
-   028E                     428 _load:	
-   028E CD A9 08      [17]  429 	call PSGST
-   0291 CD 14 01      [17]  430 	call FLOAD
-   0294 3A 96 13      [13]  431 	ld a, (FILMOD)
-   0297 FE 02         [ 7]  432 	cp #2
-   0299 20 2B         [12]  433 	jr nz, bload2
-   029B ED 56         [ 8]  434 	im 1
-   029D FB            [ 4]  435 	ei
-   029E 21 00 FF      [10]  436 	LD hl, #0xFF00
-   02A1 22 49 7A      [16]  437 	LD  (MEMMAX),HL
-   02A4 CD E9 33      [17]  438 	call MEMSET
+                            384 ;	LD	D,00Ah
+                            385 ;	LD	BC,04000h
+                            386 ;	LD	A,14
+                            387 ;	OUT	(C),A
+                            388 ;	LD	BC,06000h
+                            389 ;MOTCH1: LD	A,040h
+                            390 ;	IN	A,(1)		;IN A,(4001H)
+                            391 ;	AND	040h
+                            392 ;	JR	Z,MOTCH2
+                            393 ;	POP	DE
+                            394 ;	POP	BC
+                            395 ;	POP	AF
+                            396 ;	RET
+                            397 ;
+                            398 ;MOTCH2: LD	A,(IO6000)
+                            399 ;	RES	1,A
+                            400 ;	OUT	(C),A
+                            401 ;	SET	1,A
+                            402 ;	OUT	(C),A
+                            403 ;	LD	(IO6000),A
+                            404 ;	DEC	D
+                            405 ;	JP	NZ,MOTCH1
+                            406 ;	POP	DE
+                            407 ;	POP	BC
+                            408 ;	POP	AF
+                            409 ;	RET
+                            410 
+                     3385   411 FILEFG	= 0x3385
+                     2208   412 CONTFG  = 0x2208
+                     39AE   413 NEW     = 0x39ae
+                     7C4E   414 TEXTST  = 0x7c4e
+                     7A4D   415 MEMEND	= 0x7a4d
+                     39B9   416 CVLOAD  = 0x39b9
+                     15C3   417 RUN	    = 0x15c3
+                     33E9   418 MEMSET	   =   0x33e9
+                     7A49   419 MEMMAX   = 0x7a49
+                     0056   420 INITSB	   =   0x0056
+                     1B95   421 GRAPH	   =   0x1b95
+                     1BEA   422 GSAVES = 0x1bea
+                     0AD5   423 CLR2     = 0xad5
+                     08A9   424 PSGST  = 0x08a9
+                            425 
+   02C1                     426 _pload:
+   02C1 32 85 33      [13]  427 	LD	(FILEFG),A
+   02C4 32 08 22      [13]  428 	LD	(CONTFG),A
+   02C7                     429 _load:	
+   02C7 CD A9 08      [17]  430 	call PSGST
+   02CA CD 14 01      [17]  431 	call FLOAD
+   02CD 3A 96 13      [13]  432 	ld a, (FILMOD)
+   02D0 FE 02         [ 7]  433 	cp #2
+   02D2 20 2B         [12]  434 	jr nz, bload2
+   02D4 ED 56         [ 8]  435 	im 1
+   02D6 FB            [ 4]  436 	ei
+   02D7 21 00 FF      [10]  437 	LD hl, #0xFF00
+   02DA 22 49 7A      [16]  438 	LD  (MEMMAX),HL
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 9.
 Hexadecimal [16-Bits]
 
 
 
-   02A7 21 DC 0A      [10]  439 	ld  HL, #0x0adc
-   02AA 36 20         [10]  440 	ld (hl), #0x20
-   02AC 2A 9D 3A      [16]  441 	LD	HL,(#0x3a9d)
-   02AF 22 AA 13      [16]  442 	LD	(MTADRS),HL
-   02B2 ED 5B A8 13   [20]  443 	LD	DE,(MTBYTE)
-   02B6 19            [11]  444 	ADD	HL,DE	
-   02B7 2A 4D 7A      [16]  445 	LD	HL,(MEMEND)
-   02BA B7            [ 4]  446 	OR	A
-   02BB ED 52         [15]  447 	SBC	HL,DE
-   02BD CD 34 01      [17]  448 	CALL MLOAD
-   02C0 CD B9 39      [17]  449 	CALL CVLOAD
-                            450 	;call CLR2
-   02C3 C3 C3 15      [10]  451 	JP	RUN
-   02C6                     452 bload2:
-   02C6 CD 34 01      [17]  453 	CALL MLOAD
-   02C9 2A AC 13      [16]  454 	ld hl, (MTEXEC)
-   02CC 7C            [ 4]  455 	ld a, h	
-   02CD B5            [ 4]  456 	or l
-   02CE FE 01         [ 7]  457 	cp #1
-   02D0 28 BC         [12]  458 	jr z, _load
-   02D2 B7            [ 4]  459 	or a
-   02D3 20 03         [12]  460 	jr nz, brun
-   02D5 2A AA 13      [16]  461 	ld hl, (MTADRS)
-   02D8                     462 brun:	
-   02D8 E9            [ 4]  463 	jp (hl)
-                            464 ;	call #NEW
-                            465 ;	call #CLR
-                            466 ;	LD	SP,(#STRTOP)
-                            467 ;	LD	HL,#0xFFFF
-                            468 ;	PUSH	HL
-                            469 ;	LD	(#SPBUF),SP
-                            470 ;	LD	HL,#CINPUT
-                            471 ;	LD	(#LODVEC),HL
-                            472 ;	LD	A,#0x01
-                            473 ;	LD	(#NRLDED),A
-                            474 ;	CALL	#BUFCLR
-                            475 ;	jp	NMESOK
-   0375                     476 	.org 0x0375
-   0375                     477 WRITEM: 
-   0375 57 52 49 54 49 4E   478 	.ascii	'WRITING '
+   02DD CD E9 33      [17]  439 	call MEMSET
+   02E0 21 DC 0A      [10]  440 	ld  HL, #0x0adc
+   02E3 36 20         [10]  441 	ld (hl), #0x20
+   02E5 2A 9D 3A      [16]  442 	LD	HL,(#0x3a9d)
+   02E8 22 AA 13      [16]  443 	LD	(MTADRS),HL
+   02EB ED 5B A8 13   [20]  444 	LD	DE,(MTBYTE)
+   02EF 19            [11]  445 	ADD	HL,DE	
+   02F0 2A 4D 7A      [16]  446 	LD	HL,(MEMEND)
+   02F3 B7            [ 4]  447 	OR	A
+   02F4 ED 52         [15]  448 	SBC	HL,DE
+   02F6 CD 34 01      [17]  449 	CALL MLOAD
+   02F9 CD B9 39      [17]  450 	CALL CVLOAD
+                            451 	;call CLR2
+   02FC C3 C3 15      [10]  452 	JP	RUN
+   02FF                     453 bload2:
+   02FF CD 34 01      [17]  454 	CALL MLOAD
+   0302 2A AC 13      [16]  455 	ld hl, (MTEXEC)
+   0305 7C            [ 4]  456 	ld a, h	
+   0306 B5            [ 4]  457 	or l
+   0307 FE 01         [ 7]  458 	cp #1
+   0309 28 BC         [12]  459 	jr z, _load
+   030B B7            [ 4]  460 	or a
+   030C 20 03         [12]  461 	jr nz, brun
+   030E 2A AA 13      [16]  462 	ld hl, (MTADRS)
+   0311                     463 brun:	
+   0311 E9            [ 4]  464 	jp (hl)
+                            465 ;	call #NEW
+                            466 ;	call #CLR
+                            467 ;	LD	SP,(#STRTOP)
+                            468 ;	LD	HL,#0xFFFF
+                            469 ;	PUSH	HL
+                            470 ;	LD	(#SPBUF),SP
+                            471 ;	LD	HL,#CINPUT
+                            472 ;	LD	(#LODVEC),HL
+                            473 ;	LD	A,#0x01
+                            474 ;	LD	(#NRLDED),A
+                            475 ;	CALL	#BUFCLR
+                            476 ;	jp	NMESOK
+   0375                     477 	.org 0x0375
+   0375                     478 WRITEM: 
+   0375 57 52 49 54 49 4E   479 	.ascii	'WRITING '
         47 20
-   037D 00                  479 	.db	0
+   037D 00                  480 	.db	0
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 10.
 Hexadecimal [16-Bits]
 
@@ -540,17 +541,17 @@ Symbol Table
     FILNAM  =  1397     |   5 FLOAD      0114 R   |   5 FLOAD1     0122 R
     FSAVE   =  0080     |     GRAPH   =  1B95     |     GSAVES  =  1BEA 
     INITSB  =  0056     |     MEMEND  =  7A4D     |     MEMMAX  =  7A49 
-    MEMSET  =  33E9     |     MKLEN   =  11E7     |   7 MKRD       024E R
-  7 MKRD1      025D R   |   7 MKRD2      0273 R   |   7 MKRD3      0284 R
-  7 MKRD4      0263 R   |   7 MKRD5      0266 R   |   6 MLOAD      0134 R
+    MEMSET  =  33E9     |     MKLEN   =  11E7     |   8 MKRD       0287 R
+  8 MKRD1      0296 R   |   8 MKRD2      02AC R   |   8 MKRD3      02BD R
+  8 MKRD4      029C R   |   8 MKRD5      029F R   |   6 MLOAD      0134 R
     MTADRS  =  13AA     |     MTBYTE  =  13A8     |     MTEXEC  =  13AC 
   7 MVRFY      01B9 R   |   7 MVRFY1     01E0 R   |   7 MVRFY2     01E8 R
   7 MVRFY3     01F6 R   |   7 MVRFYN     01E5 R   |     NEW     =  39AE 
     PROTCT  =  13AE     |     PSGST   =  08A9     |     RUN     =  15C3 
-    TEXTST  =  7C4E     |   7 VBLOAD     0220 R   |   7 VBLOD1     0229 R
-  7 VBLOD2     023C R   |   7 VBLOD3     024A R   |   8 WRITEM     0375 R
-  7 _load      028E R   |   7 _pload     0288 R   |   7 bload2     02C6 R
-  7 brun       02D8 R
+    TEXTST  =  7C4E     |   8 VBLOAD     0259 R   |   8 VBLOD1     0262 R
+  8 VBLOD2     0275 R   |   8 VBLOD3     0283 R   |   9 WRITEM     0375 R
+  8 _load      02C7 R   |   8 _pload     02C1 R   |   8 bload2     02FF R
+  8 brun       0311 R
 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 11.
 Hexadecimal [16-Bits]
@@ -564,6 +565,7 @@ Area Table
    4 _HEADER    size    0   flags    8
    5 _HEADER0   size   27   flags    8
    6 _HEADER1   size   76   flags    8
-   7 _HEADER2   size  120   flags    8
-   8 _HEADER3   size    9   flags    8
+   7 _HEADER2   size   67   flags    8
+   8 _HEADER3   size   B9   flags    8
+   9 _HEADER4   size    9   flags    8
 
