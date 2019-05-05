@@ -47,13 +47,12 @@ void writefile(FILE *OUT, byte *b, int len, int csum)
 		for(int i = 0; i < len+2; i++) 
 		{
 			for(int j = 7; j >= 0; j--)
-				if (b[i] & (1<<j))
-					fprintf(OUT, "1");
-				else
-					fprintf(OUT, "0");
+            {
+                fprintf(OUT, b[i] & (1<<j) ? "1" : "0");
+            }
 			fprintf(OUT, "1");
 		}
-		for(int i = 0; i < 200; i++)
+		for(int i = 0; i < 20; i++)
 			fprintf(OUT, "0");
 	}
 }
@@ -74,16 +73,24 @@ void binfile(byte *b, int len)
 void getfilename(char *fname, char *title)
 {
 	char c;
-	for(int i = 15; i >= 0; i--)
+    int endspace = 0;
+    strcpy(fname, title);
+	for(int i = strlen(fname)-1; i >= 0; i--)
 	{
 		c = title[i];
+        // if (c == ' ' && endspace == 0)
+        // {
+            // fname[i] = 0;
+            // continue;
+        // }
+        // endspace = 1;
 		if (c == '\"')
 			c = '\'';
-		else if (c == '>')
+		else if (c == '>' || c == ')')
 			c = '_';
 		else if (c == '=')
 			c = '_';
-		fname[i] = c <= '~' && c >= ' ' ? c : 0; 
+		fname[i] = c <= '~' && c >= ' ' ? c : '_'; 
 	}
 }
 
@@ -182,6 +189,7 @@ int main(int argc, char **argv) {
 	int tailpos[100];
 	char fname[16], filename[256];
 	prev = 0;
+#if 0    
 	if (split)
 	{
 		printf("split\n");
@@ -221,23 +229,25 @@ int main(int argc, char **argv) {
 			fseek(IN, headerpos[p], SEEK_SET);
 			dump(128);
 			fseek(IN, headerpos[p], SEEK_SET);
+            fname[0] = 0;
 			getfilename(fname, head->name);
 			sprintf(filename, "%d_%s.tap", p+1, fname);
 			length = tailpos[p] - headerpos[p];
 			f = fopen(filename, "wb");
 			if (f)
 			{
-				printf("write binary file:%s(%d)\n", filename, length);
-			#if 1
+				printf("write binary file:%s(%d),strlen=%d\n", filename, length, strlen(filename));
+			#if 0
 				fread(tapbin, 1, length, IN);
 				fwrite(tapbin, 1, length, f);
-			#endif
+                #endif
 				fclose(f);
 			}
 		}
 		free(tapbin);
 		exit(0);
-	}
+    }
+#endif    
 	fseek(IN, 0, SEEK_SET);
 	while (1)
 	{
@@ -305,6 +315,16 @@ int tag() {
 		return -1;
 	return 0;
 }
+
+char* replace_char(char* str, char find, char replace){
+    char *current_pos = strchr(str,find);
+    while (current_pos){
+        *current_pos = replace;
+        current_pos = strchr(current_pos,find);
+    }
+    return str;
+}
+
 int dump(int len) {
 	char filename[1024];
 	char name[16];
@@ -373,7 +393,7 @@ int dump(int len) {
 				fclose(TAP);
 			sprintf(filename, "%d_%s.tap", ++num, name);
 			TAP = fopen(filename, "w+");
-			printf ("file:%s\n",filename);
+			printf ("file:%s (%x)\n",filename, csum);
 			writefile(TAP, b, d, csum);
 		}
 		return head->size;
@@ -384,7 +404,7 @@ int dump(int len) {
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));		
 		printf("bin: %d\n", bin);
-		if (TAP)
+		if (split && TAP)
 			writefile(TAP, b, d, csum);
 		if (bin)
 			binfile(b, d);
