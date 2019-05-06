@@ -93,7 +93,7 @@ int parsemain1(void)
 				// octed
 				fputc(PREFIX_OCTET, outfp);
 				buf_progid(2);
-				ival = (int)readnumber(8, &hasPeriod);
+				ival = (int)readnumber1(8, &hasPeriod);
 				ival &= 0xffff;
 				fputc(ival & 0xff, outfp);
 				fputc((ival & 0xff00) >> 8, outfp);
@@ -101,7 +101,7 @@ int parsemain1(void)
 				// hex
 				fputc(PREFIX_HEX, outfp);
 				buf_progid(2);
-				ival = (int)readnumber(16, &hasPeriod);
+				ival = (int)readnumber1(16, &hasPeriod);
 				ival &= 0xffff;
 				fputc(ival & 0xff, outfp);
 				fputc((ival & 0xff00) >> 8, outfp);
@@ -195,8 +195,11 @@ int parsemain1(void)
 				}
 				buf_match();
 			} else if ((spc1kcodelist[ret].number == CODE_REM)
+					   || (spc1kcodelist[ret].number == CODE_REMA)
 					   || (spc1kcodelist[ret].number == CODE_QUOTE)) {
 				// raw output until return
+				if (spc1kcodelist[ret].number == CODE_REMA)
+					fputc(0x27, outfp);
 				int c;
 				c = buf_fgetc();
 				while (c != '\n') {
@@ -232,38 +235,56 @@ double readnumber1(int base, int *hasPeriod)
   
 	val = 0;
 	c = buf_fgetc();
-	while (((base == 10) && (isdigit(c) != 0)) ||
-		   ((base == 16) && (isxdigit(c) != 0)) ||
-		   ((base == 8) && (c >= '0') && (c <= '7'))) {
-		val *= base;
-		if (isdigit(c) != 0) 
-			val += c - '0';
-		else
-			//if (c < 'a')
-			if (isupper(c) != 0)
-				val += c - 'A' + 10;
-			else
-				val += c - 'a' + 10;
-		c = buf_fgetc();
-	}
-
-	if ((base == 10) && (c == '.')) {
-		*hasPeriod = 1;
-		c = buf_fgetc();
-		basesub = 0.1;
-		while (isdigit(c) != 0) {
-			val += (c - '0') * basesub;
-			basesub *= 0.1;
+	if (base == 10)
+	{
+		while(isdigit(c) != 0)
+		{
+			val *= 10;
+			if (c > '0' && c <= '9')
+				val += c - '0';
 			c = buf_fgetc();
 		}
-	} else {
-		*hasPeriod = 0;
+		if (c == '.') {
+			*hasPeriod = 1;
+			c = buf_fgetc();
+			basesub = 0.1;
+			while (isdigit(c) != 0) {
+				val += (c - '0') * basesub;
+				basesub *= 0.1;
+				c = buf_fgetc();
+			}
+		} else {
+			*hasPeriod = 0;
+		}
+	} else if (base == 16)
+	{
+		int valx = 0;
+		while (isxdigit(c) != 0)
+		{
+			valx *= 16;
+			if (c >= '0' && c <= '9')
+				valx += c - '0';
+			else if (c >= 'A' && c <= 'F')
+				valx += c - 'A' + 10;
+			else if (c >= 'a' && c <= 'f') 
+				valx += c - 'a' + 10;
+			//printf("%c, valx=%x\n", c, valx);
+			c = buf_fgetc();
+		}
+		val = valx;
+//		printf("val=%g\n", val);
+	} else if (base == 8)
+	{
+		while(c >= '0' && c <= '7')
+		{
+			val *= 8;
+			c = buf_fgetc();
+		}
 	}
 
 	buf_ungetc(1);
 
 	buf_match();
-
 	return val;
 }
 
@@ -312,10 +333,10 @@ int findcode1(void)
     if (buf[i] == '\0')
       break;
   }
-  //printf("%s\n", buf);
 //  scanf("%s", &chars[0]);
   for (i = 0; i < sizeof(spc1kcodelist)/sizeof(spc1kcode); i++) {
     if (strncmp(buf, spc1kcodelist[i].str, strlen(spc1kcodelist[i].str)) == 0) {
+	  //printf("%s[%d]-(%d)\n", spc1kcodelist[i].str, strlen(spc1kcodelist[i].str), i);
       buf_progid(strlen(spc1kcodelist[i].str));
       return(i);
     }

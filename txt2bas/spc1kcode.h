@@ -6,8 +6,9 @@
 /****************************************************/
 
 enum {
-	CODE_MINUS      = 0xF9,
+	CODE_REMA		= 0x3A,
 	CODE_MULTIFLY   = 0xFD,
+	CODE_MINUS      = 0xF9,
 	CODE_SLASH      = 0xFC,
 	CODE_UPPER      = 0xFE,
 	CODE_BACKSLASH  = 0xFB,
@@ -156,9 +157,12 @@ enum {
 	CODE_QUOTE      = '\"'
 };
 
+// type 0 - command, type 1 - function
+
 spc1kcode spc1kcodelist[] = {
-	{ "-"         , 0, 0xF9 },
+	{ "'"         , 0, 0x3A },
 	{ "*"         , 0, 0xFD },
+	{ "-"         , 0, 0xF9 },
 	{ "/"         , 0, 0xFC },
 	{ "?"         , 0, 0x8C },
 	{ "^"         , 0, 0xFE },

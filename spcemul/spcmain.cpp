@@ -1307,7 +1307,7 @@ int SetClipboardText(const char *str)
     GlobalUnlock(hData);//free the handle
     OpenClipboard(NULL);//allow you to work with clipboard
     EmptyClipboard();//clear previous contents
-    retVal = (int) SetClipboardData(CF_TEXT, hData);
+    SetClipboardData(CF_TEXT, hData);
     CloseClipboard();
     return retVal;
 #endif // WIN32
