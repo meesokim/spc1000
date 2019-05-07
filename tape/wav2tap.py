@@ -103,8 +103,8 @@ def generate_tap(wavefile):
         mn = np.zeros(size)
         df = np.zeros(size)
         p = 1
-        ww = 5
-        wx = 13
+        ww = 10
+        wx = 14
         for i in range(0, size-wx):
             mx[i] = np.max(msdata[i-wx if i > wx else 0:i+wx])
             mn[i] = np.min(msdata[i-wx if i > wx else 0:i+wx])
@@ -167,7 +167,7 @@ def generate_tap(wavefile):
                         d = 0
                 else:
                     idx = int(i+(j-i)/4)
-                    if sum0 > 24:
+                    if sum0 > 22:
                         x[idx] = 1
                         d = 1
                     else:
