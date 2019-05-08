@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/mingw64/bin/python
 # kcs_decode.py
 #
 # Author : David Beazley (http://www.dabeaz.com)
@@ -58,7 +58,50 @@ def zero_check(data):
     signs[signs == 0] = 1
     signs = np.where(np.diff(signs)==2)[0]
     return signs
-    
+
+def convert_tap(wavefile):
+    samplewidth = wavefile.getsampwidth()
+    nchannels = wavefile.getnchannels()
+    rate = wavefile.getframerate()
+    frames = bytearray(wavefile.readframes(wavefile.getnframes()))
+    length = len(frames)
+    if samplewidth == 2:
+        msdata = np.array(struct.unpack('h'*(int(length/2)), frames) )/ 100.0
+    else:
+        msdata = 128 - np.array(struct.unpack('B'*(int(length)), frames)) / 10.0    
+    if nchannels > 1:
+        msdata = msdata[1::2]
+    msdata = msdata[1:-1] - msdata[0:-2]
+    x = np.zeros(len(msdata)-4)
+    for i in range(0,len(msdata)-1):
+        if msdata[i] > 0:
+            msdata[i] = 1
+        elif msdata[i] < 0:
+            msdata[i] = -1
+    for i in range(2,len(msdata)-2):
+        x[i-2] = sum(msdata[i-2:i+2])
+    dir = 0
+    length = 0
+    weight = 0
+    for i in range(0,len(x)-1):
+        if x[i] == 0:
+            yield '0'
+        elif x[i] > 0:
+            yield '+'
+        else:
+            yield '-'
+            
+    # for i in range(0,len(x)-1):
+        # if x[i] == 0 and x[i] != dir and dir :
+            # dir = x[i]
+            # if len > 20:
+               # yield 1
+            # elif len > 10:
+               # yield 0
+            # len = 0
+        # else:
+            # weight = weight + abs(x[i])
+            # len = len + 1
 # Generate a sequence representing sign bits
 def generate_tap(wavefile):
     samplewidth = wavefile.getsampwidth()
@@ -238,7 +281,8 @@ if __name__ == '__main__':
     print ("sample width = ", wf.getsampwidth())
     print ("frame rates = ", wf.getframerate())
     print ("channels = ", wf.getnchannels())
-    byte_stream = generate_tap(wf)
+#    byte_stream = generate_tap(wf)
+    byte_stream = convert_tap(wf)
     # Output the byte stream in 80-byte chunks
     outf = sys.stdout
     #buffer = islice(byte_stream,80)
