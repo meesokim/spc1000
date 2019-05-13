@@ -81,9 +81,14 @@ for fname in glob.glob(path):
             dat = wavdata[i]
             if dat < 0 and p0 >=0:
                 n = nextcheck(wavdata, i+10) - i
-                e0 = np.std(sample0 - wavdata[i:i+len(sample0)])
-                e1 = np.std(sample1 - wavdata[i:i+len(sample1)])
-                s0 = np.std(wavdata[i:i+n])
+                if n <= 13:
+                    i = i + n - 1
+                    continue
+                s0len = min(n, len(sample0)-1)
+                s1len = min(n, len(sample1)-1)
+                e0 = int(np.std(sample0[0:s0len] - wavdata[i:i+s0len]))
+                e1 = int(np.std(sample1[0:s1len] - wavdata[i:i+s1len]))
+                s0 = int(np.std(wavdata[i:i+n]))
                 if d0 != 'x':
                     if n > 13 and n < 30:
                         d = '0'
@@ -108,7 +113,7 @@ for fname in glob.glob(path):
                     print ("%c" % d, end='')
                 if (d0 != 'x' and d == 'x'):
                     str = " %d %d %d %d" % (s0, e0, e1, n)
-                    # print(str)
+                    print(str)
                 # else:
                     # str = "%c" % d
                     # print(str, end='')
@@ -130,7 +135,7 @@ for fname in glob.glob(path):
             datf = dati/65536
             out.write("%d," % (dat))
             tm += frame_duration
-            out.flush()
+            sys.stdout.flush()
         except ValueError as ex:
             print("value error:" + str(ex))
             out.write(str(i) + str(ex))

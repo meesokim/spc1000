@@ -113,8 +113,8 @@ int getByte(FILE *in)
 		else 
 			error = 1;
 		if (strict) {
-			printf("%02x=>check bit error(%d)!\n", v, fpos);
-	    	exit(0);
+//			printf("%02x=>check bit error(%d)!\n", v, fpos);
+//	    	exit(0);
 		}
 	}
 	else
@@ -354,7 +354,7 @@ int dump(int len) {
         if (!unknown || !error)
             csum += getChecksum(v);
 		b[d++] = v;
-        if (len == 127 && d == 1 && b[0] > 2)
+        if (len == 127 && d == 1 && v > 2)
         {
             unknown = 1;
             len = 10000000;
@@ -366,8 +366,8 @@ int dump(int len) {
 		if (error == 1 && unknown == 1)
 		{
             fseek(IN, -18, SEEK_CUR);
-            csum -= b[d-1] + b[d-2] + b[d-3];
-            length -= 2;
+            csum -= getChecksum(b[d-3])+getChecksum(b[d-2]);
+            length -= 3;
             csum1 = (b[d-3] << 8) + b[d-2];
             break;
 		}
@@ -376,7 +376,7 @@ int dump(int len) {
 	}
     if (!error)
     {
-        csum1 += getByte(IN) << 8;
+        csum1 = getByte(IN) << 8;
         csum1 += getByte(IN);
     }
 	if (reverse)
@@ -434,7 +434,7 @@ int dump(int len) {
 		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));		
-		printf("bin: %d\n", bin);
+//		printf("bin: %d\n", bin);
 		if (split && TAP)
 			writefile(TAP, b, d, csum);
 		if (bin)
