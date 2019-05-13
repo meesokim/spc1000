@@ -33,7 +33,7 @@ int reverse = 0;
 int cas = 0;
 char binfilename[256];
 HEADER *head;
-
+char prefix[256];
 
 void writefile(FILE *OUT, byte *b, int len, int csum)
 {
@@ -73,7 +73,6 @@ void binfile(byte *b, int len)
 void getfilename(char *fname, char *title)
 {
 	char c;
-    int endspace = 0;
     strcpy(fname, title);
 	for(int i = strlen(fname)-1; i >= 0; i--)
 	{
@@ -86,7 +85,7 @@ void getfilename(char *fname, char *title)
         // endspace = 1;
 		if (c == '\"')
 			c = '\'';
-		else if (c == '>' || c == ')')
+		else if (c == '>')
 			c = '_';
 		else if (c == '=')
 			c = '_';
@@ -114,8 +113,8 @@ int getByte(FILE *in)
 		else 
 			error = 1;
 		if (strict) {
-			printf("%02x=>check bit error(%ld)!\n", v, fpos);
-//			exit(0);
+			printf("%02x=>check bit error(%d)!\n", v, fpos);
+	    	exit(0);
 		}
 	}
 	else
@@ -138,9 +137,9 @@ int main(int argc, char **argv) {
 
 	int length = 0;
 	int pos = 0;
-	char c, prev;
 	char *point;
 	IN = 0;
+    prefix[0] = 0;
 	if (argc < 1) {
 		IN = stdin;
 		if (getchar() < 0)
@@ -150,17 +149,26 @@ int main(int argc, char **argv) {
 		}
 	} else if (argc > 2) {
 		pos = atoi(argv[2]);
-		if (*argv[2] == '-' || (argc > 3 && *argv[3] == '-'))
-			split = 1;
-		if (*argv[2] == 'b')
-			bin = 1;
-		if (*argv[2] == 'r')
-			reverse = 1;
-		if (*argv[2] == 'R')
-		{
-			reverse = 1;
-			split = 1;
-		}
+        for(int i = 2; i < argc; i++)
+        {
+            switch (*argv[i])
+            {
+                case '-':
+                    split = 1;
+                    strcpy(prefix, argv[i]+1);
+                    break;
+                case 'b':
+                    bin = 1;
+                    break;
+                case 'r':
+                    reverse = 1;
+                    break;
+                case 'R':
+                    reverse = 1;
+                    split = 1;
+                    break;
+            };
+        }
 	} 
 	strict = 1;
 	if (argc > 1)
@@ -176,7 +184,9 @@ int main(int argc, char **argv) {
 		strcpy(binfilename, argv[1]);
 	}
     else
+    {
         IN = stdin;
+    }
 	if (pos != 0) {
 		fseek(IN, pos, SEEK_SET);
 	}
@@ -184,12 +194,13 @@ int main(int argc, char **argv) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
 	}//if
+#if 0    
+	char c, prev;
 	int zero = 0, ones = 0, header = 0, body = 0;
 	int headerpos[100];
 	int tailpos[100];
 	char fname[16], filename[256];
 	prev = 0;
-#if 0    
 	if (split)
 	{
 		printf("split\n");
@@ -328,33 +339,46 @@ char* replace_char(char* str, char find, char replace){
 int dump(int len) {
 	char filename[1024];
 	char name[16];
-	char c = 0;
 	int d = 0, v = 0;
 	int csum = 0;
 	int csum1 = 0;
 	int length = 0;
+    int unknown = 0;
 	int pos = ftell(IN);
 	if (tag() != 0)
 		return -1;
 	if (len == 0)
 		len = 128;
-	while(len-->0) {
+	while(len-->0 || unknown == 1) {
 		v = getByte(IN);
-		csum += getChecksum(v);
+        if (!unknown || !error)
+            csum += getChecksum(v);
 		b[d++] = v;
+        if (len == 127 && d == 1 && b[0] > 2)
+        {
+            unknown = 1;
+            len = 10000000;
+        }
 #if 1
 		if (length % 16 == 0)
 			printf("\n%04x:", length);
 		length++;
-		printf("%02x%c", v, error == 0 ? ' ' : error == 1 ? '*' : '#' );
-		if (error == 1)
+		if (error == 1 && unknown == 1)
 		{
-			printf("-%d-", ftell(IN));
+            fseek(IN, -18, SEEK_CUR);
+            csum -= b[d-1] + b[d-2] + b[d-3];
+            length -= 2;
+            csum1 = (b[d-3] << 8) + b[d-2];
+            break;
 		}
+		printf("%02x%c", v, error == 0 ? ' ' : error == 1 ? '*' : '#' );
 #endif		
 	}
-	csum1 += getByte(IN) << 8;
-	csum1 += getByte(IN);
+    if (!error)
+    {
+        csum1 += getByte(IN) << 8;
+        csum1 += getByte(IN);
+    }
 	if (reverse)
 	{
 		csum1 = ~csum1;
@@ -391,7 +415,14 @@ int dump(int len) {
 		{
 			if (TAP)
 				fclose(TAP);
-			sprintf(filename, "%d_%s.tap", ++num, name);
+            if (*prefix)
+            {
+                sprintf(filename, "%s_%d_%s.tap", prefix, ++num, name);
+            }
+            else
+            {
+                sprintf(filename, "%d_%s.tap", ++num, name);
+            }
 			TAP = fopen(filename, "w+");
 			printf ("file:%s (%x)\n",filename, csum);
 			writefile(TAP, b, d, csum);

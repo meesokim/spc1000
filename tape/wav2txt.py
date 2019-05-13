@@ -14,8 +14,11 @@ def nextcheck(wavdata, i):
     return 0
 
 path = "*.wav"
+offset = 0
 if len(sys.argv) > 1:
     path = sys.argv[1]
+if len(sys.argv) > 2:
+    offset = int(sys.argv[2])
 for fname in glob.glob(path):
     # print ("process_wav is processing - " + fname)
     outfname = fname + ".txt"
@@ -47,8 +50,9 @@ for fname in glob.glob(path):
     out = open(outfname,'w')
     out.write(hdr)
     avg = np.average(wavdata)
+    wavdata = wavdata[offset:]
     wavdata0 = wavdata + 32768
-    lg = np.average(np.log10(wavdata0))
+    #lg = np.average(np.log10(wavdata0))
     # print (avg, lg)
     sample0 = -((np.sin(2*np.pi*np.arange(22)/22))*32768*0.55).astype(int)
     sample1 = -((np.sin(2*np.pi*np.arange(44)/44))*32768*0.65).astype(int)
@@ -65,6 +69,7 @@ for fname in glob.glob(path):
     # chks = cd.where(1)
     d0 = 'x'
     z0 = 0
+    x0 = 0
     while i < len(wavdata)-1:
         try:
             # sec = int("{0:0.6f}".format(round(float(tm),6)).split('.')[0])
@@ -78,10 +83,11 @@ for fname in glob.glob(path):
                 n = nextcheck(wavdata, i+10) - i
                 e0 = np.std(sample0 - wavdata[i:i+len(sample0)])
                 e1 = np.std(sample1 - wavdata[i:i+len(sample1)])
+                s0 = np.std(wavdata[i:i+n])
                 if d0 != 'x':
-                    if e0 < e1 and n > 13 and n < 30:
+                    if n > 13 and n < 30:
                         d = '0'
-                    elif n > 30 and n < 48:
+                    elif (n > 30 and n < 48) or (e0 > e1 * 1.3 and n > 47):
                         d = '1'
                     else:
                         d = 'x'
@@ -95,14 +101,14 @@ for fname in glob.glob(path):
                 # elif n > 30 and n < 48:
                     # d = '1'
                     else:
-                        d = 'x'                
+                        d = 'x'
                 p0 = dat
                 i = i + (n - 3)
-                if d != '0' or z0 < 30:
+                if d == '1' or (d == 'x' and x0 < 30) or (d == '0' and z0 < 30):
                     print ("%c" % d, end='')
-                if d0 != 'x' and d == 'x' and n < 48:
-                    str = " %d %d %d" % (e0, e1, n)
-                    print(str)
+                if (d0 != 'x' and d == 'x'):
+                    str = " %d %d %d %d" % (s0, e0, e1, n)
+                    # print(str)
                 # else:
                     # str = "%c" % d
                     # print(str, end='')
@@ -113,6 +119,10 @@ for fname in glob.glob(path):
                     z0 = z0 + 1
                 else:
                     z0 = 0
+                if d == 'x':
+                    x0 = x0 + 1
+                else:
+                    x0 = 0
             else:
                 i = i + 1
             p0 = dat
@@ -120,6 +130,7 @@ for fname in glob.glob(path):
             datf = dati/65536
             out.write("%d," % (dat))
             tm += frame_duration
+            out.flush()
         except ValueError as ex:
             print("value error:" + str(ex))
             out.write(str(i) + str(ex))
