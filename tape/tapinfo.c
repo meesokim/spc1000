@@ -113,7 +113,7 @@ int getByte(FILE *in)
 		else 
 			error = 1;
 		if (strict) {
-//			printf("%02x=>check bit error(%d)!\n", v, fpos);
+			printf("%02x=>check bit error(%d)!\n", v, fpos);
 //	    	exit(0);
 		}
 	}

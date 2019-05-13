@@ -1,2 +1,5 @@
 #!/bin/bash
-~/mame/mess -rompath $roms:/f/downloads/mame/roms $0 -cass "$1" -window $2 $3 $4 $5 $6 $7 
+if [ -z $roms ]
+then roms=~/mame/roms
+fi
+~/mame/mame64 -rompath $roms $0 -cass "$1" -prin "$1.txt" -window -r 800x600 -uimodekey F12 $2 $3 $4 $5 $6 $7 
