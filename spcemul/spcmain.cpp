@@ -1927,8 +1927,8 @@ int main(int argc, char* argv[])
     SDL_Thread *thread;
     int         threadReturnValue;
 	FILE *fp;	// for reading ROM file
-	//freopen("CON", "w", stdout);
-    //freopen("CON", "w", stderr);
+	freopen("CON", "w", stdout);
+    freopen("CON", "w", stderr);
 	
 	
 

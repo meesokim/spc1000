@@ -77,8 +77,8 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
                 bg = cMap[0];
                 if ((attr & ATTR_EXT) != 0)
                 {
-					fg = cMap[(attr & ATTR_CSS) << 1 | ((ch & 0xc0) >> 6) + 1];
-					b = semiGrFont1[(ch & 0x3f) * 12 + h];
+					fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
+					b = semiGrFont1[(ch & 0x3f) * 12 + h];	
                 } 
 				else 
                 {
@@ -124,8 +124,8 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
     else
     {
       bg = cMap[0];
-      //fg = (_css ? cMap[9] : cMap[10]);
-      fg = border = (_css ? cMap[10] : cMap[9]);
+      border = fg = (_css ? cMap[10] : cMap[9]);
+      //border = (_css ? cMap[10] : cMap[9]);
 	  FILL(data, rept, border);
       for(y = 0; y < 192; y++)
       {
