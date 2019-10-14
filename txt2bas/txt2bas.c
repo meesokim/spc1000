@@ -122,7 +122,7 @@ void getlinenumber(void)
 {
 	int c;
 	static int prevline = -1;
-  
+    char str[200];
 	line = 0;
 	c = buf_fgetc();
 	while (isdigit(c) != 0) {
@@ -132,7 +132,11 @@ void getlinenumber(void)
 	if (c != ' ')
 		buf_ungetc(1);
 	if (prevline >= line)
-		t2b_exit("Illegal line number found in");
+    {
+        sprintf(str, "Illegal line number found in %d >= %d", prevline, line);
+		t2b_exit(str);
+    }
+
 	prevline = line;
 
 	buf_match();
