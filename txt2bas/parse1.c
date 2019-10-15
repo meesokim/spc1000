@@ -202,6 +202,7 @@ int parsemain1(void)
 					fputc(0x27, outfp);
 				int c;
 				c = buf_fgetc();
+                printf("%c",c);
 				while (c != '\n') {
 					fputc(c, outfp);
 					c = buf_fgetc();	  
