@@ -58,7 +58,8 @@ SRC1	  = Z80SPC.c    \
 		MC6847.c    \
 		menus.c    \
 		gifsave.c \
-		Debug.c
+		Debug.c \
+		tms9918.c
 		
 
 SRC2	= spcmain.cpp

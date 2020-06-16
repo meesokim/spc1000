@@ -43,6 +43,134 @@ unsigned char semiGrFont1[64*12];	// semigraphic pattern for mode 1
 #define SCREEN_ATTR_START 0x800
 #define FILL(a,d,c) pos=d;while(pos-->0)*a++=c
 PIXEL border;
+typedef unsigned char TRAM;
+void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
+{
+	int pos = 0, i;
+	Uint8 _gm0, _gm1, _ag, _css;
+	Uint16 _page, y, h, x, mask;
+	Uint8 attr, ch, b, cix, c;
+	_gm0 = BIT(gmode, 2);
+	_gm1 = BIT(gmode, 1);
+	int _gm2 = 1;
+	_ag = BIT(gmode, 3);
+	_css = BIT(gmode, 7);
+	_page = gmode >> 4 & 0x3;
+	PIXEL bg, fg;
+	TRAM *data = tRAM;
+	border = cMap[11];
+	if (_ag == 0)
+    {
+      	for(y=0; y < 16; y++)
+	  	{
+        	for(h=0; h < 12; h++)
+        	{
+				int yy = h + y * 12;
+				data = tRAM + yy/8 * 32 + yy % 8;
+				for(x=0; x < 32; x++)
+				{
+					attr = VRAM[x + y * 32 + SCREEN_ATTR_START + _page * 0x200];
+					ch = VRAM[x + y * 32 + SCREEN_TEXT_START + _page * 0x200];
+					if ((attr & ATTR_SEM) != 0)
+					{
+						bg = cMap[0];
+					if ((attr & ATTR_EXT) != 0)
+					{
+						fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
+						b = semiGrFont1[(ch & 0x3f) * 12 + h];	
+					} 
+					else 
+					{
+						fg = cMap[((ch & 0x70)>> 4) + 1];
+						//printf("fg=%d,%d\n", ch, ((ch & 0x70)>> 4) + 1);
+						b = semiGrFont0[(ch & 0x0f) * 12 + h];
+					}
+				}
+				else // ASCII
+				{
+					cix = (attr & ATTR_CSS) >> 1; 
+					if ((attr & ATTR_INV) == 0)
+					{
+						bg = cMap[11 + cix * 2];
+						fg = cMap[11 + cix * 2 + 1];
+					}
+					else
+					{
+						fg = cMap[11 + cix * 2];
+						bg = cMap[11 + cix * 2 + 1];
+					}
+					if (ch < 32 && ((attr & ATTR_EXT) == 0))
+						ch = 32;
+					if (((attr & ATTR_EXT) != 0) && (ch < 96))
+						ch += 128;
+					if (ch >= 96 && ch < 128)
+						b = VRAM[0x1600+(ch-96)*16+h];
+					else if (ch >= 128 && ch < 224)
+						b = VRAM[0x1000+(ch-128)*16+h];
+					else if (ch >= 32)
+						b = CGROM[(ch-32)*12+h];
+					}
+					data += x * 8;
+					*data = b;
+					*(data+6144) = fg << 4 | bg;
+				}
+			}
+		}
+	}
+	else
+	{
+		bg = cMap[0];
+		border = fg = (_css ? cMap[10] : cMap[9]);
+		for(y = 0; y < 192; y++)
+		{
+			for(x = 0; x < 32; x++)
+			{
+				b = VRAM[y * 32 + x];
+				data = tRAM + (y >> 3) * 32 + y % 8 + (x * 8);
+				if (_gm1)
+				{
+					if (_gm0)
+					{
+						*data = b;
+						*(data + 6144) = fg << 4 | bg;
+						// for(mask = 0x80; mask != 0; mask >>=1)
+						// {	
+						// 	*data++ = (b & mask) != 0 ? fg : bg;
+						// }
+					}
+					else // _gm0 == 0
+					{
+						// for(c = 6; c < 8 && c >= 0; c-=2)
+						// {
+						// 	*data++ = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+						// 	*data++ = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+						// }
+					}
+				}
+				else
+				{
+					if (_gm0)
+					{
+						// for(mask = 0x80; mask != 0; mask >>=1)
+						// {	
+						// 	*data++ = (b & mask) != 0 ? fg : bg;
+						// 	*data++ = (b & mask) != 0 ? fg : bg;
+						// }
+					}
+					else
+					{
+						// for(c = 6; c > 0; c-=2)
+						// {
+						// 	*(data + 256 + 1) = *(data + 256) = *(data+1) = *data = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+						// 	data+=2;
+						// }
+					}
+				} 
+			}
+		}
+    }
+	//printf("bpp=%d\n", screen->format->BytesPerPixel);	
+}
 void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 {
 	int pos = 0, i;
