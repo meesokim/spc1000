@@ -32,6 +32,7 @@
 typedef unsigned char PIXEL;
 
 PIXEL * InitMC6847(void);
+void Update9918(Uint8 gmode, Uint8 *, Uint8 *, Uint8 *);
 void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb);
 void CloseMC6847(void);
 

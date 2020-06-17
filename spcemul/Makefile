@@ -75,7 +75,7 @@ endif
 
 ifeq ($(TARGETOS),linux)
 DEFS = -DLINUX
-DEFL = -lrt 
+DEFL = -lrt -g 
 endif
 
 CFLAGS		+= $(DEFS) -I/mingw/include/SDL -I/usr/include/SDL -I/usr/local/include/SDL -Iinclude -Iinclude/SDL 

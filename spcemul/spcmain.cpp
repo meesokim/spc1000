@@ -21,6 +21,7 @@ extern "C" {
 #include "AY8910.h" // AY-3-8910 Sound (Marat Fayzullin)
 #include "common.h"
 #include "gifsave.h"
+#include "tms9918.h"
 
 int SaveImageFile(char *);
 int LoadImageFile(char *);
@@ -34,7 +35,7 @@ PIXEL *fb;
 #ifdef __cplusplus
 }
 #endif
-
+tms9918 t99;
 #include "spckey.h" // keyboard definition
 
 #define I_PERIOD 4000
@@ -1927,7 +1928,7 @@ int main(int argc, char* argv[])
     SDL_Thread *thread;
     int         threadReturnValue;
 	FILE *fp;	// for reading ROM file
-	freopen("CON", "w", stdout);
+	//freopen("CON", "w", stdout);
     freopen("CON", "w", stderr);
 	
 	
@@ -1947,6 +1948,8 @@ int main(int argc, char* argv[])
 	InitSDL();
 	initDebug();
 	fb = InitMC6847(); // Tells VRAM address to MC6847 module and init
+	t99 = tms9918_create();
+	tms9918_framebuffer((unsigned char *)malloc(256*192), 256, 192);
 	vdpsf = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 8, 0,0,0,0);
     printf("format-%d(%d,%d,%d,%d)\n", vdpsf->format->BytesPerPixel, vdpsf->format->Rmask, vdpsf->format->Gmask, vdpsf->format->Bmask, vdpsf->format->Amask);
     //printf("w=%d, h=%d, t=%d, l=%d, r=%d, b=%d\n", vdpsf->w, vdpsf->h);
@@ -2016,6 +2019,20 @@ int ExecuteThread(void *data)
 	R->ICount = I_PERIOD;
 	spcsys.cycles = 0;
 	spcsys.tick = 0;
+	Uint8 *t99fb = video_get_vbp(0);
+	t99->regs[0] = 2;
+	t99->regs[1] = 0x40;
+	t99->regs[2] = 14;
+	t99->regs[3] = 1;
+	t99->regs[4] = 7;
+	Uint8 *name = t99->memory + ((t99->regs[2] & 0x0f) << 10);
+	Uint8 *cdata = t99->memory + ((t99->regs[3] & 0x80)? 0x2000: 0);
+	Uint8 *pdata = t99->memory + ((t99->regs[4] & 0x04)? 0x2000: 0);
+	printf("nametable:%04x, pdata=%04x, cdata=%04x\n", name-t99->memory, pdata-t99->memory, cdata-t99->memory);
+	for(int i=0;i < 256;i++)
+	{
+		name[i] = name[256+i] = name[512+i] = i;
+	}
 	while (1)	// Main emulation loop
 	{
 
@@ -2036,10 +2053,19 @@ int ExecuteThread(void *data)
 					IntZ80(R, 0);
 				}
 			}
-			if (tick % 33 == 0)			// check refresh timer
+			if (tick % 33 == 0 && t99)			// check refresh timer
 			{
 				SDL_LockSurface(vdpsf);
 				Update6847(spcsys.GMODE, &spcsys.VRAM[0], fb);
+				Update9918(spcsys.GMODE, &spcsys.VRAM[0], pdata, cdata);
+				do {
+					tms9918_periodic(t99);
+				} while(t99->scanline);
+				for(int i = 0; i < 192; i++)
+					for(int j = 0; j < 256; j++)
+						fb[j+(320-256)/2+320*(i+(240-192)/2)] = cMap[t99fb[i*256+j]];
+//				printf("1");
+				fflush(stdout);
 				SDL_UnlockSurface(vdpsf);
 				DisplayUpdate();
 				CheckKeyboard();

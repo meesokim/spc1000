@@ -30,6 +30,7 @@ enum colorNum {
 
 Uint32 colorMap[16];	// color value for the above color index
 Uint16 cMap[16];
+Uint8 tMap[16] = {0,1,2,3,4,5,6,7,8,10,11,12,13,14,15};
 int rept = 0;
 int repl = 0;
 int repr = 0;
@@ -44,7 +45,7 @@ unsigned char semiGrFont1[64*12];	// semigraphic pattern for mode 1
 #define FILL(a,d,c) pos=d;while(pos-->0)*a++=c
 PIXEL border;
 typedef unsigned char TRAM;
-void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
+void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *pdata, Uint8 *cdata)
 {
 	int pos = 0, i;
 	Uint8 _gm0, _gm1, _ag, _css;
@@ -57,7 +58,9 @@ void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
 	_css = BIT(gmode, 7);
 	_page = gmode >> 4 & 0x3;
 	PIXEL bg, fg;
-	TRAM *data = tRAM;
+	TRAM *data;
+	char cc;
+	int delta = cdata - pdata;
 	border = cMap[11];
 	if (_ag == 0)
     {
@@ -66,7 +69,9 @@ void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
         	for(h=0; h < 12; h++)
         	{
 				int yy = h + y * 12;
-				data = tRAM + yy/8 * 32 + yy % 8;
+				data = pdata + yy/8 * 32*8 + yy % 8;
+				//printf("%d\n", yy/8 * 32*8 + yy % 8);
+				cc = 0;
 				for(x=0; x < 32; x++)
 				{
 					attr = VRAM[x + y * 32 + SCREEN_ATTR_START + _page * 0x200];
@@ -74,46 +79,54 @@ void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
 					if ((attr & ATTR_SEM) != 0)
 					{
 						bg = cMap[0];
-					if ((attr & ATTR_EXT) != 0)
-					{
-						fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
-						b = semiGrFont1[(ch & 0x3f) * 12 + h];	
-					} 
-					else 
-					{
-						fg = cMap[((ch & 0x70)>> 4) + 1];
-						//printf("fg=%d,%d\n", ch, ((ch & 0x70)>> 4) + 1);
-						b = semiGrFont0[(ch & 0x0f) * 12 + h];
+						if ((attr & ATTR_EXT) != 0)
+						{
+							fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
+							b = semiGrFont1[(ch & 0x3f) * 12 + h];	
+						} 
+						else 
+						{
+							fg = cMap[((ch & 0x70)>> 4) + 1];
+							//printf("fg=%d,%d\n", ch, ((ch & 0x70)>> 4) + 1);
+							b = semiGrFont0[(ch & 0x0f) * 12 + h];
+						}
 					}
-				}
-				else // ASCII
-				{
-					cix = (attr & ATTR_CSS) >> 1; 
-					if ((attr & ATTR_INV) == 0)
+					else // ASCII
 					{
-						bg = cMap[11 + cix * 2];
-						fg = cMap[11 + cix * 2 + 1];
+						cix = (attr & ATTR_CSS) >> 1; 
+						if ((attr & ATTR_INV) == 0)
+						{
+							bg = cMap[11 + cix * 2];
+							fg = cMap[11 + cix * 2 + 1];
+						}
+						else
+						{
+							fg = cMap[11 + cix * 2];
+							bg = cMap[11 + cix * 2 + 1];
+						}
+						if (ch < 32 && ((attr & ATTR_EXT) == 0))
+							ch = 32;
+						if (((attr & ATTR_EXT) != 0) && (ch < 96))
+							ch += 128;
+						if (ch >= 96 && ch < 128)
+							b = VRAM[0x1600+(ch-96)*16+h];
+						else if (ch >= 128 && ch < 224)
+							b = VRAM[0x1000+(ch-128)*16+h];
+						else if (ch >= 32)
+							b = CGROM[(ch-32)*12+h];
 					}
-					else
-					{
-						fg = cMap[11 + cix * 2];
-						bg = cMap[11 + cix * 2 + 1];
-					}
-					if (ch < 32 && ((attr & ATTR_EXT) == 0))
-						ch = 32;
-					if (((attr & ATTR_EXT) != 0) && (ch < 96))
-						ch += 128;
-					if (ch >= 96 && ch < 128)
-						b = VRAM[0x1600+(ch-96)*16+h];
-					else if (ch >= 128 && ch < 224)
-						b = VRAM[0x1000+(ch-128)*16+h];
-					else if (ch >= 32)
-						b = CGROM[(ch-32)*12+h];
-					}
-					data += x * 8;
+					if (b)
+						cc = 1;
+//					for(int i = 0; i < 8; i++)
+//						printf("%d", (b & (1 << (7 -i)))>0);
 					*data = b;
-					*(data+6144) = fg << 4 | bg;
+					*(data+delta) = fg << 4 | bg;
+					data += 8;
 				}
+				// if (cc)
+				// 	printf("\n");
+				// else
+				// 	printf("\r");
 			}
 		}
 	}
@@ -126,13 +139,13 @@ void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *tRAM)
 			for(x = 0; x < 32; x++)
 			{
 				b = VRAM[y * 32 + x];
-				data = tRAM + (y >> 3) * 32 + y % 8 + (x * 8);
+				data = pdata + (y >> 3) * 32 + y % 8 + (x * 8);
 				if (_gm1)
 				{
 					if (_gm0)
 					{
 						*data = b;
-						*(data + 6144) = fg << 4 | bg;
+						*(data + delta) = fg << 4 | bg;
 						// for(mask = 0x80; mask != 0; mask >>=1)
 						// {	
 						// 	*data++ = (b & mask) != 0 ? fg : bg;
