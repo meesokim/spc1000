@@ -27,6 +27,6 @@ z80asm        - Z80 assembler program
 </pre>
 
 This Raspberry Pi based extension box is intended to replace FDD and cassette tape recorder/player.
-FDD was very expesive for usual customer in 1980's. Most people used in a cassette tape at that tiem.
+FDD was very expensive for usual customer in 1980's. Most people used in a cassette tape at that time.
 Now the most famous single board computer, Raspberry Pi, can take a place for very fast external storage.
 
