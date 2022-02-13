@@ -91,7 +91,7 @@ boolean CScreenDevice8::Initialize (void)
 			return FALSE;
 		}
 
-		m_pBuffer = (TScreenColor *) m_pFrameBuffer->GetBuffer ();
+		m_pBuffer = (TScreenColor8 *) m_pFrameBuffer->GetBuffer ();
 		m_nSize   = m_pFrameBuffer->GetSize ();
 		m_nPitch  = m_pFrameBuffer->GetPitch ();
 		m_nWidth  = m_pFrameBuffer->GetWidth ();
@@ -102,16 +102,16 @@ boolean CScreenDevice8::Initialize (void)
 		{
 			return FALSE;
 		}
-		m_nPitch /= sizeof (TScreenColor);
+		m_nPitch /= sizeof (TScreenColor8);
 	}
 	else
 	{
 		m_nWidth = m_nInitWidth;
 		m_nHeight = m_nInitHeight;
-		m_nSize = m_nWidth * m_nHeight * sizeof (TScreenColor);
+		m_nSize = m_nWidth * m_nHeight * sizeof (TScreenColor8);
 		m_nPitch = m_nWidth;
 
-		m_pBuffer = new TScreenColor[m_nWidth * m_nHeight];
+		m_pBuffer = new TScreenColor8[m_nWidth * m_nHeight];
 	}
 
 	m_nUsedHeight = m_nHeight / m_CharGen.GetCharHeight () * m_CharGen.GetCharHeight ();
@@ -140,9 +140,9 @@ unsigned CScreenDevice8::GetHeight (void) const
 {
 	return m_nHeight;
 }
-TScreenColor * CScreenDevice8::GetBuffer (void) const
+TScreenColor8 * CScreenDevice8::GetBuffer (void) const
 {
-	return (TScreenColor *)m_pBuffer;
+	return (TScreenColor8 *)m_pBuffer;
 }
 void CScreenDevice8::SetPalette(u8 num, u16 color)
 {
@@ -170,9 +170,9 @@ unsigned CScreenDevice8::GetRows (void) const
 	return m_nUsedHeight / m_CharGen.GetCharHeight ();
 }
 
-TScreenStatus CScreenDevice8::GetStatus (void)
+TScreenStatus8 CScreenDevice8::GetStatus (void)
 {
-	TScreenStatus Status;
+	TScreenStatus8 Status;
 
 	Status.pContent   = m_pBuffer;
 	Status.nSize	  = m_nSize;
@@ -196,7 +196,7 @@ void CScreenDevice8::SetXY(int x, int y)
 	m_nCursorY = y;
 }
 
-boolean CScreenDevice8::SetStatus (TScreenStatus Status)
+boolean CScreenDevice8::SetStatus (TScreenStatus8 Status)
 {
 	if (   m_nSize  != Status.nSize
 	    || m_nPitch != m_nWidth)
@@ -545,8 +545,8 @@ void CScreenDevice8::ClearDisplayEnd (void)
 	unsigned nPosY = m_nCursorY + m_CharGen.GetCharHeight ();
 	unsigned nOffset = nPosY * m_nPitch;
 	
-	TScreenColor *pBuffer = m_pBuffer + nOffset;
-	unsigned nSize = m_nSize / sizeof (TScreenColor) - nOffset;
+	TScreenColor8 *pBuffer = m_pBuffer + nOffset;
+	unsigned nSize = m_nSize / sizeof (TScreenColor8) - nOffset;
 	
 	while (nSize--)
 	{
@@ -754,7 +754,7 @@ void CScreenDevice8::Scroll (void)
 	u32 *pTo = (u32 *) (m_pBuffer + m_nScrollStart * m_nPitch);
 	u32 *pFrom = (u32 *) (m_pBuffer + (m_nScrollStart + nLines) * m_nPitch);
 
-	unsigned nSize = m_nPitch * (m_nScrollEnd - m_nScrollStart - nLines) * sizeof (TScreenColor);
+	unsigned nSize = m_nPitch * (m_nScrollEnd - m_nScrollStart - nLines) * sizeof (TScreenColor8);
 	if (nSize > 0)
 	{
 		unsigned nSizeBlk = nSize & ~0xF;
@@ -766,14 +766,14 @@ void CScreenDevice8::Scroll (void)
 		pTo += nSize / sizeof (u32);
 	}
 
-	nSize = m_nPitch * nLines * sizeof (TScreenColor) / sizeof (u32);
+	nSize = m_nPitch * nLines * sizeof (TScreenColor8) / sizeof (u32);
 	while (nSize--)
 	{
 		*pTo++ = BLACK_COLOR;
 	}
 }
 
-void CScreenDevice8::DisplayChar (char chChar, unsigned nPosX, unsigned nPosY, TScreenColor Color)
+void CScreenDevice8::DisplayChar (char chChar, unsigned nPosX, unsigned nPosY, TScreenColor8 Color)
 {
 	for (unsigned y = 0; y < m_CharGen.GetCharHeight (); y++)
 	{
@@ -819,7 +819,7 @@ void CScreenDevice8::InvertCursor (void)
 	}
 }
 
-void CScreenDevice8::SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor Color)
+void CScreenDevice8::SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor8 Color)
 {
 	if (   nPosX < m_nWidth
 	    && nPosY < m_nHeight)
@@ -828,7 +828,7 @@ void CScreenDevice8::SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor Colo
 	}
 }
 
-TScreenColor CScreenDevice8::GetPixel (unsigned nPosX, unsigned nPosY)
+TScreenColor8 CScreenDevice8::GetPixel (unsigned nPosX, unsigned nPosY)
 {
 	if (   nPosX < m_nWidth
 	    && nPosY < m_nHeight)

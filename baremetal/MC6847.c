@@ -5,7 +5,7 @@
  * @date 2005~2006.12
  */
 
-#include "z80.h"
+#include "Z80.h"
 #include "common.h"
 #include "MC6847.h"
 

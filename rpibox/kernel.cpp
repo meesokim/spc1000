@@ -18,9 +18,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <circle/types.h>
 #include <stdint.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <circle/stdarg.h>
 #include <string.h>
 
@@ -175,7 +174,7 @@ void core1_main(void)
 		if (time > 250000000/30/261)
 		{
 			tms9918_periodic(vdp);
-			Kernel.m_Screen.Write('V');
+			// Kernel.m_Screen.Write('V');
 			time = 0;
 		};
 	}
@@ -188,17 +187,18 @@ void video_setsize(int x, int y)
 }
 void video_setpal(int num_colors, int *red, int *green, int *blue)
 {
-	for(int i = 3; i < num_colors; i++)
-	{
-		Kernel.m_Screen.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
-	}
-	Kernel.m_Screen.UpdatePalette();	
+	// for(int i = 3; i < num_colors; i++)
+	// {
+	// 	Kernel.m_Screen.SetPalette(i, (u16)COLOR16(red[i], green[i], blue[i]));
+	// }
+	// Kernel.m_Screen.UpdatePalette();	
 	Kernel.m_Screen.Write ("PALETTE\n", 8);	
 }
 
 unsigned char *video_get_vbp(int line)
 {
-	return Kernel.m_Screen.GetBuffer() + hgap * WIDTH + wgap;
+	// return Kernel.m_Screen.GetBuffer() + hgap * WIDTH + wgap;
+	return 0;
 }
 
 void video_display_buffer()
@@ -253,10 +253,11 @@ boolean CKernel::Initialize (void)
 	{
 		bOK = m_Core.Initialize();
 	}
-#endif	
+#endif
+	m_Screen.Write("Test",4);
 	return bOK;
 }
-#define GPIO (read32 (ARM_GPIO_GPLEV0))
+#define GPIO_GET() (read32 (ARM_GPIO_GPLEV0))
 #define GPIO_CLR(x) write32 (ARM_GPIO_GPCLR0, x)
 #define GPIO_SET(x) write32 (ARM_GPIO_GPSET0, x)
 
@@ -370,8 +371,7 @@ TShutdownMode CKernel::Run (void)
 	{
 	//	time++;
 #if 0		
-
-		if (!(GPIO & RPSPC_RST))
+		if (!(GPIO_GET() & RPSPC_RST))
 		{
 			datain = 0;
 			dataout = 0;
@@ -380,12 +380,12 @@ TShutdownMode CKernel::Run (void)
 			cmd = 0;
 			//Message.Format ("RESET\n");
 			//m_Screen.Write ((const char *) Message, Message.GetLength ());
-			while(!(GPIO & RPSPC_RST));
+			while(!(GPIO_GET() & RPSPC_RST));
 		}
 #endif		
-		if (!(GPIO & RPSPC_EXT))
+		if (!(GPIO_GET() & RPSPC_EXT))
 		{
-			a = GPIO;
+			a = GPIO_GET();
 			addr = (a & ADDR) >> RPSPC_A0_PIN;
 			wr = (a & RPSPC_RD) != 0;
 			if (a & RPSPC_A11)
@@ -661,7 +661,7 @@ TShutdownMode CKernel::Run (void)
 						break;
 				}
 			}
-			while(!(GPIO & RPSPC_EXT));
+			while(!(GPIO_GET() & RPSPC_EXT));
 		}
 	}
 //	spinlock.Release();

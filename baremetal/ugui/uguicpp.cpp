@@ -42,7 +42,7 @@ boolean CUGUI::Initialize (void)
 		return FALSE;
 	}
 
-	m_pMouseDevice = (CUSBMouseDevice *) CDeviceNameService::Get ()->GetDevice ("umouse1", FALSE);
+	m_pMouseDevice = (CMouseDevice *) CDeviceNameService::Get ()->GetDevice ("umouse1", FALSE);
 	if (m_pMouseDevice != 0)
 	{
 		if (m_pMouseDevice->Setup (m_pScreen->GetWidth (), m_pScreen->GetHeight ()))
@@ -92,7 +92,7 @@ void CUGUI::SetPixel (UG_S16 sPosX, UG_S16 sPosY, UG_COLOR Color)
 	s_pThis->m_pScreen->SetPixel ((unsigned) sPosX, (unsigned) sPosY, (TScreenColor) Color);
 }
 
-void CUGUI::MouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY)
+void CUGUI::MouseEventHandler(TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)
 {
 	switch (Event)
 	{
@@ -115,10 +115,10 @@ void CUGUI::MouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nP
 	}
 }
 
-void CUGUI::MouseEventStub (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY)
+void CUGUI::MouseEventStub(TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)
 {
 	assert (s_pThis != 0);
-	s_pThis->MouseEventHandler (Event, nButtons, nPosX, nPosY);
+	s_pThis->MouseEventHandler(Event, nButtons, nPosX, nPosY, nWheelMove);
 }
 
 void CUGUI::TouchScreenEventHandler (TTouchScreenEvent Event, unsigned nID, unsigned nPosX, unsigned nPosY)

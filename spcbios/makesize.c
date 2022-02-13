@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <fcntl.h> 
-#include <io.h> 
+//#include <io.h> 
 static void Abort (char *fmt,...)
 {
   va_list args;

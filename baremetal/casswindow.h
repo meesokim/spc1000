@@ -20,7 +20,7 @@
 #ifndef _CassWindow_h
 #define _CassWindow_h
 
-#include <ugui/uguicpp.h>
+#include "ugui/uguicpp.h"
 
 class CCassWindow
 {

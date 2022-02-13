@@ -117,12 +117,14 @@ class CAY8910 {
 		int Phase[6];
 		volatile int JF = 0;		
 	public: 
-		CAY8910(CTimer *m_Timer);
+		CAY8910();
+		void Initialize(CTimer *m_Timer);
+
 		/** Reset8910() **********************************************/
 		/** Reset the sound chip and use sound channels from the    **/
 		/** one given in First.                                     **/
 		/*************************************************************/
-		void Reset8910(register AY8910 *D,int First);
+		void Reset8910(register AY8910 *D, int First);
 
 		/** Write8910() **********************************************/
 		/** Call this function to output a value V into the sound   **/

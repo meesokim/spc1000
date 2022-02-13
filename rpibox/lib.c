@@ -79,3 +79,10 @@ void enable_JTAG(void)
 int debug_printf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
 #endif
 */
+
+// int strlen(const char*str) {
+//     int rtn = 0;
+//     while(*str++ != 0)
+//         rtn++;
+//     return rtn;
+// }

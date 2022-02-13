@@ -71,14 +71,17 @@ static const int Volumes[16] =
 { 0,1,2,4,6,8,11,16,23,32,45,64,90,128,180,255 };
 //{ 0,16,33,50,67,84,101,118,135,152,169,186,203,220,237,254 };
 
-CAY8910::CAY8910(CTimer *m_Timer) :
+CAY8910::CAY8910() :
 	m_SpinLock (FALSE)
 {
-	this->m_Timer = m_Timer;
 	DevFreq = DEVFREQ;
 	SndQueueInit();
 }
- 
+
+void CAY8910::Initialize(CTimer *m_Timer)
+{
+  this->m_Timer = m_Timer;
+} 
 
 /** Reset8910() **********************************************/
 /** Reset the sound chip and use sound channels from the    **/

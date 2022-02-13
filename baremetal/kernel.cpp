@@ -22,7 +22,7 @@ extern "C" {
 #endif
 #include "Z80.h"
 #include "common.h"
-#include "mc6847.h"
+#include "MC6847.h"
 #include "spcall.h"
 #include "spckey.h"
 int printf(const char *format, ...);
@@ -31,7 +31,7 @@ int printf(const char *format, ...);
  }
 #endif
 #include "kernel.h"
-#include "ay8910.h"
+#include "AY8910.h"
 #include "casswindow.h"
 #include <circle/string.h>
 #include <circle/screen.h>
@@ -45,7 +45,8 @@ extern char tap0[];
 extern char samsung_bmp_c[];
 
 SPCSystem spcsys;
-
+extern TKeyMap spcKeyMap[];
+extern TKeyMap spcKeyHash [];
 static int idx;
 
 int CasRead(CassetteTape *cas);
@@ -57,20 +58,17 @@ enum colorNum {
 void memset(byte *p, int length, int b);
 int bpp;
 static const char FromKernel[] = "kernel";
-TKeyMap spcKeyHash[0x200]; 
+// TKeyMap spcKeyHash[0x200]; 
 unsigned char keyMatrix[10];
-static CKernel *s_pThis;   
-CKernel::CKernel (void)
-:	m_Screen(320,240),
-	m_Memory (TRUE),
-	m_Timer(&m_Interrupt),
-//	m_Logger (LogPanic, &m_Timer),
-	m_DWHCI (&m_Interrupt, &m_Timer),
-	m_ShutdownMode (ShutdownNone)
-   ,ay8910(&m_Timer)
-   ,m_PWMSound (&m_Interrupt)
-   ,m_GUI(&m_Screen)
-  // ,m_PWMSoundDevice (&m_Interrupt)
+static CKernel *s_pThis;
+CKernel::CKernel(void)
+	: m_Screen(320, 240),
+	  m_Memory(TRUE),
+	  m_Timer(&m_Interrupt),
+	  m_Logger(LogPanic, &m_Timer),
+	  m_DWHCI(&m_Interrupt, &m_Timer),
+	  m_ShutdownMode(ShutdownNone), m_PWMSound(&m_Interrupt), m_GUI(&m_Screen)
+// ,m_PWMSoundDevice (&m_Interrupt)
 {
 	//m_PWMSoundDevice.CancelPlayback();
 	m_ActLED.Blink (5);	// show we are alive
@@ -110,41 +108,43 @@ boolean CKernel::Initialize (void)
 		m_Screen.SetPalette(0x46,(u32)COLOR32(0xff, 0x00, 0x00, 0xff));
 		m_Screen.UpdatePalette();
 	}
-	memcpy(m_Screen.GetBuffer(), samsung_bmp_c, 320*240);
+	// memcpy(m_Screen.GetBuffer(), samsung_bmp_c, 320*240);
 	if (bOK)
 	{
-		bOK = m_Serial.Initialize (115200);
-	}
+		CDevice *pTarget = m_DeviceNameService.GetDevice (m_Options.GetLogDevice (), FALSE);
+		if (pTarget == 0)
+		{
+			pTarget = &m_Screen;
+		}
 
-	if (bOK)
-	{
-//		bOK = m_Logger.Initialize (&m_Screen);
+		bOK = m_Logger.Initialize (pTarget);
 	}
-//	memset(m_Screen.GetBuffer(), 0xff, 320*240);
-	//printf("Screen!!!\n");
+	// memset(m_Screen.GetBuffer(), 0xff, 320*240);
+	printf("Screen!!!\n");
+
 	if (bOK)
 	{
 		bOK = m_Interrupt.Initialize ();
 	}
-	//printf("m_Interrupt!!!\n");
+	printf("m_Interrupt!!!\n");
 
-	if (bOK)
-	{
-		bOK = m_Timer.Initialize ();
-	}
-	//printf("m_Timer!!!\n");	
 	if (bOK)
 	{
 		bOK = m_DWHCI.Initialize ();
 	}                       	
 	int num = 0;
-	//printf("m_DWHCI!!!\n");	
+	printf("m_DWHCI!!!\n");	
+	if (bOK)
+	{
+		bOK = m_Timer.Initialize ();
+	}
+	printf("m_Timer!!!\n");	
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);
-	//printf("spcKeyMap!!!\n");	
+	printf("spcKeyMap!!!\n");	
 	reset();
-	//printf("reset!!!\n");	
+	printf("reset!!!\n");	
 	return bOK;
 }
 
@@ -194,7 +194,7 @@ TShutdownMode CKernel::Run (void)
 	//m_PWMSound.Play(this);//, SOUND_CHANNELS, SOUND_BITS,Sound, SOUND_SAMPLES );
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
-//	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 	//printf("Keyboard Start!\n");	
 //	CCassWindow CassWindow (0, 0);
 #if 1
@@ -238,8 +238,8 @@ TShutdownMode CKernel::Run (void)
 			if (frame%33 == 0)
 			{
 				Update6847(spcsys.GMODE);
-				m_GUI.Update();
-				//R->ICount -= 20;
+				// m_GUI.Update();
+				R->ICount -= 20;
 			}
 			ay8910.Loop8910(&spcsys.ay8910, 1);
 			ticks = m_Timer.GetClockTicks() - ticks;

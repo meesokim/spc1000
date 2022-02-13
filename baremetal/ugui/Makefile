@@ -2,7 +2,7 @@
 # Makefile
 #
 
-CIRCLEHOME = ~/cc
+CIRCLEHOME = ~/circle
 
 DEPTH=8
 USE_COLOR_INDEX=1

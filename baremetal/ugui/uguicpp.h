@@ -9,7 +9,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	#include <ugui/ugui.h>
+	#include "ugui.h"
 #ifdef __cplusplus
 }
 #endif
@@ -37,8 +37,8 @@ public:
 private:
 	static void SetPixel (UG_S16 sPosX, UG_S16 sPosY, UG_COLOR Color);
 
-	void MouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY);
-	static void MouseEventStub (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY);
+	void MouseEventHandler(TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove);
+	static void MouseEventStub(TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove);
 
 	void TouchScreenEventHandler (TTouchScreenEvent Event,
 				      unsigned nID, unsigned nPosX, unsigned nPosY);
@@ -50,7 +50,7 @@ private:
 
 	UG_GUI m_GUI;
 
-	CUSBMouseDevice *m_pMouseDevice;
+	CMouseDevice *m_pMouseDevice;
 
 	CTouchScreenDevice *m_pTouchScreen;
 	unsigned m_nLastUpdate;

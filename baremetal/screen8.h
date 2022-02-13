@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef _circle_screen_h
-#define _circle_screen_h
+#ifndef _circle_screen8_h
+#define _circle_screen8_h
 
 #include <circle/device.h>
 #include <circle/bcmframebuffer.h>
@@ -26,68 +26,67 @@
 #include <circle/spinlock.h>
 #include <circle/macros.h>
 #include <circle/types.h>
+#include <circle/screen.h>
+
+#ifdef DEPTH
+#undef DEPTH
+#define DEPTH 8
+typedef u8 TScreenColor8;
+
+#define NORMAL_COLOR16 COLOR16(31, 31, 31)
+#define HIGH_COLOR16 COLOR16(31, 0, 0)
+#define HALF_COLOR16 COLOR16(0, 0, 31)
+
+struct TScreenStatus8
+{
+	TScreenColor8 *pContent;
+	unsigned nSize;
+	unsigned nState;
+	unsigned nScrollStart;
+	unsigned nScrollEnd;
+	unsigned nCursorX;
+	unsigned nCursorY;
+	boolean bCursorOn;
+	TScreenColor8 Color;
+	boolean bInsertOn;
+	unsigned nParam1;
+	unsigned nParam2;
+	boolean bUpdated;
+};
+
+#else
 
 #define DEPTH 8
-
-#ifndef DEPTH
-#define DEPTH	16		// can be: 8, 16 or 32
-#endif
+typedef u8 TScreenColor8;
 
 // really ((green) & 0x3F) << 5, but to have a 0-31 range for all colors
-#define COLOR16(red, green, blue)	  (((red) & 0x1F) << 11 \
-					| ((green) & 0x3F) << 6 \
-					| ((blue) & 0x1F))
+#define COLOR16(red, green, blue) (((red)&0x1F) << 11 | ((green)&0x3F) << 6 | ((blue)&0x1F))
 
 // BGRA (was RGBA with older firmware)
-#define COLOR32(red, green, blue, alpha)  (((red) & 0xFF)       \
-					| ((green) & 0xFF) << 8  \
-					| ((blue) & 0xFF)   << 16 \
-					| ((alpha) & 0xFF) << 24)
+#define COLOR32(red, green, blue, alpha) (((red)&0xFF) | ((green)&0xFF) << 8 | ((blue)&0xFF) << 16 | ((alpha)&0xFF) << 24)
 
-#define BLACK_COLOR	0
-
-#if DEPTH == 8
-	typedef u8 TScreenColor;
-
-	#define NORMAL_COLOR16			COLOR16 (31, 31, 31)
-	#define HIGH_COLOR16			COLOR16 (31, 0, 0)
-	#define HALF_COLOR16			COLOR16 (0, 0, 31)
-
-	#define NORMAL_COLOR			1
-	#define HIGH_COLOR				2
-	#define HALF_COLOR				3
-#elif DEPTH == 16
-	typedef u16 TScreenColor;
-
-	#define NORMAL_COLOR			COLOR16 (31, 31, 31)
-	#define HIGH_COLOR			COLOR16 (31, 0, 0)
-	#define HALF_COLOR			COLOR16 (0, 0, 31)
-#elif DEPTH == 32
-	typedef u32 TScreenColor;
-
-	#define NORMAL_COLOR			COLOR32 (255, 255, 255, 255)
-	#define HIGH_COLOR			COLOR32 (255, 0, 0, 255)
-	#define HALF_COLOR			COLOR32 (0, 0, 255, 255)
-#else
-	#error DEPTH must be 8, 16 or 32
-#endif
+#define BLACK_COLOR 0
 
 struct TScreenStatus
 {
-	TScreenColor   *pContent;
-	unsigned	nSize;
-	unsigned	nState;
-	unsigned	nScrollStart;
-	unsigned	nScrollEnd;
-	unsigned	nCursorX;
-	unsigned	nCursorY;
-	boolean		bCursorOn;
-	TScreenColor	Color;
-	boolean		bInsertOn;
-	unsigned	nParam1;
-	unsigned	nParam2;
-	boolean		bUpdated;
+	TScreenColor8 *pContent;
+	unsigned nSize;
+	unsigned nState;
+	unsigned nScrollStart;
+	unsigned nScrollEnd;
+	unsigned nCursorX;
+	unsigned nCursorY;
+	boolean bCursorOn;
+	TScreenColor8 Color;
+	boolean bInsertOn;
+	unsigned nParam1;
+	unsigned nParam2;
+	boolean bUpdated;
 };
+
+#endif
+
+
 
 class CScreenDevice8 : public CDevice
 {
@@ -100,25 +99,25 @@ public:
 	// size in pixels
 	unsigned GetWidth (void) const;
 	unsigned GetHeight (void) const;
-	TScreenColor *GetBuffer(void) const;
+	TScreenColor8 *GetBuffer(void) const;
 
 	// size in characters
 	unsigned GetColumns (void) const;
 	unsigned GetRows (void) const;
 
-	TScreenStatus GetStatus (void);
+	TScreenStatus8 GetStatus (void);
 	int GetDepth(void) const;
 	void SetPalette(u8 num, u16 color);
 	void SetPalette(u8 num, u32 color);
 	void UpdatePalette(void);
 	
-	boolean SetStatus (TScreenStatus Status);	// returns FALSE on failure
+	boolean SetStatus (TScreenStatus8 Status);	// returns FALSE on failure
 
 	int Write (const void *pBuffer, unsigned nCount);
 
-	void SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor Color);
+	void SetPixel (unsigned nPosX, unsigned nPosY, TScreenColor8 Color);
 	void SetXY (int x, int y);
-	TScreenColor GetPixel (unsigned nPosX, unsigned nPosY);
+	TScreenColor8 GetPixel (unsigned nPosX, unsigned nPosY);
 
 	void Rotor (unsigned nIndex,		// 0..3
 		    unsigned nCount);		// 0..3
@@ -150,7 +149,7 @@ private:
 
 	void Scroll (void) MAXOPT;
 
-	void DisplayChar (char chChar, unsigned nPosX, unsigned nPosY, TScreenColor Color);
+	void DisplayChar (char chChar, unsigned nPosX, unsigned nPosY, TScreenColor8 Color);
 	void EraseChar (unsigned nPosX, unsigned nPosY);
 	void InvertCursor (void);
 
@@ -160,7 +159,7 @@ private:
 	boolean		 m_bVirtual;
 	CBcmFrameBuffer	*m_pFrameBuffer;
 	CCharGenerator	 m_CharGen;
-	TScreenColor  	*m_pBuffer;
+	TScreenColor8  	*m_pBuffer;
 	unsigned	 m_nSize;
 	unsigned	 m_nPitch;
 	unsigned	 m_nWidth;
@@ -172,7 +171,7 @@ private:
 	unsigned	 m_nCursorX;
 	unsigned	 m_nCursorY;
 	boolean		 m_bCursorOn;
-	TScreenColor	 m_Color;
+	TScreenColor8	 m_Color;
 	boolean		 m_bInsertOn;
 	unsigned	 m_nParam1;
 	unsigned	 m_nParam2;

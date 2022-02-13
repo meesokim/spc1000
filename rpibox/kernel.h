@@ -85,7 +85,6 @@ private:
 	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
-	CSerialDevice		m_Serial;
 	CInterruptSystem	m_Interrupt;	
 	CTimer			m_Timer;	
 	CLogger			m_Logger;

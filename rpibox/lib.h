@@ -4,7 +4,7 @@
 //#include "memio.h"
 #include <circle/bcm2835.h>
 
-#define RPI 2
+#define RPI 1
 #define RPI1 1
 #define RPI2 2
 
