@@ -1930,9 +1930,6 @@ int main(int argc, char* argv[])
 	FILE *fp;	// for reading ROM file
 	//freopen("CON", "w", stdout);
     freopen("CON", "w", stderr);
-	
-	
-
 	loadROM("spcall.rom");
     //memcpy(spcsys.ROM + 32768, spcsys.ROM, 32768);
 	z80mem = spcsys.ROM;
