@@ -1,7 +1,7 @@
 all: sdl-wasm bin
-	
-sdl-wasm:
-	emcc main.c \
+SOURCE = main.c MC6847.c Z80SPC.c cassette.c AY8910.c Debug.c keyboard.c
+sdl-wasm: $(SOURCE)
+	emcc $(SOURCE) \
 	-DWASM \
 	-I/usr/include/SDL2 \
 	-s WASM=1 \
@@ -11,9 +11,8 @@ sdl-wasm:
 	--preload-file assets \
 	-o index.js
 
-bin:
-	gcc main.c -o main -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf -lSDL2_image -DNATIVE
-
+bin: $(SOURCE)
+	gcc $(SOURCE) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lSDL2_image -DNATIVE
 	
 clean:
 	rm -f *.js *.wasm *.data main

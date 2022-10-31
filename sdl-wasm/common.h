@@ -19,8 +19,6 @@
 
 #include <stdio.h>
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_ttf.h>
 typedef unsigned int UINT32;
 //enum tapmodes {TAP_GUIDE, TAP_DATA, TAP_PAUSE, TAP_TRASH, TAP_STOP, TAP_STOP2, TAP_PAUSE2, TZX_PURE_TONE,
 //	TZX_SEQ_PULSES, TAP_FINAL_BIT};
@@ -101,11 +99,11 @@ typedef struct
 	int pulse;			// Motor Pulse (0->1->0) causes motor state to flip
 	int button;
 	int rdVal;
-	Uint32 lastTime;
-	Uint32 cnt0, cnt1;
+	UINT32 lastTime;
+	UINT32 cnt0, cnt1;
 
 	int wrVal;
-	Uint32 wrRisingT;	// rising time
+	UINT32 wrRisingT;	// rising time
 } CassetteTape;
 
 typedef union PC
@@ -167,8 +165,8 @@ typedef struct
 	Z80 Z80R;		// Z-80 register
 	AY8910 ay8910;
 	byte ROM[0x8000];	// ROM area
-	Uint32 tick;
-	Uint32 cycles;
+	UINT32 tick;
+	UINT32 cycles;
 	int refrTimer;	// timer for screen refresh
 	int refrSet;	// init data for screen refresh timer
 	double intrTime;	// variable for interrupt timing
@@ -188,20 +186,20 @@ typedef struct
  */
 typedef struct
 {
-	Uint32 baseTick, curTick, prevTick, pauseTick, menuTick;
+	UINT32 baseTick, curTick, prevTick, pauseTick, menuTick;
 } SPCSimul;
 
-typedef struct
-{
-	SDL_Surface *emul;
-	SDL_Surface *disp;
-    SDL_Surface *mscr;
-    SDL_Rect rect;
-    int w, h;
-    SDL_Color colores[16];
-    TTF_Font *font;
-   	unsigned int  flag;
-} SDLInfo;
+// typedef struct
+// {
+// 	SDL_Surface *emul;
+// 	SDL_Surface *disp;
+//     SDL_Surface *mscr;
+//     SDL_Rect rect;
+//     int w, h;
+//     SDL_Color colores[16];
+//     TTF_Font *font;
+//    	unsigned int  flag;
+// } SDLInfo;
 
 extern char path_snaps[MAX_PATH_LENGTH];
 extern char path_taps[MAX_PATH_LENGTH];
@@ -227,7 +225,9 @@ extern void settings_menu();
 extern SPCConfig spconf;
 extern SPCSystem spcsys;
 extern SPCSimul  spcsim;
-extern SDLInfo   spcsdl;
+// extern SDLInfo   spcsdl;
+typedef unsigned char PIXEL;
+extern int TURBO;
 
 #define SPCCOL_OLDREV		0
 #define SPCCOL_NEW1			1
@@ -239,7 +239,12 @@ extern SDLInfo   spcsdl;
 #define SCANLINE_045_ONLY	2
 
 #define SCREEN_WIDTH
+
+#define I_PERIOD 4000
+#define TURBO (spconf.turbo) 
+#define I_PERIOD_TURBO (I_PERIOD * (TURBO + 1))
+#define INTR_PERIOD 16.6666
 #endif
 
-
-
+extern long timeGetTime();
+extern void ToggleFullScreen();
