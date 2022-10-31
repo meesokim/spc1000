@@ -64,12 +64,14 @@ void CpZ80(register word dstAddr, register word srcAddr)
 
 inline byte RdZ80(register word Addr)
 {
+  byte b;
 	if (spcsys.IPLK)
-		return spcsys.ROM[Addr & 0x7fff];
+		b = spcsys.ROM[Addr & 0x7fff];
 	else
-		return spcsys.RAM[Addr];
-//  z80mem = (spcsys.IPLK ? spcsys.ROM : spcsys.RAM);
-//  return z80mem[Addr];
+		b = spcsys.RAM[Addr];
+  // z80mem = (spcsys.IPLK ? spcsys.ROM : spcsys.RAM);
+  // printf("%04x:%02x\n", Addr, b);
+  return b;
 };
 
 /** FAST_RDOP ************************************************/

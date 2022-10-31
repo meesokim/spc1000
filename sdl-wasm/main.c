@@ -66,6 +66,23 @@ bool init() {
     return true;
 }
 
+/**
+ * Initialize I/O space structure
+ * @param void
+ */
+void InitIOSpace(void)
+{
+	spcsys.IPLK = 1;
+	spcsys.GMODE = 0;
+	spcsys.cas.motor = 0;
+	spcsys.cas.pulse = 0;
+	spcsys.psgRegNum = 0;
+	// VRAM init?
+	Reset8910(&(spcsys.ay8910), 0);
+	TURBO = 0;
+	memset(spcsys.keyMatrix, 0xff, 10);
+}
+
 void load_textures() {
     SDL_Surface *surface = IMG_Load("assets/hello_world.bmp");
     if (!surface) {
@@ -88,7 +105,10 @@ void ToggleFullScreen()
 void process_event(SDL_Event *event) {
     SDL_Keycode key = event->key.keysym.sym;
     // printf("%d\n", key);
-if (event->key.type == SDL_KEYDOWN) {
+    if (event->key.type == SDL_KEYDOWN) {
+        if (key == SDLK_F11) {
+            ToggleFullScreen();
+        }
         ProcessSpecialKey(event->key.keysym);
         ProcessKeyDown(event->key.keysym.sym);        
         if (key == SDLK_LEFT || key == SDLK_RIGHT) {
@@ -96,9 +116,6 @@ if (event->key.type == SDL_KEYDOWN) {
         }
         if (key == SDLK_UP || key == SDLK_DOWN) {
             velocity.y = key == SDLK_UP ? -1 : 1;
-        }
-        if (key == SDLK_F11) {
-            ToggleFullScreen();
         }
     }
     if (event->key.type == SDL_KEYUP) {
@@ -137,7 +154,7 @@ void draw(PIXEL *fb) {
     }
     SDL_UnlockTexture(scrtex);
     SDL_RenderCopy(renderer, scrtex, NULL, &rectx2);
-    SDL_RenderCopy(renderer, texture, NULL, &sprite);
+    // SDL_RenderCopy(renderer, texture, NULL, &sprite);
     SDL_RenderPresent(renderer);    
 }
 
@@ -175,8 +192,8 @@ void CheckHook(register Z80 *R)
 long timeGetTime()
 {
     struct timespec tspec;
-    clock_gettime(CLOCK_MONOTONIC, &tspec);
-    return tspec.tv_sec * 1000 + tspec.tv_nsec/1.0e6;
+    clock_gettime(CLOCK_REALTIME, &tspec);
+    return tspec.tv_sec * 1000000 + tspec.tv_nsec/1000;
 }
 
 void execute()
@@ -184,55 +201,61 @@ void execute()
     Z80 *R = &spcsys.Z80R;
     static int tick = 0;
     static int count = 0;
-    int t = timeGetTime();
-    if (spconf.debug || bp > 0)
-        CheckHook(R);	// Special Processing, if needed
-
-    if (R->ICount <= 0)	// 1 msec counter expired
+    static int t = 0;
+    clock_t t0 = clock();
+    int cnt = 0;
+    if (t) 
     {
-        tick++;		// advance spc tick by 1 msec
-        spcsys.tick += (TURBO + 1);
-        R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
-
-        if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
+        if ((t0 - t) > 1000)
+            t = t0 - 1000;
+        R->ICount = (t0 - t) * 4;
+    }
+    else
+    {
+        R->ICount = I_PERIOD;
+        t = t0 - 1000;
+    }
+    // printf("ICount:%d, t0:%d\n", R->ICount, t0);
+    t = t0;
+    while (R->ICount > 0)
+    {
+        count = R->ICount;
+        ExecZ80(R); // Z-80 emulation
+        // printf("tick:%d, ICount:%d\n", tick, R->ICount);
+        cnt += (count - R->ICount);
+        spcsys.cycles += cnt;    
+        if (cnt > I_PERIOD)
         {
-            if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
+            tick+=1;		// advance spc tick by 1 msec
+            spcsys.tick += (TURBO + 1);
+            cnt -= I_PERIOD;
+            // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
+            if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
             {
-                R->IFF |= IFF_IM1 | IFF_1;
-                IntZ80(R, 0);
+                if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
+                {
+                    R->IFF |= IFF_IM1 | IFF_1;
+                    IntZ80(R, 0);
+                }
+            }
+            else if (tick % 33 == 0)			// check refresh timer
+            {
+                // SDL_LockSurface(vdpsf);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                SDL_RenderClear(renderer);
+                update();
+                Update6847(spcsys.GMODE, spcsys.VRAM, buf);
+                draw(buf);
+                SDL_RenderPresent(renderer);
+                process_input();
+                Loop8910(&spcsys.ay8910, 1);
+                // printf("%d, %d\r", tick, spcsys.cycles);
             }
         }
-        if (tick % 33)			// check refresh timer
-        {
-            // SDL_LockSurface(vdpsf);
-            Update6847(spcsys.GMODE, &spcsys.VRAM[0], buf);
-            draw(buf);
-            // CheckKeyboard();
-        }
-        Loop8910(&spcsys.ay8910, 1);
-        int d = timeGetTime() - t;
-        if (d > 100) 
-            t = timeGetTime(); 
-        else
-        {
-            while(t>timeGetTime() && !TURBO);
-            t++;
-        }
     }
-    count = R->ICount;
-    ExecZ80(R); // Z-80 emulation
-    spcsys.cycles += (count - R->ICount);    
 }
 void main_loop() {
-    process_input();
     execute();
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    
-    update();
-    // draw();    
-
-    // SDL_RenderPresent(renderer);
 }
 
 void destroy() {
@@ -267,9 +290,11 @@ int main() {
     init();
     load_textures();
     load_rom();
+    InitIOSpace();
 	buf = InitMC6847(); // Tells VRAM address to MC6847 module and init
     ResetZ80(&spcsys.Z80R);
-    spcsys.Z80R.ICount = I_PERIOD;
+    // spcsys.Z80R.ICount = I_PERIOD;
+    z80mem = spcsys.ROM;
 	spcsys.cycles = 0;
 	spcsys.tick = 0;
 	OpenSoundDevice();
@@ -346,7 +371,7 @@ int fcno = 0;
 char dfile[256];
 void OutZ80(register word Port,register byte Value)
 {
-    //printf("0h%04x < 0h%02x\n", Port, Value);
+    // printf("0h%04x < 0h%02x\n", Port, Value);
 
 	if (Port < 0x2000) // VRAM area
 	{
