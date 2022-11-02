@@ -201,34 +201,25 @@ void execute()
     Z80 *R = &spcsys.Z80R;
     static int tick = 0;
     static int count = 0;
-    static int t = 0;
+    static clock_t t = 0;
     clock_t t0 = clock();
-    int cnt = 0;
-    if (t) 
-    {
-        if ((t0 - t) > 1000)
-            t = t0 - 1000;
-        R->ICount = (t0 - t) * 4;
-    }
-    else
-    {
-        R->ICount = I_PERIOD;
-        t = t0 - 1000;
-    }
-    // printf("ICount:%d, t0:%d\n", R->ICount, t0);
-    t = t0;
+    static int cnt = 0;
+    static int icnt = 0;
+    if (t)
+        R->ICount = (t0 - t) * 4000;
     while (R->ICount > 0)
     {
         count = R->ICount;
         ExecZ80(R); // Z-80 emulation
-        // printf("tick:%d, ICount:%d\n", tick, R->ICount);
         cnt += (count - R->ICount);
         spcsys.cycles += cnt;    
-        if (cnt > I_PERIOD)
+        if (cnt / I_PERIOD > icnt)
         {
             tick+=1;		// advance spc tick by 1 msec
+            icnt += 1;
+            // printf("tick:%d, ICount:%d\n", tick, R->ICount);
             spcsys.tick += (TURBO + 1);
-            cnt -= I_PERIOD;
+            // cnt -= I_PERIOD;
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
             if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
             {
@@ -238,21 +229,28 @@ void execute()
                     IntZ80(R, 0);
                 }
             }
-            else if (tick % 33 == 0)			// check refresh timer
+            else
             {
-                // SDL_LockSurface(vdpsf);
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                SDL_RenderClear(renderer);
-                update();
-                Update6847(spcsys.GMODE, spcsys.VRAM, buf);
-                draw(buf);
-                SDL_RenderPresent(renderer);
-                process_input();
-                Loop8910(&spcsys.ay8910, 1);
-                // printf("%d, %d\r", tick, spcsys.cycles);
+                if (tick % 33 == 0)			// check refresh timer
+                {
+                    // SDL_LockSurface(vdpsf);
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                    SDL_RenderClear(renderer);
+                    update();
+                    Update6847(spcsys.GMODE, spcsys.VRAM, buf);
+                    draw(buf);
+                    SDL_RenderPresent(renderer);
+                    Loop8910(&spcsys.ay8910, 1);
+                    // printf("%d, %d\r", tick, spcsys.cycles);
+                }
+                if (tick % 300 == 0)
+                {
+                    process_input();
+                }
             }
         }
     }
+    t = clock();
 }
 void main_loop() {
     execute();
