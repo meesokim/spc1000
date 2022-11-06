@@ -38,7 +38,7 @@ SPCConfig spconf;
 SPCSystem spcsys;
 SPCSimul  spcsim;
 
-extern byte *z80mem;
+// extern byte *z80mem;
 
 #define FCLOSE(x)	fclose(x),(x)=NULL
 #define I_PERIOD 4000
@@ -46,6 +46,10 @@ extern byte *z80mem;
 #define I_PERIOD_TURBO (I_PERIOD * (TURBO + 1))
 #define INTR_PERIOD 16.6666
 
+void OutZ80(register word Port,register byte Value);
+byte InZ80(register word Port);
+void WrZ80(void *userdata, register word Addr,register byte Value);
+byte RdZ80(void *userdata, register word Addr);
 
 bool init() {
     if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_TIMER) < 0) {
@@ -161,7 +165,7 @@ void draw(PIXEL *fb) {
 extern unsigned short breakpoint[10];
 extern int bp;
 
-void CheckHook(register Z80 *R)
+void CheckHook(register z80 *R)
 {
     unsigned short i = 0;
     int debug = 0;
@@ -172,7 +176,7 @@ void CheckHook(register Z80 *R)
         {
             if (breakpoint[i] != 0) {
                 bpcheck++;
-                if (R->PC.W == breakpoint[i] || R->Trace == 1)
+                if (R->pc == breakpoint[i] || R->Trace == 1)
                 {
                     debug = 1;
                     break;
@@ -198,7 +202,7 @@ long timeGetTime()
 
 void execute()
 {
-    Z80 *R = &spcsys.Z80R;
+    z80 *R = &spcsys.Z80R;
     static int tick = 0;
     static int count = 0;
     static clock_t t = 0;
@@ -206,12 +210,12 @@ void execute()
     static int cnt = 0;
     static int icnt = 0;
     if (t)
-        R->ICount = (t0 - t) * 4000;
-    while (R->ICount > 0)
+        R->cyc = (t0 - t) * 4000;
+    while (R->cyc > 0)
     {
-        count = R->ICount;
-        ExecZ80(R); // Z-80 emulation
-        cnt += (count - R->ICount);
+        count = R->cyc;
+        z80_step(R); // Z-80 emulation
+        cnt += (count - R->cyc);
         spcsys.cycles += cnt;    
         if (cnt / I_PERIOD > icnt)
         {
@@ -223,10 +227,10 @@ void execute()
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
             if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
             {
-                if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
+                if (R->interrupt_mode)	// if interrupt enabled, call Z-80 interrupt routine
                 {
-                    R->IFF |= IFF_IM1 | IFF_1;
-                    IntZ80(R, 0);
+                    R->iff1 = 1;
+                    z80_gen_int(R, 0);
                 }
             }
             else
@@ -250,7 +254,7 @@ void execute()
             }
         }
     }
-    t = clock();
+    t = clock() + 100;
 }
 void main_loop() {
     execute();
@@ -290,9 +294,13 @@ int main() {
     load_rom();
     InitIOSpace();
 	buf = InitMC6847(); // Tells VRAM address to MC6847 module and init
-    ResetZ80(&spcsys.Z80R);
+    z80_init(&spcsys.Z80R);
+    spcsys.Z80R.read_byte = RdZ80;
+    spcsys.Z80R.write_byte = WrZ80;
+    spcsys.Z80R.port_in = InZ80;
+    spcsys.Z80R.port_out = OutZ80;
     // spcsys.Z80R.ICount = I_PERIOD;
-    z80mem = spcsys.ROM;
+    // z80mem = spcsys.ROM;
 	spcsys.cycles = 0;
 	spcsys.tick = 0;
 	OpenSoundDevice();
@@ -378,10 +386,10 @@ void OutZ80(register word Port,register byte Value)
 	else if ((Port & 0xE000) == 0xA000) // IPLK area
 	{
 		spcsys.IPLK = (spcsys.IPLK)? 0 : 1;	// flip IPLK switch
-		if (spcsys.IPLK)
-            z80mem = spcsys.ROM;
-        else
-            z80mem = spcsys.RAM;
+		// if (spcsys.IPLK)
+        //     z80mem = spcsys.ROM;
+        // else
+        //     z80mem = spcsys.RAM;
 	}
 	else if ((Port & 0xE000) == 0x2000)	// GMODE setting
 	{
@@ -766,10 +774,10 @@ byte InZ80(register word Port)
 	else if ((Port & 0xE000) == 0xA000) // IPLK
 	{
 		spcsys.IPLK = (spcsys.IPLK)? 0 : 1;
-		if (spcsys.IPLK)
-            z80mem = spcsys.ROM;
-        else
-            z80mem = spcsys.RAM;
+		// if (spcsys.IPLK)
+        //     z80mem = spcsys.ROM;
+        // else
+        //     z80mem = spcsys.RAM;
 	}
 	else if ((Port & 0xE000) == 0x2000) // GMODE
 	{
@@ -852,16 +860,26 @@ byte InZ80(register word Port)
  * @param Addr 0x0000~0xffff memory address
  * @param Value a byte value to be written
  */
-void WrZ80(register word Addr,register byte Value)
+void WrZ80(void *userdata, register word Addr,register byte Value)
 {
 	spcsys.RAM[Addr] = Value;
 //	printf("0x%04x-%02x\n", Addr, Value);
 }
 
-void PatchZ80(register Z80 *R)
+byte RdZ80(void *userdata, register word Addr)
+{
+  byte b;
+	if (spcsys.IPLK)
+		b = spcsys.ROM[Addr & 0x7fff];
+	else
+		b = spcsys.RAM[Addr];
+  return b;
+};
+
+void PatchZ80(register z80 *R)
 {}
 
-word LoopZ80(register Z80 *R)
+word LoopZ80(register z80 *R)
 {
-	return INT_NONE;
+	return 0;
 }

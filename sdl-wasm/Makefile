@@ -1,5 +1,5 @@
 all: sdl-wasm bin
-SOURCE = main.c MC6847.c Z80SPC.c cassette.c AY8910.c Debug.c keyboard.c
+SOURCE = main.c MC6847.c z80_zazu.c cassette.c AY8910.c Debug.c keyboard.c
 sdl-wasm: $(SOURCE)
 	emcc $(SOURCE) \
 	-DWASM \

@@ -14,7 +14,7 @@
 #include <Windows.h>
 #endif
 
-#include "Z80.h"
+#include "z80_zazu.h"
 #include "AY8910.h"
 
 #include <stdio.h>
@@ -23,6 +23,8 @@ typedef unsigned int UINT32;
 //enum tapmodes {TAP_GUIDE, TAP_DATA, TAP_PAUSE, TAP_TRASH, TAP_STOP, TAP_STOP2, TAP_PAUSE2, TZX_PURE_TONE,
 //	TZX_SEQ_PULSES, TAP_FINAL_BIT};
 enum taptypes {TAP_TAP, TAP_SPC};
+
+typedef unsigned short word;
 
 typedef struct
 {
@@ -162,7 +164,7 @@ typedef struct
 	int IPLK;				// IPLK switch for memory selection
 	byte GMODE;				// GMODE (for video)
 	byte psgRegNum;			// Keep PSG (AY-3-8910) register number for next turn of I/O
-	Z80 Z80R;		// Z-80 register
+	z80 Z80R;		// Z-80 register
 	AY8910 ay8910;
 	byte ROM[0x8000];	// ROM area
 	UINT32 tick;
@@ -215,7 +217,7 @@ extern char load_path_taps[MAX_PATH_LENGTH];
 extern char load_path_scr1[MAX_PATH_LENGTH];
 extern char load_path_poke[MAX_PATH_LENGTH];
 
-extern byte DebugZ80(Z80 *R);
+extern byte DebugZ80(z80 *R);
 extern void help_menu();
 extern void taps_menu();
 extern void init_menu();

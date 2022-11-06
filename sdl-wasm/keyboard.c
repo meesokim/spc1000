@@ -207,8 +207,8 @@ void ProcessSpecialKey(SDL_Keysym ksym)
 		// InitIOSpace();
 		SndQueueInit();
 //		SetMC6847Mode(SET_TEXTMODE, 0);
-        spcsys.Z80R.ICount = I_PERIOD;
-        spcsys.Z80R.PC.W = 0x00;
+        spcsys.Z80R.cyc = I_PERIOD;
+        spcsys.Z80R.pc = 0x00;
         //spcsys.Z80R.SP.W = 0xf000;
         spcsys.IPLK = 1;
         spcsys.IPL_SW = 1;
@@ -219,7 +219,7 @@ void ProcessSpecialKey(SDL_Keysym ksym)
 		spcsys.tick = 0;
         spcsys.refrTimer = 0;	// timer for screen refresh
         spcsys.refrSet = spconf.frameRate;	// init value for screen refresh timer
-		ResetZ80(&spcsys.Z80R);
+		z80_init(&spcsys.Z80R);
 		break;
 	}
 }

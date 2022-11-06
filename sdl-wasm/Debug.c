@@ -14,7 +14,6 @@
 #define DEBUG
 #ifdef DEBUG
 
-#include "Z80.h"
 #include "common.h"
 #include <stdio.h>
 #include <ctype.h>
@@ -246,12 +245,42 @@ static const char *MnemonicsXCB[256] =
   "SET 7,B","SET 7,C","SET 7,D","SET 7,E","SET 7,H","SET 7,L","SET 7,(I%@h)","SET 7,A"
 };
 
+static inline uint16_t get_bc(z80* const z) {
+  return (z->b << 8) | z->c;
+}
+
+static inline uint16_t get_de(z80* const z) {
+  return (z->d << 8) | z->e;
+}
+
+static inline uint16_t get_hl(z80* const z) {
+  return (z->h << 8) | z->l;
+}
+
+static inline uint8_t get_f(z80* const z) {
+  uint8_t val = 0;
+  val |= z->cf << 0;
+  val |= z->nf << 1;
+  val |= z->pf << 2;
+  val |= z->xf << 3;
+  val |= z->hf << 4;
+  val |= z->yf << 5;
+  val |= z->zf << 6;
+  val |= z->sf << 7;
+  return val;
+}
+
+static inline uint8_t get_af(z80* const z) {
+  return (z->a << 8) | get_f(z);
+}
+
+
 /** DAsm() ***************************************************/
 /** DAsm() will disassemble the code at adress A and put    **/
 /** the output text into S. It will return the number of    **/
 /** bytes disassembled.                                     **/
 /*************************************************************/
-static int DAsm(char *S,word A)
+static int DAsm(z80 *z, char *S,word A)
 {
   char R[128],H[10],C,*P;
   const char *T;
@@ -264,27 +293,27 @@ static int DAsm(char *S,word A)
   C='\0';
   J=0;
 
-  switch(RdZ80(B))
+  switch(z->read_byte(0, B))
   {
-    case 0xCB: B++;T=MnemonicsCB[RdZ80(B++)];break;
-    case 0xED: B++;T=MnemonicsED[RdZ80(B++)];break;
+    case 0xCB: B++;T=MnemonicsCB[z->read_byte(0, B++)];break;
+    case 0xED: B++;T=MnemonicsED[z->read_byte(0, B++)];break;
     case 0xDD: B++;C='X';
-               if(RdZ80(B)!=0xCB) T=MnemonicsXX[RdZ80(B++)];
+               if(z->read_byte(0, B)!=0xCB) T=MnemonicsXX[z->read_byte(0, B++)];
                else
-               { B++;Offset=RdZ80(B++);J=1;T=MnemonicsXCB[RdZ80(B++)]; }
+               { B++;Offset=z->read_byte(0, B++);J=1;T=MnemonicsXCB[z->read_byte(0, B++)]; }
                break;
     case 0xFD: B++;C='Y';
-               if(RdZ80(B)!=0xCB) T=MnemonicsXX[RdZ80(B++)];
+               if(z->read_byte(0, B)!=0xCB) T=MnemonicsXX[z->read_byte(0, B++)];
                else
-               { B++;Offset=RdZ80(B++);J=1;T=MnemonicsXCB[RdZ80(B++)]; }
+               { B++;Offset=z->read_byte(0, B++);J=1;T=MnemonicsXCB[z->read_byte(0, B++)]; }
                break;
-    default:   T=Mnemonics[RdZ80(B++)];
+    default:   T=Mnemonics[z->read_byte(0, B++)];
   }
 
   if(P=strchr(T,'^'))
   {
     strncpy(R,T,P-T);R[P-T]='\0';
-    sprintf(H,"%02X",RdZ80(B++));
+    sprintf(H,"%02X",z->read_byte(0, B++));
     strcat(R,H);strcat(R,P+1);
   }
   else strcpy(R,T);
@@ -293,7 +322,7 @@ static int DAsm(char *S,word A)
   if(P=strchr(R,'*'))
   {
     strncpy(S,R,P-R);S[P-R]='\0';
-    J = RdZ80(B++);
+    J = z->read_byte(0, B++);
     sprintf(H,"'%c'%02X",(J<0x80 && J>0x20 ? J : ' '),J);
     strcat(S,H);strcat(S,P+1);
   }
@@ -301,7 +330,7 @@ static int DAsm(char *S,word A)
     if(P=strchr(R,'@'))
     {
       strncpy(S,R,P-R);S[P-R]='\0';
-      if(!J) Offset=RdZ80(B++);
+      if(!J) Offset=z->read_byte(0, B++);
       //strcat(S,Offset&0x80? "-":"+");
       addr=(int)B+(int)(Offset&0x80? -(256-Offset):Offset);
       if (symtbl[addr] != 0)
@@ -314,7 +343,7 @@ static int DAsm(char *S,word A)
       if(P=strchr(R,'#'))
       {
         strncpy(S,R,P-R);S[P-R]='\0';
-        addr = RdZ80(B)+256*RdZ80(B+1);
+        addr = z->read_byte(0, B)+256*z->read_byte(0,B+1);
         if (symtbl[addr] != 0)
           sprintf(H,"%s/%04x", symtbl[addr], addr);
         else
@@ -334,7 +363,7 @@ static int DAsm(char *S,word A)
 /*************************************************************/
 #define BOLDMAGENTA "\033[1;35m"
 //#define SYMADDR(d) if (symtbl[R->d.W]>0) sprintf(d, "%s[%s]%04X", BOLDMAGENTA, symtbl[R->d.W], R->d.W); else sprintf(d, "%04X", R->d.W);
-#define SYMADDR(d) sprintf(d, "%04X", R->d.W);
+#define SYMADDR(d) sprintf(d, "%04X", d);
 char symname[255];
 char *getSymbol(int d)
 {
@@ -344,7 +373,7 @@ char *getSymbol(int d)
         sprintf(&symname[0], "%04X", d);
     return &symname[0];
 }
-byte DebugZ80(register Z80 *R)
+byte DebugZ80(register z80 *R)
 {
   static const char Flags[9] = "SZ.H.PNC";
   char S[512],T[50], HL[50], DE[50], BC[50], SP[50], PC[50];
@@ -352,14 +381,14 @@ byte DebugZ80(register Z80 *R)
 
   byte J,I;
 
-  DAsm(S,R->PC.W);
-  for(J=0,I=R->AF.B.l;J<8;J++,I<<=1) T[J]=I&0x80? Flags[J]:'.';
+  DAsm(R, S, R->pc);
+  for(J=0,I=get_f(R);J<8;J++,I<<=1) T[J]=I&0x80? Flags[J]:'.';
   T[8]='\0';
-  SYMADDR(HL);
-  SYMADDR(DE);
-  SYMADDR(BC);
-  SYMADDR(SP);
-  SYMADDR(PC);
+  // SYMADDR(get_hl(R));
+  // SYMADDR(get_de(R));
+  // SYMADDR(get_bc(R));
+  // SYMADDR(get_sp(R));
+  // SYMADDR(get_pc(R));
 //  if (symtbl[R->HL.W]) sprintf(HL, "%04X(%s)", R->HL, symtbl[R->HL]); else sprintf(HL, "%04X", R->HL);
 //  if (symtbl[R->DE]) sprintf(DE, "%04X(%s)", R->DE, symtbl[R->DE]); else sprintf(DE, "%04X", R->DE);
 //  if (symtbl[R->BC]) sprintf(BC, "%04X(%s)", R->BC, symtbl[R->BC]); else sprintf(BC, "%04X", R->BC);
@@ -368,15 +397,15 @@ byte DebugZ80(register Z80 *R)
   printf
   (
     "PC:%s SP:%04X A='%c' AF:%04X HL:%s DE:%s BC:%s  IX:%04X IY:%04X I:%02X\n",
-    PC,R->SP.W,(R->AF.B.h < 0x80 && R->AF.B.h > 0x20 ? R->AF.B.h : ' '), R->AF.W,HL,DE,BC,R->IX.W,R->IY.W,R->I
+    PC,R->sp,(R->a < 0x80 && R->a > 0x20 ? R->a : ' '), get_af(R), get_hl(R), get_de(R), get_bc(R), R->ix,R->iy,R->i
   );
 
   printf
   (
     "[%02X - %-20s]   AT SP: [%04X]   FLAGS: [%s]   %s: %s\n",
-    RdZ80(R->PC.W),S,RdZ80(R->SP.W)+RdZ80(R->SP.W+1)*256,T,
-    R->IFF&0x04? "IM2":R->IFF&0x02? "IM1":"IM0",
-    R->IFF&0x01? "EI":"DI"
+    R->pc,S,R->read_byte(0, R->sp)+R->read_byte(0, R->sp+1)*256,T,
+    R->interrupt_mode? "IM2":R->iff1 ? "IM1":"IM0",
+    R->iff1&0x01? "EI":"DI"
   );
 
   while(1)
@@ -417,17 +446,17 @@ byte DebugZ80(register Z80 *R)
       case '+':  if(strlen(S)>=2)
                  {
                    sscanf(S+1,"%hX",&(R->Trap));
-                   R->Trap+=R->PC.W;R->Trace=0;
+                   R->Trap+=R->pc;R->Trace=0;
                    return(1);
                  }
                  break;
       case 'J':  if(strlen(S)>=2)
-                 { sscanf(S+1,"%hX",&(R->PC.W));R->Trace=0;return(1); }
+                 { sscanf(S+1,"%hX",&(R->pc));R->Trace=0;return(1); }
                  break;
       case 'C':  R->Trap=0xFFFF;R->Trace=0;spconf.debug = 0;return(0);
       case 'Q':  return(0);
       case 'B':  if(strlen(S)>=2)
-                 { sscanf(S+1,"%hX",&(R->PC.W));R->Trace=0;return(1); }
+                 { sscanf(S+1,"%hX",&(R->pc));R->Trace=0;return(1); }
                  break;
       case 'A':  if (strlen(S)>=2)
                  {
@@ -446,16 +475,16 @@ byte DebugZ80(register Z80 *R)
         {
           word Addr;
 
-          if(strlen(S)>1) sscanf(S+1,"%hX",&Addr); else Addr=R->PC.W;
+          if(strlen(S)>1) sscanf(S+1,"%hX",&Addr); else Addr=R->pc;
           puts("");
           for(J=0;J<16;J++)
           {
             printf("%04X: ",Addr);
             for(I=0;I<16;I++,Addr++)
-              printf("%02X ",RdZ80(Addr));
+              printf("%02X ", R->read_byte(0, Addr));
             printf(" | ");Addr-=16;
             for(I=0;I<16;I++,Addr++)
-              putchar(isprint(RdZ80(Addr))? RdZ80(Addr):'.');
+              putchar(isprint( R->read_byte(0, Addr))?  R->read_byte(0, Addr):'.');
             puts("");
           }
         }
@@ -469,21 +498,21 @@ byte DebugZ80(register Z80 *R)
             p++;
             while(*p++ == ' ');
             if (*(S+1) == '.')
-               Addr = R->PC.W;
+               Addr = R->pc;
             else
                sscanf(S+1,"%hX",&Addr);
           }
           else if (disAddr != 0)
             Addr = disAddr;
           else
-            Addr = R->PC.W;
+            Addr = R->pc;
           puts("");
           for(J=0;J<16;J++)
           {
             if (symtbl[Addr] != 0)
                 printf("%s:\n",symtbl[Addr]);
             printf("%04X: ",Addr);
-            Addr+=DAsm(S,Addr);
+            Addr+=DAsm(R, S,Addr);
             puts(S);
           }
           disAddr = Addr;
@@ -518,7 +547,7 @@ byte DebugZ80(register Z80 *R)
             while(*p != 0) {
                 sscanf(p, "%x ", &value);
 //                printf("%s Value=0x%x\n",p, value);
-                WrZ80(Addr++, value);
+                R->write_byte(0, Addr++, value);
                 while(*p != 0 && *p++ != ' ');
             }
         }
