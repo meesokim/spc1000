@@ -95,32 +95,39 @@ void lst_line(int val, int opanz)
 	char *p;
 	int tab;
 	char code[256];
+	char str[1024];
 	if (!list_flag || sd_flag == 4) {
 		sd_flag = 0;
 		return;
 	}
-	if ((p_line >= ppl) || (c_line == 1)) {
-		lst_header();
-		lst_attl();
-	}
+	// if ((p_line >= ppl) || (c_line == 1)) {
+	// 	lst_header();
+	// 	lst_attl();
+	// }
 	p = line;
 	memset(code, 0, sizeof(code));
 	while(*p != 0) {
 		if (*p == ';') 	
 		    break;
 		if (*p == '\t') {
+			// code[i++] = '\';
 			tab = 4 - i % 4;
 			while(tab--) code[i++] = ' ';
 		} else if (*p < '\n')
 			code[i++] = ' ';
-		else if (*p != '\n') {
+		else if (*p >= ' ') {
 			code[i++] = *p;
 		}
 		p++;
 	}
 	i = strlen(code);
-	while(i < 40) code[i++] = ' ';
-	fprintf(lstfp, "%s;", code);
+	if (i > 0)
+	{
+		while(i < 40) code[i++] = ' ';
+		fprintf(lstfp, "%s;", code);
+		// printf("%d:%s***\n", strlen(code), code);
+	}
+	// printf("(%d)%s;\n", len(code),code);
 	if (*p == 0)
 		p = "\n";
 //	if (i > 0 && *(p-1) == ';') {
@@ -154,7 +161,8 @@ void lst_line(int val, int opanz)
 	if (opanz >= 4) fprintf(lstfp, "%02x ", ops[3] & 0xff);
 		else fprintf(lstfp, "   ");
 	no_data:
-	fprintf(lstfp, "%6d %6d %s", c_line, s_line, p);
+	// fprintf(lstfp, "%6d %6d %s", c_line, s_line, p);
+	fprintf(lstfp, "%s", p);
 	if (errnum) {
 		fprintf(errfp, "=> %s", errmsg[errnum]);
 		putc('\n', errfp);
@@ -169,8 +177,8 @@ void lst_line(int val, int opanz)
 		sd_val = val;
 		while (opanz > 0) {
 			if (p_line >= ppl) {
-				lst_header();
-				lst_attl();
+				// lst_header();
+				// lst_attl();
 			}
 			s_line++;
 			sd_val += 4;
