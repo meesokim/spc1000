@@ -33,7 +33,8 @@ class CKernel;
 #include <circle/timer.h>
 #include <circle/logger.h>
 #include <circle/types.h>
-#include <circle/pwmsounddevice.h>
+// #include <circle/pwmsounddevice.h>
+#include <circle/pwmoutput.h>
 #include <circle/usb/usbkeyboard.h>   
 #include <circle/usb/dwhcidevice.h>
 #include "ugui/uguicpp.h"
@@ -71,7 +72,7 @@ private:
 	CLogger				m_Logger;
 
 	CDWHCIDevice		m_DWHCI;
-	CPWMSoundDevice			m_PWMSound; 
+	CPWMSound			m_PWMSound; 
 	//CPWMSoundDevice		m_PWMSoundDevice;
 	//void OutZ80(register word Port,register byte Value);
 	//byte InZ80(register word Port);	

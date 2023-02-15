@@ -46,7 +46,7 @@ extern char samsung_bmp_c[];
 
 SPCSystem spcsys;
 extern TKeyMap spcKeyMap[];
-extern TKeyMap spcKeyHash [];
+TKeyMap spcKeyHash [0x200];
 static int idx;
 
 int CasRead(CassetteTape *cas);

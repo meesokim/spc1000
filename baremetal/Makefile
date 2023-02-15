@@ -9,14 +9,14 @@
 #LIBCIRCLE = libcircle
 #endif
 
-CIRCLEHOME = ../../circle1
+CIRCLEHOME = ../../circle
 INCLUDE = -I$(CIRCLEHOME)/addon
 TAP_FILE = apple.tap
 BMP = samsung
 GCC = gcc
 
 #OBJS	= main.o kernel.o
-OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o spc1000.o
+OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
 
 LIBS = ugui/libugui$(RASPPI).a \
 	   $(CIRCLEHOME)/lib/usb/libusb.a \
@@ -28,7 +28,7 @@ LIBS = ugui/libugui$(RASPPI).a \
 EXTRACLEAN = sound.h samsung.bmp.c tap.c *.bak *.lis *.bin *.inc
 
 
-include Rules.mk
+include $(CIRCLEHOME)/Rules.mk
 
 $(BMP).bmp.o: bmp2c.py 
 	./bmp2c.py $(BMP).bmp
@@ -52,7 +52,7 @@ tap.o: $(TAP_FILE)
 	$(CC) $(CFLAGS) -c -o $@ tap.c
 
 %.bin: %.asm
-	./z80asm -fb -l -sa $< 
+	bin/z80asm -fb -l -sa $< 
 
 spcall.c: spc-1000_all.bin spc-1000_ipl.bin
 	cat spc-1000_all.bin spc-1000_ipl.bin > spcall.rom

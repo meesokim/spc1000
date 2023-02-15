@@ -42,31 +42,31 @@ def main(argv=None, decl=None):
                                    ])
         for o, a in opts:
             if o in ('-h', '--help'):
-                print __doc__
+                print (__doc__)
                 return 0
             elif o == '--decl':
                 decl = a
 
         if len(args) < 1:
-            raise getopt.GetoptError, "Binary file not specified"
+            raise getopt.GetoptError("Binary file not specified")
 
-    except getopt.GetoptError, msg:
-        print str(msg)
-        print __doc__
+    except getopt.GetoptError(msg):
+        print (str(msg))
+        print (__doc__)
         return 1
 
 
     bin = args[0]
     base, ext = os.path.splitext(bin)
     if ext not in ('.tsk', '.bin', '.rom'):
-        print 'Expected binary file with extension either .bin or .tsk'
+        print ('Expected binary file with extension either .bin or .tsk')
         return 1
         
-    fbin = file(bin, 'rb')
+    fbin = open(bin, 'rb')
     cfile = base + '.c'
-    fcout = file(cfile, 'w')
+    fcout = open(cfile, 'w')
     hfile = base + '.h'
-    fhout = file(hfile, 'w')
+    fhout = open(hfile, 'w')
 
     if args[1] is not None:
 	    base = args[1]
@@ -78,13 +78,12 @@ def main(argv=None, decl=None):
     
     while 1:
         byte = fbin.read(1)
-        if byte == '':
-            break;
+        if byte == b'':
+            break
         
         if k == 0:
             fcout.write ('\t')
-        
-        fcout.write('0x%02X, ' % ord(byte))
+        fcout.write('0x%02X, ' % int.from_bytes(byte, byteorder='big'))
         count += 1
         k += 1
         if k == 16:     
@@ -98,13 +97,13 @@ def main(argv=None, decl=None):
     fcout.close()
     
     if count == 0:
-        print 'File %s is empty!' % bin
+        print ('File %s is empty!' % bin)
         return 1
         
     fhout.write('extern %s  %s[%d];\n' % (decl, base, count))
     fhout.close()
     
-    print 'Processed: %s' % bin
+    print ('Processed: %s' % bin)
 
     return 0
 #/def main
