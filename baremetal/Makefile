@@ -16,12 +16,13 @@ BMP = samsung
 GCC = gcc
 
 #OBJS	= main.o kernel.o
-OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
+OBJS = main.o kernel.o pwmsound.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
 
 LIBS = ugui/libugui$(RASPPI).a \
 	   $(CIRCLEHOME)/lib/usb/libusb.a \
 	   $(CIRCLEHOME)/lib/fs/libfs.a \
 	   $(CIRCLEHOME)/lib/input/libinput.a \
+	   $(CIRCLEHOME)/lib/sound/libsound.a \
 	   $(CIRCLEHOME)/addon/fatfs/libfatfs.a \
 	   $(CIRCLEHOME)/lib/libcircle.a 
 

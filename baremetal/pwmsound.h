@@ -20,7 +20,7 @@
 #ifndef _circle_pwmsound_h
 #define _circle_pwmsound_h
 
-// #include <circle/pwmsounddevice.h>
+#include <circle/sound/pwmsounddevice.h>
 #include <circle/pwmoutput.h>
 #include <circle/bcmrandom.h>
 #include <circle/interrupt.h>
@@ -28,28 +28,28 @@
 
 typedef int (*dspcallback)(void* unused, unsigned char *stream, int len);
 
-class CPWMSound //: private CPWMSoundBaseDevice
+class CPWMSound : private CPWMSoundBaseDevice
 {
 public:
-	CPWMSound (CInterruptSystem *pInterrupt) {};
-	~CPWMSound (void) {};
+	CPWMSound (CInterruptSystem *pInterrupt);
+	~CPWMSound (void);
 	void Play(CKernel *kernel
 			   )	// 8 (unsigned sound data) or 16 (signed sound data)	
 	{
 		m_kernel = kernel;
-		// Start();
+		Start();
 	}
 
-	// void Playback (void	*pSoundData,		// sample rate 44100 Hz
-	// 	       unsigned  nSamples,		// for Stereo the L/R samples are count as one
-	// 	       unsigned  nChannels,		// 1 (Mono) or 2 (Stereo)
-	// 	       unsigned  nBitsPerSample);	// 8 (unsigned sound data) or 16 (signed sound data)
+	void Playback (void	*pSoundData,		// sample rate 44100 Hz
+		       unsigned  nSamples,		// for Stereo the L/R samples are count as one
+		       unsigned  nChannels,		// 1 (Mono) or 2 (Stereo)
+		       unsigned  nBitsPerSample);	// 8 (unsigned sound data) or 16 (signed sound data)
 
-	// boolean PlaybackActive (void) const;
+	boolean PlaybackActive (void) const;
 
-	// void CancelPlayback (void);			// will be canceled with a short delay
+	void CancelPlayback (void);			// will be canceled with a short delay
 
-	// virtual unsigned GetChunk (u32 *pBuffer, unsigned nChunkSize);
+	virtual unsigned GetChunk (u32 *pBuffer, unsigned nChunkSize);
 
 private:
 	CKernel *m_kernel;
