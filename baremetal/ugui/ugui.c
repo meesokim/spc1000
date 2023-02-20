@@ -4582,7 +4582,7 @@ UG_S16 UG_Init( UG_GUI* g, void (*p)(UG_S16,UG_S16,UG_COLOR), UG_S16 x, UG_S16 y
    g->desktop_color = 0x5C5D;
    #endif
    #ifdef USB_COLOR_INDEX
-   g->desktop_color = 0x5C5D;
+   g->desktop_color = 0x5C;
    #endif
    g->fore_color = C_WHITE;
    g->back_color = C_BLACK;

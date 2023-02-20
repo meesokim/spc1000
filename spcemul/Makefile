@@ -1,12 +1,17 @@
 CC = gcc
+CXX=g++
 NAME  = spcemul
 
 
 ifndef TARGETOS
 
 ifeq ($(OS),Windows_NT)
-TARGETOS = win32
+UNAME = $(shell uname -a)
+ifeq ($(firstword $(filter MINGW,$(UNAME))),MINGW64)
+TARGETOS = win64
 else
+TARGETOS = win32
+endif
 
 ifneq ($(CROSS_BUILD),1)
 
@@ -60,8 +65,6 @@ SRC1	  = Z80SPC.c    \
 		gifsave.c \
 		Debug.c \
 		tms9918.c
-		
-
 SRC2	= spcmain.cpp
 		
 OBJ1	= $(SRC1:.c=.o)
@@ -70,25 +73,44 @@ OBJ= $(OBJ1) $(OBJ2)
 
 ifeq ($(TARGETOS),win32)
 DEFS = -DWIN32
-DEFL = -Llib -lcomdlg32 -lmingw32 -lWinmm
+PRE=i686-w64-mingw32
+DEFL = -L/mingw32/lib -Llib -lcomdlg32 -lmingw32 -lwinmm 
+# CC=$(PRE)-gcc.exe
+# CXX=$(PRE)-g++
+endif
+
+ifeq ($(TARGETOS),win64)
+DEFS = -DWIN32
+DEFL =  -L/mingw64/lib -Llib64 -lcomdlg32 -lwinmm -mconsole 
 endif
 
 ifeq ($(TARGETOS),linux)
 DEFS = -DLINUX
-DEFL = -lrt -g 
+DEFL = -lrt -g  -L/usr/lib/x86_64-linux-gnu/
+endif
+
+ifeq ($(TARGETOS),mingw)
+DEFS = -DWIN32 -D_WIN32
+DEFL = -Llib64 -lcomdlg32 -lmingw32 -lwinmm
+PRE=x86_64-w64-mingw32
+INCLUDE=-I/usr/share/mingw-w64/include 
+CFLAGS = $(INCLUDE)
+CC=$(PRE)-gcc
+CXX=$(PRE)-g++
 endif
 
 CFLAGS		+= $(DEFS) -I/mingw/include/SDL -I/usr/include/SDL -I/usr/local/include/SDL -Iinclude -Iinclude/SDL 
 
-LDFLAGS		+= $(DEFL) -lSDLmain -lm -lSDL -lSDL_image -L/usr/lib/x86_64-linux-gnu/ -lfreetype -lSDL_ttf -lpthread -lstdc++  -g -ggdb
+LDFLAGS		+= $(DEFL) -lSDLmain -lm -lSDL -lSDL_image -lfreetype -lSDL_ttf -g -ggdb
 
 $(NAME): $(OBJ)
-	$(CC) $^ $(LDFLAGS) -o $@
+	$(CC) $^ $(LDFLAGS) -o $@ 
 
 %.o: %.c
-	$(CC) -c $< $(CFLAGS) -o $@
+	$(CC)  $(CFLAGS) -c $< -o $@
+
 %.o: %.cpp
-	g++ -c $< $(CFLAGS) -o $@
+	$(CXX)  $(CFLAGS) -c $< -o $@
 
 all: $(NAME)
 

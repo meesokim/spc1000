@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <fcntl.h> 
-//#include <io.h> 
+// #include <io.h> 
 static void Abort (char *fmt,...)
 {
   va_list args;
@@ -21,7 +21,7 @@ int main (int argc, char **argv)
   int    ch, i;
   char buf[1];
   int handle = fileno(stdout);
-  setmode(fileno(stdout), O_BINARY);
+  // setmode(fileno(stdout), O_BINARY);
   if (argc != 3)
      Abort ("Usage: %s bin-file size [> result]", argv[0]);
 

@@ -1,6 +1,6 @@
 /***************************************
  SPC-1000 IOCS
-"SPC-1000¿ë ÁÖ¼Ò¸ðÀ½"
+"SPC-1000ï¿½ï¿½ ï¿½Ö¼Ò¸ï¿½ï¿½ï¿½"
 written by Mayhouse
 blog.naver.com/mayhouse
 **************************************/
@@ -86,7 +86,7 @@ void sd_init();
 void sd_write(uint8 block_n, uint8 drive_n, uint8 track_t, uint8 sector_s, char *data);
 void sd_read(uint8 block_n, uint8 drive_n, uint8 track_t, uint8 sector_s, char *data);
 //void sd_send(); not useful for end developer, please use sd_read() instead of this.
-void sd_copy(uint8 block_n, uint8 drive_n, uint8 track_t, uint8 sector_s, uint8 drive_n, uint8 track_t, uint8 sector_s);
+void sd_copy(uint8 block_n, uint8 drive_n, uint8 track_t, uint8 sector_s, uint8 drive2_n, uint8 track2_t, uint8 sector2_s);
 void sd_format(uint8 drive_n);
 char*sd_getfiles(char *pat);
 unsigned char sd_drvstate(void);

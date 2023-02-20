@@ -1,10 +1,8 @@
 -muwx
--i bootpi.ihx
+-i bootpi.ihex
 -M
 -Y
--C 0x0100
 -b HOME = 0x0000
--b DSEG = 0xce00
 -b XSEG = 0x0001
 -b PSEG = 0x0001
 -b ISEG = 0x0000

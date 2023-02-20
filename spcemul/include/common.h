@@ -11,7 +11,7 @@
 #define MAX_PATH_LENGTH 2048
 
 #if WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #include "Z80.h"

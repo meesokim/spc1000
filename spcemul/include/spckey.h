@@ -1,13 +1,13 @@
 // SPC-1000 key mapping for SDL
 
-
 typedef struct
 {
-	SDLKey sym;
-	int keyMatIdx;
-	byte keyMask;
-	const char *keyName; // for debugging
+       SDLKey sym;
+       int keyMatIdx;
+       byte keyMask;
+       const char *keyName; // for debugging
 } TKeyMap;
+
 
 TKeyMap spcKeyMap[] = // the last item's keyMatIdx must be -1
 {

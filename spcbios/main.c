@@ -17,7 +17,7 @@ void main(void)
 	uint8 ch, p, l, c, pg, num;
 	int t;
 	char *files;
-	char *param = "SD:/\\*.tap";
+	const char *param = "SD:/\\*.tap";
 	p = 0;
 	c = 0;
 	pg = 12;

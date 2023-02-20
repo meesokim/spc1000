@@ -1,4 +1,4 @@
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 1.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 1.
 Hexadecimal [16-Bits]
 
 
@@ -58,7 +58,7 @@ Hexadecimal [16-Bits]
    CB00 DD 21 DF F9   [14]   53     ld  ix, #DSKIX
    CB04 DD F9         [10]   54     ld  sp, ix
    CB06 F3            [ 4]   55     di
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 2.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 2.
 Hexadecimal [16-Bits]
 
 
@@ -118,7 +118,7 @@ Hexadecimal [16-Bits]
                             108 
    CB69                     109 sendcmd:
    CB69 06 C0         [ 7]  110     LD  B,#0xC0             
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 3.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 3.
 Hexadecimal [16-Bits]
 
 
@@ -178,7 +178,7 @@ Hexadecimal [16-Bits]
    CBC0 0E 02         [ 7]  163     LD  C,#0x02             
    CBC2                     164 CHKDAV1:    
    CBC2 ED 78         [12]  165     IN  A,(C)           
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 4.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 4.
 Hexadecimal [16-Bits]
 
 
@@ -209,7 +209,7 @@ Hexadecimal [16-Bits]
    CBE6 21 3B 7A      [10]  189     LD  HL,#0x7A3B                       ;ff24  21 3b 7a       545   2701 ; 2. put data 09dh at address 7a3bh
    CBE9 70            [ 7]  190     LD  (HL),B                          ;ff27  70             546   2702 ;
    CBEA C9            [10]  191 	RET
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 5.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 5.
 Hexadecimal [16-Bits]
 
 Symbol Table
@@ -232,7 +232,7 @@ Symbol Table
   5 recvdata   CBA0 R   |   5 sendcmd    CB69 R   |   5 senddata   CB71 R
   5 start      CB00 GR
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 6.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 6.
 Hexadecimal [16-Bits]
 
 Area Table

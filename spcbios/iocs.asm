@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
-; Version 3.6.0 #9615 (MINGW64)
+; Version 4.0.0 #11528 (Linux)
 ;--------------------------------------------------------
 	.module iocs
 	.optsdcc -mz80
@@ -75,6 +75,7 @@ _hello::
 	hello:
 	.ascii	"Recreation\n"
 	.db	0
+;iocs.c:20: }
 	ret
 ;iocs.c:21: void putchar(char c) 
 ;	---------------------------------
@@ -95,6 +96,7 @@ _putchar::
 	ret
 	next:
 	call	0x0864
+;iocs.c:39: }
 	ret
 ;iocs.c:41: char getchar()
 ;	---------------------------------
@@ -105,8 +107,9 @@ _getchar::
 	call	0x0c62
 	ld	(_io_val), a
 ;iocs.c:47: return io_val;
-	ld	iy,#_io_val
-	ld	l,0 (iy)
+	ld	iy, #_io_val
+	ld	l, 0 (iy)
+;iocs.c:48: }
 	ret
 ;iocs.c:50: char getch()
 ;	---------------------------------
@@ -124,8 +127,9 @@ _getch::
 	pop	af
 	pop	hl
 ;iocs.c:63: return io_val;
-	ld	iy,#_io_val
-	ld	l,0 (iy)
+	ld	iy, #_io_val
+	ld	l, 0 (iy)
+;iocs.c:64: }
 	ret
 ;iocs.c:66: void gotoxy(uint8 x, uint8 y)
 ;	---------------------------------
@@ -140,6 +144,7 @@ _gotoxy::
 	ld	h,1(ix)
 	ld	(0x11ed), hl
 	pop	ix
+;iocs.c:79: }
 	ret
 ;iocs.c:81: char cas_load(unsigned char *data, int len)
 ;	---------------------------------
@@ -160,8 +165,9 @@ _cas_load::
 	ld	(_io_val), a
 	pop	ix
 ;iocs.c:99: return io_val;
-	ld	iy,#_io_val
-	ld	l,0 (iy)
+	ld	iy, #_io_val
+	ld	l, 0 (iy)
+;iocs.c:100: }
 	ret
 ;iocs.c:102: void cas_save(unsigned char *data, int len)
 ;	---------------------------------
@@ -181,6 +187,7 @@ _cas_save::
 	call	0x00b6
 	pop	ix
 ;iocs.c:119: return;	
+;iocs.c:120: }
 	ret
 ;iocs.c:122: void cls2()
 ;	---------------------------------
@@ -207,6 +214,7 @@ _cls2::
 	or	l
 	jr	nz, loope
 ;iocs.c:144: return;
+;iocs.c:145: }
 	ret
 ;iocs.c:147: void cls()
 ;	---------------------------------
@@ -226,6 +234,7 @@ _cls::
 	or	l
 	jr	nz, loopf
 ;iocs.c:162: return;
+;iocs.c:163: }
 	ret
 ;iocs.c:165: void attr_clear()
 ;	---------------------------------
@@ -246,6 +255,7 @@ _attr_clear::
 	or	l
 	jr	nz, loopc
 	ei
+;iocs.c:182: }
 	ret
 ;iocs.c:184: void attr_set(char attr, int addr, int length)
 ;	---------------------------------
@@ -273,6 +283,7 @@ _attr_set::
 	jr	nz, loopd
 	ei
 	pop	ix
+;iocs.c:208: }
 	ret
 ;iocs.c:262: void pload2(int num)
 ;	---------------------------------
@@ -287,6 +298,7 @@ _pload2::
 	ld	h,1(ix)
 	call	_rpi_load
 	jp	0x02C1
+;iocs.c:273: }
 	ret
 ;iocs.c:275: int pifiles(char *str)
 ;	---------------------------------
@@ -315,7 +327,8 @@ _pifiles::
 	jr	nz, loopm
 	ld	(_intval), bc
 ;iocs.c:305: return intval;
-	ld	hl,(_intval)
+	ld	hl, (_intval)
+;iocs.c:306: }
 	ret
 ;iocs.c:308: void patch(void)
 ;	---------------------------------
@@ -478,6 +491,7 @@ _patch::
 	EI	;
 	RET	;
 	PATCODEE:
+;iocs.c:462: }
 	ret
 	.area _CODE
 	.area _INITIALIZER
