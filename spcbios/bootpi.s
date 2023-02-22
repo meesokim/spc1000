@@ -48,8 +48,11 @@ MEMSET	   =   0x33e9
 INITSB	   =   0x0050
 GRAPH	   =   0x1b95
 SCRNS0	   =   0x05f3
+DEPRINT    =   0x07f3
 start::
-;   .ascii "SYS"
+    call CLS
+   	LD	DE, #TITLEMSG      	;N
+  	CALL	DEPRINT 
     ld  ix, #DSKIX
     ld  sp, ix
     di
@@ -189,3 +192,8 @@ L0FF16h:    DEC HL                      ;ff1e  2b             541   2697 ;
     LD  HL,#0x7A3B                       ;ff24  21 3b 7a       545   2701 ; 2. put data 09dh at address 7a3bh
     LD  (HL),B                          ;ff27  70             546   2702 ;
 	RET
+
+TITLEMSG:
+    .ascii /MESSAGE/
+    .byte 0
+

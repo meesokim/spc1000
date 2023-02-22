@@ -156,7 +156,7 @@ CHKRFD1:
 CHKDAC2:   	
     IN	A,(C)           ; 
     AND	004h          	;
-    JR	Z,CHKDAC2      	; WAIT: INP(&hc002) -> (DAV=1)
+    JR	Z,CHKDAC2      	; WAIT: INP(&hc002) -> (DAC=1)
     LD	C,002h         	;
     XOR	A             	;
     OUT	(C),A         	; OUT &hc002, 0 (DAV=0)
@@ -180,7 +180,7 @@ CHKDAV0:   	IN	A,(C)   ;
     XOR	A             	;
     OUT	(C),A         	; OUT &hc002, 0 (RFD=0)
     LD	C,001h         	;
-    IN	D,(C)          	; INP(&hc002) -> D register
+    IN	D,(C)          	; INP(&hc001) -> D register
     LD	C,002h         	;
     LD	A,040h         	;
     OUT	(C),A         	; OUT &hc002, &h40 (DAC=1)

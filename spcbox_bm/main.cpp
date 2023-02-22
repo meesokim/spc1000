@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <cstring>
+#include <cstdio>
 #include "pireg.h"
 
 #define RPSPC_D0	(1 << 0)
@@ -191,11 +192,9 @@ int main(void) {
     uint32_t readsize;
     uint8_t datain, dataout, data3, data0, cflag, blocks, drv, tracks, sectors;
     char *tmpbuf, *rpibuf;
-    int params[10], p, q, t, rpi_idx, len, len0, fileno;
-    static char diskbuf[258*256*8], buffer[256*256*32], tapbuf[256*256*32];
+    uint8_t params[10], p, q, t, rpi_idx, len, len0, fileno;
+    static char diskbuf[258*256*32], buffer[256*256*32], tapbuf[256*256*32];
     char * fdd[3];
-    //int f[256] = {0x11,0x7,0xcb,0xcd,0xf3,0x07,0xc9,0x48,0x65,0x6c,0x6c,0x20,0x77,0x6f,0x72,0x6c,0x64,0x21,0x00};	
-    // char f[256*256];
     char filename[256];
     static int oldnum = 0;    
     bool wr;
@@ -214,28 +213,27 @@ int main(void) {
 	GPIO_SEL0(IOSEL0);
     GPIO_SEL1(0);
     GPIO_SEL2(0);
-    GPIO_SET(0x0);
+    GPIO_CLR(0xff);
     // PUT32(ARM_GPIO_GPFEN0, RPSPC_EXT);
 	// asm("cpsid i");
-	// asm("cpsie f");
+	// asm("cpsid f");
     // PUT32(ARM_IC_FIQ_CONTROL, 0x80 | ARM_FIQ_GPIO0);
-    data0 = 1;
+    data0 = 0;
     int a = 0;
+    int bsize = 0;
     while(true) {
         a = GPIO_GET();
         if (!(a & RPSPC_EXT))
         {
-            volatile register uint8_t addr = (a & (RPSPC_A0 | RPSPC_A1)) >> RPSPC_A0_PIN;
-            volatile register uint8_t data = GPIO_GET();
+            volatile register uint8_t addr = (a >> RPSPC_A0_PIN) & 3;
             if (a & RPSPC_WR) {
                 GPIO_CLR(0xff);
                 switch(addr) {
-                    case 0:
-                        GPIO_SET(data0++);
+                    case 0: 
+                        GPIO_SET(execute);
                         break;
                     case 1:
                         GPIO_SET(dataout);
-                        // dataout = 0;
                         break;
                     case 2:
                         GPIO_SET(cflag);
@@ -245,63 +243,81 @@ int main(void) {
                         break;
                 }
             } else {
+                // GPIO_SET(0xff);
+                // volatile register uint8_t data = a;
                 switch(addr) {
                     case 0:
-                        datain = data;
+                        datain = a;
                         break;
                     case 3:
                         data3 = tapbuf[t++] == '1' ? 1 : 0;	
                         break;
                     case 2:
-                        switch(data & 0xf0) {
+                        switch(a & 0xf0) {
                             case rATN: // 0x80 (ATN=1) --> 0x02 (RFD=1) COMMAND
                                 p = 0;
                                 cflag = wRFD;
+                                // fprintf(f, "ATN\n");
                                 break;
                             case rRFD: // 0x20 (RFD=1) --> 0x01 (DAV=1) GETDATA
+                                cflag &= ~wRFD;
                                 cflag |= wDAV;
                                 dataout = buffer[q];
+                                // fprintf(f, "RFD\nOut(%02x)", dataout);
                                 break;
-                            case rDAC: // 0x40 (DAC=1) --> 0x00 (DAV=1) GETDATA confirm
-                                if (cflag & wDAV)
-                                {
-                                    cflag &= ~wDAV;
-                                }
+                            case rDAC: // 0x40 (DAC=1) --> 0x00 (DAV=0) GETDATA confirm
+                                cflag &= ~wDAV;
+                                // dataout = 0;
                                 break;
                             case rDAV: // 0x10 (DAV=1) --> 0x04 (DAC=1) SENDDATA confirm
-                                if (!(cflag & wDAC))
                                 {
-                                    cflag |= wDAC;
-                                    if (p < 10)
-                                        params[p] = datain;
+                                    params[p] = datain;
                                     q = 0;
                                     execute = true;
+                                    dataout = 0;
+                                    // fprintf(f, "DAV\nIn(%02x)", datain);
                                 }
                                 break;
                             case 0: 
                                 if (cflag & wDAC)
                                 {
                                     cflag &= ~wDAC;
-                                    p++;
+                                    if (p < sizeof(params) - 1)
+                                       p++;
                                 }
                                 else if (cflag & wDAV)
                                 {
                                     cflag &= ~wDAV;
-                                    q++;
+                                    if (q < bsize - 1)
+                                        q++;
+                                }
+                                else {
+                                    cflag = 0;
                                 }
                                 break;                            
                             default:
                                 break;
-                    }
+                        }   
+                    default:
+                        break;
                 }
             }               
             while(!(GPIO_GET() & RPSPC_EXT));
         }
-        if (execute) {
+        else if (!(a & RPSPC_RST)) {
+            dataout = 0;
+            datain = 0;
+            cflag = 0;
+            p = 0;
+            q = 0;
+            GPIO_CLR(0xff);
+        }
+        else if (execute) {
             switch (params[0])
             {
                 case SDINIT:
                     buffer[0] = 100;
+                    bsize = 1;
                     break;
                 case SDWRITE:
                     if (p == 4)
@@ -329,6 +345,8 @@ int main(void) {
                     break;
                 case SDSEND:
                     memcpy(buffer, diskbuf, readsize);
+                    bsize = readsize;
+                    // q = 0;
                     // Message.Format ("SDSEND(%d) %02x %02x %02x\n", p, buffer[0],  buffer[1], buffer[2]);
                     // m_Screen.Write ((const char *) Message, Message.GetLength ());
                     break;
@@ -337,11 +355,13 @@ int main(void) {
                     break;
                 case SDSTATUS:
                     buffer[0] = 0xc0;
+                    bsize = 0;
                     // Message.Format ("SDSTATUS\n");
                     // m_Screen.Write ((const char *) Message, Message.GetLength ());
                     break;
-                case ((int)SDDRVSTS):
+                case SDDRVSTS:
                     buffer[0] = 0xff;
+                    bsize = 0;
                     // Message.Format ("SDDRVSTS\n");
                     // m_Screen.Write ((const char *) Message, Message.GetLength ());
                     break;
@@ -439,6 +459,7 @@ int main(void) {
                     buffer[0] = cmd * cmd;
                     break;
             }
+            cflag |= wDAC;
             execute = false;
         }					
     }
