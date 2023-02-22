@@ -257,45 +257,27 @@ int main(void) {
                             case rATN: // 0x80 (ATN=1) --> 0x02 (RFD=1) COMMAND
                                 p = 0;
                                 cflag = wRFD;
-                                // fprintf(f, "ATN\n");
                                 break;
                             case rRFD: // 0x20 (RFD=1) --> 0x01 (DAV=1) GETDATA
                                 cflag &= ~wRFD;
                                 cflag |= wDAV;
                                 dataout = buffer[q];
-                                // fprintf(f, "RFD\nOut(%02x)", dataout);
                                 break;
                             case rDAC: // 0x40 (DAC=1) --> 0x00 (DAV=0) GETDATA confirm
                                 cflag &= ~wDAV;
-                                // dataout = 0;
+                                if (q < bsize - 1)
+                                    q++;
                                 break;
                             case rDAV: // 0x10 (DAV=1) --> 0x04 (DAC=1) SENDDATA confirm
-                                {
-                                    params[p] = datain;
-                                    q = 0;
-                                    execute = true;
-                                    dataout = 0;
-                                    // fprintf(f, "DAV\nIn(%02x)", datain);
-                                }
+                                cflag &= ~wDAC;
+                                params[p] = datain;
+                                q = 0;
+                                execute = true;
+                                dataout = 0;
                                 break;
-                            case 0: 
-                                if (cflag & wDAC)
-                                {
-                                    cflag &= ~wDAC;
-                                    if (p < sizeof(params) - 1)
-                                       p++;
-                                }
-                                else if (cflag & wDAV)
-                                {
-                                    cflag &= ~wDAV;
-                                    if (q < bsize - 1)
-                                        q++;
-                                }
-                                else {
-                                    cflag = 0;
-                                }
-                                break;                            
                             default:
+                                cflag &= ~wDAV;
+                                cflag &= ~wDAC;
                                 break;
                         }   
                     default:
@@ -311,6 +293,7 @@ int main(void) {
             p = 0;
             q = 0;
             GPIO_CLR(0xff);
+            while(!(GPIO_GET() & RPSPC_RST));
         }
         else if (execute) {
             switch (params[0])
@@ -461,6 +444,7 @@ int main(void) {
             }
             cflag |= wDAC;
             execute = false;
+            p++;
         }					
     }
 }
