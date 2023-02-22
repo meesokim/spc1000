@@ -73,54 +73,54 @@ L0FB5Ch:
    	JP	LOADCPM        	;
    	RET	PE            	;
    	EI                	;
-   	LD	D,07Fh         	;
-   	CALL	SENDDAT      	;
+   	LD	D,07Fh         	;
+   	CALL	SENDDAT     ;
    	LD	D,01Ch         	;
-  	CALL	SENDDAT      	;
+  	CALL	SENDDAT     ;
    	LD	D,000h         	;
-   	CALL	SENDDAT      	;
+   	CALL	SENDDAT     ;
    	LD	D,002h         	;
-    CALL	SENDDAT      	;
+    CALL	SENDDAT     ;
    	LD	D,00Fh         	;
-   	CALL	SENDDAT      	;
-   	CALL	SENDDAT      	;
-   	LD	D,SDTRANS1         	;
-  	CALL	SENDCOM      	;
-   	LD	D,07Fh         	;
-   	CALL	SENDDAT      	;
+   	CALL	SENDDAT     ;
+   	CALL	SENDDAT     ;
+   	LD	D,SDTRANS1      ;
+  	CALL	SENDCOM     ;
+   	LD	D,07Fh         	;
+   	CALL	SENDDAT     ;
   	LD	D,01Ch         	;
-   	CALL	SENDDAT      	;
+   	CALL	SENDDAT     ;
   	LD	D,000h         	;
-  	CALL	SENDDAT      	;
+  	CALL	SENDDAT     ;
   	LD	D,003h         	;
-  	CALL	SENDDAT      	;
-  	CALL	GETDATA      	;
-   	LD	A,D            	;z
+  	CALL	SENDDAT     ;
+  	CALL	GETDATA     ;
+   	LD	A,D            	;
    	CP	00Fh           	;
    	JP	NZ,L0FB5Ch     	;
-   	CALL	GETDATA      	;
-   	LD	A,D            	;z
+   	CALL	GETDATA     ;
+   	LD	A,D            	;
    	CP	00Fh           	;
    	JP	NZ,L0FB5Ch     	;
 LOADCPM:	
-   	LD	D,SDREAD         	;
-   	CALL	SENDCOM      	;
-   	LD	D,001h         	;
-   	CALL	SENDDAT      	;
+   	LD	D,SDREAD        
+   	CALL	SENDCOM     
+   	LD	D,001h         	
+   	CALL	SENDDAT     ;
    	LD	D,000h         	;
-   	CALL	SENDDAT      	;
+   	CALL	SENDDAT     ;
    	LD	D,000h         	;
-   	CALL	SENDDAT      	;
+   	CALL	SENDDAT     ;
    	LD	D,001h         	;
-   	CALL	SENDDAT      	;
-   	LD	D,SDSEND         	;
-   	CALL	SENDCOM      	;
+   	CALL	SENDDAT     ;
+   	LD	D,SDSEND        ;
+   	CALL	SENDCOM     ;
    	LD	E,000h         	;
-   	LD	HL,CPM_RUN    	;!
+   	LD	HL,CPM_RUN    	;
 SYM1:   
-	CALL	GETDATA      	;
-    LD	(HL),D         	;r
-    INC	HL            	;#
+	CALL	GETDATA     ;
+    LD	(HL),D         	;
+    INC	HL            	;
     DEC	E             	;
     JR	NZ,SYM1     	; 
 	LD  BC, 0100h
@@ -135,59 +135,62 @@ CLS3:
 SENDCOM:
     LD	B,0C0h         	;
     LD	C,002h         	;
-    LD	A,080h         	;>
-    OUT	(C),A         	;y
+    LD	A,080h         	;
+    OUT	(C),A         	; OUT &hc002, &h80 (ATN=1)
 SENDDAT:	
-    LD	B,0C0h         	;
+    LD	B,0C0h         	; 
     LD	C,002h         	;
-CHKRFD1:   	IN	A,(C)          	;x
+CHKRFD1:   	
+    IN	A,(C)           ;
     AND	002h          	;
-    JR	Z,CHKRFD1      	;(
-    LD	C,002h         	;
+    JR	Z,CHKRFD1      	; WAIT: INP(&hc002) -> (RFD=1)
+    LD	C,002h         	; 
     XOR	A             	;
-    OUT	(C),A         	; ATN=0
+    OUT	(C),A         	; OUT &hc002, 0 (ATN=0)
     LD	C,000h         	;
-    OUT	(C),D         	;
+    OUT	(C),D         	; OUT &hc000, DATA (D register)
     LD	C,002h         	;
     LD	A,010h         	;
-    OUT	(C),A         	;
+    OUT	(C),A         	; OUT &hc002, &h10 (DAV=1)
     LD	C,002h         	;
-CHKDAC2:   	IN	A,(C)   ;x
+CHKDAC2:   	
+    IN	A,(C)           ; 
     AND	004h          	;
-    JR	Z,CHKDAC2      	;(
+    JR	Z,CHKDAC2      	; WAIT: INP(&hc002) -> (DAV=1)
     LD	C,002h         	;
     XOR	A             	;
-    OUT	(C),A         	;y
+    OUT	(C),A         	; OUT &hc002, 0 (DAV=0)
     LD	C,002h         	;
-CHKDAC3:   	IN	A,(C)          	;x
+CHKDAC3:   	
+    IN	A,(C)           ;
     AND	004h          	;
-    JR	NZ,CHKDAC3     	; 
+    JR	NZ,CHKDAC3     	; WAIT: INT(&hc002) -> (DAC=0)
     RET               	;
 GETDATA:
-    PUSH	BC           	;
+    PUSH	BC          ;
     LD	C,002h         	;
     LD	B,0C0h         	;
-    LD	A,020h         	;> 
-    OUT	(C),A         	;y
+    LD	A,020h         	;
+    OUT	(C),A         	; OUT &hc002, &h20 (RFD=1)
     LD	C,002h         	;
-CHKDAV0:   	IN	A,(C)          	;x
+CHKDAV0:   	IN	A,(C)   ;
     AND	001h          	;
-    JR	Z,CHKDAV0      	;(
+    JR	Z,CHKDAV0      	; WAIT: INP(&hc002) -> (DAV=1)
     LD	C,002h         	;
     XOR	A             	;
-    OUT	(C),A         	;y
+    OUT	(C),A         	; OUT &hc002, 0 (RFD=0)
     LD	C,001h         	;
-    IN	D,(C)          	;P
+    IN	D,(C)          	; INP(&hc002) -> D register
     LD	C,002h         	;
-    LD	A,040h         	;>@
-    OUT	(C),A         	;y
+    LD	A,040h         	;
+    OUT	(C),A         	; OUT &hc002, &h40 (DAC=1)
     LD	C,002h         	;
-CHKDAV1:   	IN	A,(C)          	;x
+CHKDAV1:   	IN	A,(C)   ;
     AND	001h          	;
-    JR	NZ,CHKDAV1     	; 
+    JR	NZ,CHKDAV1     	; WAIT: INP(&hc002) -> (DAV=0)
     LD	C,002h         	;
     XOR	A             	;
-    OUT	(C),A         	;y
+    OUT	(C),A         	; OUT &hc002, 0 (DAC=0)
     POP	BC            	;
     RET               	;
 TITLEMSG:

@@ -226,7 +226,7 @@ int main(void) {
         if (!(a & RPSPC_EXT))
         {
             volatile register uint8_t addr = (a & (RPSPC_A0 | RPSPC_A1)) >> RPSPC_A0_PIN;
-            // volatile register uint8_t data = GPIO_GET();
+            volatile register uint8_t data = GPIO_GET();
             if (a & RPSPC_WR) {
                 GPIO_CLR(0xff);
                 switch(addr) {
@@ -247,28 +247,28 @@ int main(void) {
             } else {
                 switch(addr) {
                     case 0:
-                        datain = GPIO_GET();
+                        datain = data;
                         break;
                     case 3:
                         data3 = tapbuf[t++] == '1' ? 1 : 0;	
                         break;
                     case 2:
-                        switch(GPIO_GET() & 0xf0) {
-                            case rATN: // 0x80 --> 0x02
-                                cflag = wRFD;
+                        switch(data & 0xf0) {
+                            case rATN: // 0x80 (ATN=1) --> 0x02 (RFD=1) COMMAND
                                 p = 0;
+                                cflag = wRFD;
                                 break;
-                            case rRFD: // 0x20 --> 0x01
+                            case rRFD: // 0x20 (RFD=1) --> 0x01 (DAV=1) GETDATA
                                 cflag |= wDAV;
+                                dataout = buffer[q];
                                 break;
-                            case rDAC: // 0x40 --> 0x00
+                            case rDAC: // 0x40 (DAC=1) --> 0x00 (DAV=1) GETDATA confirm
                                 if (cflag & wDAV)
                                 {
                                     cflag &= ~wDAV;
-                                    q++;
                                 }
                                 break;
-                            case rDAV: // 0x10 --> 0x04
+                            case rDAV: // 0x10 (DAV=1) --> 0x04 (DAC=1) SENDDATA confirm
                                 if (!(cflag & wDAC))
                                 {
                                     cflag |= wDAC;
@@ -276,9 +276,9 @@ int main(void) {
                                         params[p] = datain;
                                     q = 0;
                                     execute = true;
-                                }									
+                                }
                                 break;
-                            case 0: // 0x00 --> 0x00
+                            case 0: 
                                 if (cflag & wDAC)
                                 {
                                     cflag &= ~wDAC;
@@ -286,7 +286,8 @@ int main(void) {
                                 }
                                 else if (cflag & wDAV)
                                 {
-                                    dataout = buffer[q];
+                                    cflag &= ~wDAV;
+                                    q++;
                                 }
                                 break;                            
                             default:
