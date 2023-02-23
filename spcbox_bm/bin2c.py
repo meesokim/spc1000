@@ -63,7 +63,10 @@ def main(argv=None, decl=None):
         return 1
         
     fbin = open(bin, 'rb')
-    cfile = base + '.c'
+    if '-inc' in sys.argv[1:]:
+        cfile = base + '.inc'
+    else:
+        cfile = base + '.c'
     fcout = open(cfile, 'w')
     hfile = base + '.h'
     fhout = open(hfile, 'w')
@@ -72,7 +75,7 @@ def main(argv=None, decl=None):
 	    base = args[1].replace('.', '_').replace(',','')
     else:
         base = "binary_" + base
-    fcout.write ('%s  %s[] = {\n' % (decl, base))
+    fcout.write ('%s  %s[%d] = {\n' % (decl, base, os.stat(bin).st_size))
     k = 0
     count = 0
     
