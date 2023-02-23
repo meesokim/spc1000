@@ -41,8 +41,10 @@ next:
 char getchar()
 {
 	__asm
+	push hl
 	call _ASCGET
 	ld (_io_val), a
+	pop hl
 	__endasm;
 	return io_val;
 }
@@ -56,6 +58,8 @@ char getch()
 	push af
 	jr z, cont
 	ld l, a
+	ld hl, #0xe35
+	ld a, (hl)
 	ld (_io_val), a
 	pop af
 	pop hl

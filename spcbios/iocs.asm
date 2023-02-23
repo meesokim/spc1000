@@ -103,40 +103,44 @@ _putchar::
 ; Function getchar
 ; ---------------------------------
 _getchar::
-;iocs.c:46: __endasm;
+;iocs.c:48: __endasm;
+	push	hl
 	call	0x0c62
 	ld	(_io_val), a
-;iocs.c:47: return io_val;
+	pop	hl
+;iocs.c:49: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:48: }
+;iocs.c:50: }
 	ret
-;iocs.c:50: char getch()
+;iocs.c:52: char getch()
 ;	---------------------------------
 ; Function getch
 ; ---------------------------------
 _getch::
-;iocs.c:62: __endasm;
+;iocs.c:66: __endasm;
 	 cont:
 	call	0x0c92
 	push	hl
 	push	af
 	jr	z, cont
 	ld	l, a
+	ld	hl, #0xe35
+	ld	a, (hl)
 	ld	(_io_val), a
 	pop	af
 	pop	hl
-;iocs.c:63: return io_val;
+;iocs.c:67: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:64: }
+;iocs.c:68: }
 	ret
-;iocs.c:66: void gotoxy(uint8 x, uint8 y)
+;iocs.c:70: void gotoxy(uint8 x, uint8 y)
 ;	---------------------------------
 ; Function gotoxy
 ; ---------------------------------
 _gotoxy::
-;iocs.c:78: __endasm;
+;iocs.c:82: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -144,14 +148,14 @@ _gotoxy::
 	ld	h,1(ix)
 	ld	(0x11ed), hl
 	pop	ix
-;iocs.c:79: }
+;iocs.c:83: }
 	ret
-;iocs.c:81: char cas_load(unsigned char *data, int len)
+;iocs.c:85: char cas_load(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_load
 ; ---------------------------------
 _cas_load::
-;iocs.c:98: __endasm;
+;iocs.c:102: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -164,17 +168,17 @@ _cas_load::
 	call	0x0134
 	ld	(_io_val), a
 	pop	ix
-;iocs.c:99: return io_val;
+;iocs.c:103: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:100: }
+;iocs.c:104: }
 	ret
-;iocs.c:102: void cas_save(unsigned char *data, int len)
+;iocs.c:106: void cas_save(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_save
 ; ---------------------------------
 _cas_save::
-;iocs.c:118: __endasm;
+;iocs.c:122: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -186,15 +190,15 @@ _cas_save::
 	ld	(0x13a8), hl
 	call	0x00b6
 	pop	ix
-;iocs.c:119: return;	
-;iocs.c:120: }
+;iocs.c:123: return;	
+;iocs.c:124: }
 	ret
-;iocs.c:122: void cls2()
+;iocs.c:126: void cls2()
 ;	---------------------------------
 ; Function cls2
 ; ---------------------------------
 _cls2::
-;iocs.c:143: __endasm;
+;iocs.c:147: __endasm;
 	ld	hl, #0x180
 	ld	bc, #0x040
 	ld	a, #0x20
@@ -213,15 +217,15 @@ _cls2::
 	ld	a,h
 	or	l
 	jr	nz, loope
-;iocs.c:144: return;
-;iocs.c:145: }
+;iocs.c:148: return;
+;iocs.c:149: }
 	ret
-;iocs.c:147: void cls()
+;iocs.c:151: void cls()
 ;	---------------------------------
 ; Function cls
 ; ---------------------------------
 _cls::
-;iocs.c:161: __endasm;
+;iocs.c:165: __endasm;
 	ld	hl, #0x200
 	ld	bc, #0x000
 	ld	a, #0x20
@@ -233,15 +237,15 @@ _cls::
 	ld	a,h
 	or	l
 	jr	nz, loopf
-;iocs.c:162: return;
-;iocs.c:163: }
+;iocs.c:166: return;
+;iocs.c:167: }
 	ret
-;iocs.c:165: void attr_clear()
+;iocs.c:169: void attr_clear()
 ;	---------------------------------
 ; Function attr_clear
 ; ---------------------------------
 _attr_clear::
-;iocs.c:181: __endasm;
+;iocs.c:185: __endasm;
 	ld	hl, #0x180
 	ld	bc, #0x840
 	di
@@ -255,14 +259,14 @@ _attr_clear::
 	or	l
 	jr	nz, loopc
 	ei
-;iocs.c:182: }
+;iocs.c:186: }
 	ret
-;iocs.c:184: void attr_set(char attr, int addr, int length)
+;iocs.c:188: void attr_set(char attr, int addr, int length)
 ;	---------------------------------
 ; Function attr_set
 ; ---------------------------------
 _attr_set::
-;iocs.c:207: __endasm;
+;iocs.c:211: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -283,14 +287,14 @@ _attr_set::
 	jr	nz, loopd
 	ei
 	pop	ix
-;iocs.c:208: }
+;iocs.c:212: }
 	ret
-;iocs.c:262: void pload2(int num)
+;iocs.c:266: void pload2(int num)
 ;	---------------------------------
 ; Function pload2
 ; ---------------------------------
 _pload2::
-;iocs.c:272: __endasm;
+;iocs.c:276: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -298,14 +302,14 @@ _pload2::
 	ld	h,1(ix)
 	call	_rpi_load
 	jp	0x02C1
-;iocs.c:273: }
+;iocs.c:277: }
 	ret
-;iocs.c:275: int pifiles(char *str)
+;iocs.c:279: int pifiles(char *str)
 ;	---------------------------------
 ; Function pifiles
 ; ---------------------------------
 _pifiles::
-;iocs.c:304: __endasm;
+;iocs.c:308: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -326,16 +330,16 @@ _pifiles::
 	or	a
 	jr	nz, loopm
 	ld	(_intval), bc
-;iocs.c:305: return intval;
+;iocs.c:309: return intval;
 	ld	hl, (_intval)
-;iocs.c:306: }
+;iocs.c:310: }
 	ret
-;iocs.c:308: void patch(void)
+;iocs.c:312: void patch(void)
 ;	---------------------------------
 ; Function patch
 ; ---------------------------------
 _patch::
-;iocs.c:461: __endasm;
+;iocs.c:465: __endasm;
 	ROMPATCH:
 	DI	;
 	LD	SP,#00 ;
@@ -491,7 +495,7 @@ _patch::
 	EI	;
 	RET	;
 	PATCODEE:
-;iocs.c:462: }
+;iocs.c:466: }
 	ret
 	.area _CODE
 	.area _INITIALIZER

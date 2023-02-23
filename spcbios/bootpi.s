@@ -51,8 +51,6 @@ SCRNS0	   =   0x05f3
 DEPRINT    =   0x07f3
 start::
     call CLS
-   	LD	DE, #TITLEMSG      	;N
-  	CALL	DEPRINT 
     ld  ix, #DSKIX
     ld  sp, ix
     di

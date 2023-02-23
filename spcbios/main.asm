@@ -413,31 +413,30 @@ _listdir::
 	ld	c, l
 	ld	b, h
 ;main.c:78: int s = 0;
-	ld	hl, #0x0000
-	ex	(sp), hl
+	ld	-4 (ix), #0x00
+	ld	-3 (ix), #0x00
 ;main.c:79: while(k--) while(data[s++] != 0);
-	ld	-4 (ix), c
-	ld	-3 (ix), b
+	ld	-2 (ix), c
+	ld	-1 (ix), b
 00104$:
-	ld	e, -4 (ix)
-	ld	d, -3 (ix)
-	ld	l, -4 (ix)
-	ld	h, -3 (ix)
+	ld	e, -2 (ix)
+	ld	d, -1 (ix)
+	ld	l, -2 (ix)
+	ld	h, -1 (ix)
 	dec	hl
-	ld	-4 (ix), l
-	ld	-3 (ix), h
+	ld	-2 (ix), l
+	ld	-1 (ix), h
 	ld	a, d
 	or	a, e
 	jr	Z,00106$
-	pop	de
-	push	de
+	ld	e, -4 (ix)
+	ld	d, -3 (ix)
 00101$:
 	ld	l, e
 	ld	h, d
 	inc	de
-	inc	sp
-	inc	sp
-	push	de
+	ld	-4 (ix), e
+	ld	-3 (ix), d
 	ld	a, l
 	add	a, #<(_data)
 	ld	l, a
@@ -461,10 +460,10 @@ _listdir::
 	jr	NC,00112$
 ;main.c:83: if (*(data+s) != 0)
 	ld	a, #<(_data)
-	add	a, -6 (ix)
+	add	a, -4 (ix)
 	ld	l, a
 	ld	a, #>(_data)
-	adc	a, -5 (ix)
+	adc	a, -3 (ix)
 	ld	h, a
 	ld	a, (hl)
 	or	a, a
@@ -489,16 +488,16 @@ _listdir::
 	pop	bc
 ;main.c:85: while(data[s++] != 0);
 00123$:
-	ld	a, -6 (ix)
-	ld	-2 (ix), a
-	ld	a, -5 (ix)
-	ld	-1 (ix), a
+	ld	a, -4 (ix)
+	ld	-6 (ix), a
+	ld	a, -3 (ix)
+	ld	-5 (ix), a
 00109$:
-	ld	d, -2 (ix)
-	ld	h, -1 (ix)
-	inc	-2 (ix)
+	ld	d, -6 (ix)
+	ld	h, -5 (ix)
+	inc	-6 (ix)
 	jr	NZ,00167$
-	inc	-1 (ix)
+	inc	-5 (ix)
 00167$:
 	ld	a, d
 	add	a, #<(_data)
@@ -510,10 +509,10 @@ _listdir::
 	or	a, a
 	jr	NZ,00109$
 ;main.c:81: for(;j<pg;j++)
-	ld	a, -2 (ix)
-	ld	-6 (ix), a
-	ld	a, -1 (ix)
-	ld	-5 (ix), a
+	ld	a, -6 (ix)
+	ld	-4 (ix), a
+	ld	a, -5 (ix)
+	ld	-3 (ix), a
 	inc	e
 	jr	00114$
 00112$:
