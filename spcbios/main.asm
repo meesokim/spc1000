@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
-; Version 4.0.0 #11528 (Linux)
+; Version 3.8.0 #10562 (Linux)
 ;--------------------------------------------------------
 	.module main
 	.optsdcc -mz80
@@ -67,7 +67,6 @@ _main::
 	add	ix,sp
 	push	af
 	push	af
-	dec	sp
 ;main.c:20: const char *param = "SD:/\\*.tap";
 ;main.c:24: memset(data, 0, 0x800);
 	ld	hl, #_data
@@ -111,7 +110,7 @@ _main::
 	call	__divuchar
 	pop	af
 	pop	bc
-	ld	-5 (ix), l
+	ld	-1 (ix), l
 ;main.c:32: c = num % pg;
 	push	bc
 	ld	a, #0x0c
@@ -122,7 +121,7 @@ _main::
 	call	__moduchar
 	pop	af
 	pop	bc
-	ld	-4 (ix), l
+	ld	-2 (ix), l
 ;main.c:33: while(1)
 00108$:
 ;main.c:35: gotoxy(0,2);
@@ -137,8 +136,8 @@ _main::
 	ld	h,#0x0c
 	ex	(sp),hl
 	inc	sp
-	ld	h, -4 (ix)
-	ld	l, -5 (ix)
+	ld	h, -2 (ix)
+	ld	l, -1 (ix)
 	push	hl
 	call	_listdir
 	inc	sp
@@ -148,50 +147,47 @@ _main::
 	pop	af
 	pop	bc
 ;main.c:38: gotoxy(4,c+2);
-	ld	e, -4 (ix)
-	ld	a, e
-	inc	a
-	inc	a
+	ld	e, -2 (ix)
+	ld	b, e
+	inc	b
+	inc	b
 	push	bc
 	push	de
-	ld	d,a
-	ld	e,#0x04
-	push	de
+	push	bc
+	inc	sp
+	ld	a, #0x04
+	push	af
+	inc	sp
 	call	_gotoxy
 	pop	af
 	call	_getchar
 	pop	de
 	pop	bc
-	ld	-3 (ix), l
 ;main.c:52: c = (pg-1 > c ? c + 1: pg-1);
-	ld	a, -4 (ix)
-	ld	-2 (ix), a
-	xor	a, a
-	ld	-1 (ix), a
+	ld	a, -2 (ix)
+	ld	-4 (ix), a
+	ld	-3 (ix), #0x00
 ;main.c:40: switch (ch)
-	ld	a, -3 (ix)
+	ld	a, l
 	sub	a, #0x0d
-	jp	Z,00105$
+	jr	Z,00105$
 ;main.c:43: p = (p > 0 ? p - 1: 0);
-	ld	b, -5 (ix)
+	ld	b, -1 (ix)
 ;main.c:40: switch (ch)
-	ld	a, -3 (ix)
-	sub	a, #0x1c
+	ld	a,l
+	cp	a,#0x1c
 	jr	Z,00102$
-	ld	a, -3 (ix)
-	sub	a, #0x1d
+	cp	a,#0x1d
 	jr	Z,00101$
-	ld	a, -3 (ix)
-	sub	a, #0x1e
+	cp	a,#0x1e
 	jr	Z,00103$
-	ld	a, -3 (ix)
 	sub	a, #0x1f
 	jr	Z,00104$
 	jr	00108$
 ;main.c:42: case 0x1d:
 00101$:
 ;main.c:43: p = (p > 0 ? p - 1: 0);
-	ld	a, -5 (ix)
+	ld	a, -1 (ix)
 	or	a, a
 	jr	Z,00112$
 	ld	a, b
@@ -203,28 +199,27 @@ _main::
 00112$:
 	ld	de, #0x0000
 00113$:
-	ld	-5 (ix), e
+	ld	-1 (ix), e
 ;main.c:44: break;
-	jp	00108$
+	jr	00108$
 ;main.c:45: case 0x1c:
 00102$:
 ;main.c:46: p = (p < l ? p + 1: l);
-	ld	a, -5 (ix)
+	ld	a, -1 (ix)
 	sub	a, c
 	jr	NC,00114$
-	ld	a, b
-	inc	a
+	inc	b
 	jr	00115$
 00114$:
-	ld	a, c
+	ld	b, c
 00115$:
-	ld	-5 (ix), a
+	ld	-1 (ix), b
 ;main.c:47: break;
 	jp	00108$
 ;main.c:48: case 0x1e:
 00103$:
 ;main.c:49: c = (c > 0 ? c - 1: 0);
-	ld	a, -4 (ix)
+	ld	a, -2 (ix)
 	or	a, a
 	jr	Z,00116$
 	dec	e
@@ -235,15 +230,15 @@ _main::
 00116$:
 	ld	de, #0x0000
 00117$:
-	ld	-4 (ix), e
+	ld	-2 (ix), e
 ;main.c:50: break;
 	jp	00108$
 ;main.c:51: case 0x1f:
 00104$:
 ;main.c:52: c = (pg-1 > c ? c + 1: pg-1);
-	ld	a, -2 (ix)
+	ld	a, -4 (ix)
 	sub	a, #0x0b
-	ld	a, -1 (ix)
+	ld	a, -3 (ix)
 	rla
 	ccf
 	rra
@@ -254,13 +249,13 @@ _main::
 00118$:
 	ld	e, #0x0b
 00119$:
-	ld	-4 (ix), e
+	ld	-2 (ix), e
 ;main.c:53: break;
 	jp	00108$
 ;main.c:54: case 0x0d:
 00105$:
 ;main.c:55: run((int)p * pg + c);
-	ld	e, -5 (ix)
+	ld	e, -1 (ix)
 	ld	d, #0x00
 	ld	l, e
 	ld	h, d
@@ -268,8 +263,8 @@ _main::
 	add	hl, de
 	add	hl, hl
 	add	hl, hl
-	ld	e, -2 (ix)
-	ld	d, -1 (ix)
+	pop	de
+	push	de
 	add	hl, de
 	push	bc
 	push	hl
@@ -357,17 +352,20 @@ _run::
 	push	bc
 	call	_strlen
 	pop	af
-	ld	a, #0x20
-	sub	a, l
-	ld	c, a
-	ld	a, #0x00
-	sbc	a, h
-	ld	b, a
-	srl	b
-	rr	c
+	ld	c, l
+	ld	b, h
+	ld	hl, #0x0020
+	cp	a, a
+	sbc	hl, bc
+	srl	h
+	rr	l
+	ld	b, l
 	push	de
-	ld	b, #0x08
+	ld	a, #0x08
+	push	af
+	inc	sp
 	push	bc
+	inc	sp
 	call	_gotoxy
 	ld	hl, #___str_4
 	ex	(sp),hl
@@ -415,42 +413,37 @@ _listdir::
 	ld	c, l
 	ld	b, h
 ;main.c:78: int s = 0;
-	xor	a, a
-	ld	-2 (ix), a
-	ld	-1 (ix), a
+	ld	hl, #0x0000
+	ex	(sp), hl
 ;main.c:79: while(k--) while(data[s++] != 0);
-	ld	de, #_data+0
-	inc	sp
-	inc	sp
-	push	bc
+	ld	-4 (ix), c
+	ld	-3 (ix), b
 00104$:
-	pop	hl
-	push	hl
-	ld	a, -6 (ix)
-	add	a, #0xff
-	ld	-6 (ix), a
-	ld	a, -5 (ix)
-	adc	a, #0xff
-	ld	-5 (ix), a
-	ld	a, h
-	or	a, l
-	jr	Z,00106$
-	ld	a, -2 (ix)
-	ld	-4 (ix), a
-	ld	a, -1 (ix)
-	ld	-3 (ix), a
-00101$:
+	ld	e, -4 (ix)
+	ld	d, -3 (ix)
 	ld	l, -4 (ix)
 	ld	h, -3 (ix)
-	inc	-4 (ix)
-	jr	NZ,00167$
-	inc	-3 (ix)
-00167$:
-	ld	a, -4 (ix)
-	ld	-2 (ix), a
-	ld	a, -3 (ix)
-	ld	-1 (ix), a
-	add	hl, de
+	dec	hl
+	ld	-4 (ix), l
+	ld	-3 (ix), h
+	ld	a, d
+	or	a, e
+	jr	Z,00106$
+	pop	de
+	push	de
+00101$:
+	ld	l, e
+	ld	h, d
+	inc	de
+	inc	sp
+	inc	sp
+	push	de
+	ld	a, l
+	add	a, #<(_data)
+	ld	l, a
+	ld	a, h
+	adc	a, #>(_data)
+	ld	h, a
 	ld	a, (hl)
 	or	a, a
 	jr	Z,00104$
@@ -458,37 +451,33 @@ _listdir::
 00106$:
 ;main.c:80: attr_clear();
 	push	bc
-	push	de
 	call	_attr_clear
-	pop	de
 	pop	bc
-	xor	a, a
-	ld	-3 (ix), a
+	ld	e, #0x00
 00114$:
 ;main.c:81: for(;j<pg;j++)
-	ld	a, -3 (ix)
+	ld	a, e
 	sub	a, 6 (ix)
 	jr	NC,00112$
 ;main.c:83: if (*(data+s) != 0)
 	ld	a, #<(_data)
-	add	a, -2 (ix)
-	ld	-5 (ix), a
+	add	a, -6 (ix)
+	ld	l, a
 	ld	a, #>(_data)
-	adc	a, -1 (ix)
-	ld	-4 (ix), a
-	ld	l, -5 (ix)
-	ld	h, -4 (ix)
+	adc	a, -5 (ix)
+	ld	h, a
 	ld	a, (hl)
 	or	a, a
 	jr	Z,00123$
 ;main.c:84: printf("%03d. %-25s\n", i+j, data+s);
-	ld	e, -5 (ix)
-	ld	d, -4 (ix)
-	ld	l, -3 (ix)
+	push	hl
+	pop	iy
+	ld	l, e
 	ld	h, #0x00
 	add	hl, bc
 	push	bc
 	push	de
+	push	iy
 	push	hl
 	ld	hl, #___str_5
 	push	hl
@@ -496,25 +485,36 @@ _listdir::
 	ld	hl, #6
 	add	hl, sp
 	ld	sp, hl
+	pop	de
 	pop	bc
 ;main.c:85: while(data[s++] != 0);
 00123$:
+	ld	a, -6 (ix)
+	ld	-2 (ix), a
+	ld	a, -5 (ix)
+	ld	-1 (ix), a
 00109$:
-	ld	a, #<(_data)
-	add	a, -2 (ix)
-	ld	e, a
-	ld	a, #>(_data)
-	adc	a, -1 (ix)
-	ld	d, a
+	ld	d, -2 (ix)
+	ld	h, -1 (ix)
 	inc	-2 (ix)
-	jr	NZ,00168$
+	jr	NZ,00167$
 	inc	-1 (ix)
-00168$:
-	ld	a, (de)
+00167$:
+	ld	a, d
+	add	a, #<(_data)
+	ld	l, a
+	ld	a, h
+	adc	a, #>(_data)
+	ld	h, a
+	ld	a, (hl)
 	or	a, a
 	jr	NZ,00109$
 ;main.c:81: for(;j<pg;j++)
-	inc	-3 (ix)
+	ld	a, -2 (ix)
+	ld	-6 (ix), a
+	ld	a, -1 (ix)
+	ld	-5 (ix), a
+	inc	e
 	jr	00114$
 00112$:
 ;main.c:87: attr_set(1, 0x840+c*32, 32);

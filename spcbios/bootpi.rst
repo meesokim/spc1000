@@ -1,4 +1,4 @@
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 1.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 1.
 Hexadecimal [16-Bits]
 
 
@@ -58,7 +58,7 @@ Hexadecimal [16-Bits]
    CB00 CD 42 1B      [17]   53     call CLS
    CB03 11 F4 CB      [10]   54    	LD	DE, #TITLEMSG      	;N
    CB06 CD F3 07      [17]   55   	CALL	DEPRINT 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 2.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 2.
 Hexadecimal [16-Bits]
 
 
@@ -118,7 +118,7 @@ Hexadecimal [16-Bits]
    CB6E B1            [ 4]  108     or  c
    CB6F 20 F6         [12]  109     jr nz, RDLOOPx
    CB71 C9            [10]  110     ret 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 3.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 3.
 Hexadecimal [16-Bits]
 
 
@@ -178,7 +178,7 @@ Hexadecimal [16-Bits]
    CBC3 0E 02         [ 7]  163     LD  C,#0x02             
    CBC5 3E 40         [ 7]  164     LD  A,#0x40             
    CBC7 ED 79         [12]  165     OUT (C),A         
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 4.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 4.
 Hexadecimal [16-Bits]
 
 
@@ -218,7 +218,7 @@ Hexadecimal [16-Bits]
         45
    CBFB 00                  198     .byte 0
                             199 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 5.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 5.
 Hexadecimal [16-Bits]
 
 Symbol Table
@@ -241,7 +241,7 @@ Symbol Table
   5 TITLEMSG   CBF4 R   |   5 _sd_load   CB44 R   |   5 recvdata   CBA9 R
   5 sendcmd    CB72 R   |   5 senddata   CB7A R   |   5 start      CB00 GR
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 6.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 6.
 Hexadecimal [16-Bits]
 
 Area Table

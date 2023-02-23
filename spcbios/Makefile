@@ -87,16 +87,16 @@ all: load makesize $(NAME) $(BOOT) spc1000
 
 load: $(OBJ5)
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
-	./hex2bin $@.ihex
+	hex2bin $@.ihex
 
 $(NAME): $(OBJ)
 	$(CC1) $^ $(LDFLAGS) -o $@.ihex
-	./hex2bin $@.ihex
+	hex2bin $@.ihex
 	./makesize $@.bin 5120 > $@-.bin
 	mv $@-.bin $@.bin
 $(BOOT): $(OBJ3)	
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
-	./hex2bin $@.ihex
+	hex2bin $@.ihex
 	./makesize $@.bin 256 > boot.bin
 spc1000: $(NAME) $(BOOT)
 	cat boot.bin $(NAME).bin load.bin > $@.bin
