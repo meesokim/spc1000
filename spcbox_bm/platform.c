@@ -469,5 +469,9 @@ uintptr_t TimerIrqSetup(uint32_t period_in_us) // Function to call on interrupt
     return 0;
 }
 
+void __sync_synchronize() {
+    
+}
+
 extern void *__dso_handle;
 extern void *_fini;
