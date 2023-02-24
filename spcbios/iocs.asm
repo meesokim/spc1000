@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
-; Version 4.0.0 #11528 (Linux)
+; Version 3.8.0 #10562 (Linux)
 ;--------------------------------------------------------
 	.module iocs
 	.optsdcc -mz80
@@ -103,22 +103,20 @@ _putchar::
 ; Function getchar
 ; ---------------------------------
 _getchar::
-;iocs.c:48: __endasm;
-	push	hl
+;iocs.c:46: __endasm;
 	call	0x0c62
 	ld	(_io_val), a
-	pop	hl
-;iocs.c:49: return io_val;
+;iocs.c:47: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:50: }
+;iocs.c:48: }
 	ret
-;iocs.c:52: char getch()
+;iocs.c:50: char getch()
 ;	---------------------------------
 ; Function getch
 ; ---------------------------------
 _getch::
-;iocs.c:66: __endasm;
+;iocs.c:64: __endasm;
 	 cont:
 	call	0x0c92
 	push	hl
@@ -130,17 +128,17 @@ _getch::
 	ld	(_io_val), a
 	pop	af
 	pop	hl
-;iocs.c:67: return io_val;
+;iocs.c:65: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:68: }
+;iocs.c:66: }
 	ret
-;iocs.c:70: void gotoxy(uint8 x, uint8 y)
+;iocs.c:68: void gotoxy(uint8 x, uint8 y)
 ;	---------------------------------
 ; Function gotoxy
 ; ---------------------------------
 _gotoxy::
-;iocs.c:82: __endasm;
+;iocs.c:80: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -148,14 +146,14 @@ _gotoxy::
 	ld	h,1(ix)
 	ld	(0x11ed), hl
 	pop	ix
-;iocs.c:83: }
+;iocs.c:81: }
 	ret
-;iocs.c:85: char cas_load(unsigned char *data, int len)
+;iocs.c:83: char cas_load(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_load
 ; ---------------------------------
 _cas_load::
-;iocs.c:102: __endasm;
+;iocs.c:100: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -168,17 +166,17 @@ _cas_load::
 	call	0x0134
 	ld	(_io_val), a
 	pop	ix
-;iocs.c:103: return io_val;
+;iocs.c:101: return io_val;
 	ld	iy, #_io_val
 	ld	l, 0 (iy)
-;iocs.c:104: }
+;iocs.c:102: }
 	ret
-;iocs.c:106: void cas_save(unsigned char *data, int len)
+;iocs.c:104: void cas_save(unsigned char *data, int len)
 ;	---------------------------------
 ; Function cas_save
 ; ---------------------------------
 _cas_save::
-;iocs.c:122: __endasm;
+;iocs.c:120: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -190,15 +188,15 @@ _cas_save::
 	ld	(0x13a8), hl
 	call	0x00b6
 	pop	ix
-;iocs.c:123: return;	
-;iocs.c:124: }
+;iocs.c:121: return;	
+;iocs.c:122: }
 	ret
-;iocs.c:126: void cls2()
+;iocs.c:124: void cls2()
 ;	---------------------------------
 ; Function cls2
 ; ---------------------------------
 _cls2::
-;iocs.c:147: __endasm;
+;iocs.c:145: __endasm;
 	ld	hl, #0x180
 	ld	bc, #0x040
 	ld	a, #0x20
@@ -217,15 +215,15 @@ _cls2::
 	ld	a,h
 	or	l
 	jr	nz, loope
-;iocs.c:148: return;
-;iocs.c:149: }
+;iocs.c:146: return;
+;iocs.c:147: }
 	ret
-;iocs.c:151: void cls()
+;iocs.c:149: void cls()
 ;	---------------------------------
 ; Function cls
 ; ---------------------------------
 _cls::
-;iocs.c:165: __endasm;
+;iocs.c:163: __endasm;
 	ld	hl, #0x200
 	ld	bc, #0x000
 	ld	a, #0x20
@@ -237,15 +235,15 @@ _cls::
 	ld	a,h
 	or	l
 	jr	nz, loopf
-;iocs.c:166: return;
-;iocs.c:167: }
+;iocs.c:164: return;
+;iocs.c:165: }
 	ret
-;iocs.c:169: void attr_clear()
+;iocs.c:167: void attr_clear()
 ;	---------------------------------
 ; Function attr_clear
 ; ---------------------------------
 _attr_clear::
-;iocs.c:185: __endasm;
+;iocs.c:183: __endasm;
 	ld	hl, #0x180
 	ld	bc, #0x840
 	di
@@ -259,14 +257,14 @@ _attr_clear::
 	or	l
 	jr	nz, loopc
 	ei
-;iocs.c:186: }
+;iocs.c:184: }
 	ret
-;iocs.c:188: void attr_set(char attr, int addr, int length)
+;iocs.c:186: void attr_set(char attr, int addr, int length)
 ;	---------------------------------
 ; Function attr_set
 ; ---------------------------------
 _attr_set::
-;iocs.c:211: __endasm;
+;iocs.c:209: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -287,14 +285,14 @@ _attr_set::
 	jr	nz, loopd
 	ei
 	pop	ix
-;iocs.c:212: }
+;iocs.c:210: }
 	ret
-;iocs.c:266: void pload2(int num)
+;iocs.c:264: void pload2(int num)
 ;	---------------------------------
 ; Function pload2
 ; ---------------------------------
 _pload2::
-;iocs.c:276: __endasm;
+;iocs.c:274: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -302,14 +300,14 @@ _pload2::
 	ld	h,1(ix)
 	call	_rpi_load
 	jp	0x02C1
-;iocs.c:277: }
+;iocs.c:275: }
 	ret
-;iocs.c:279: int pifiles(char *str)
+;iocs.c:277: int pifiles(char *str)
 ;	---------------------------------
 ; Function pifiles
 ; ---------------------------------
 _pifiles::
-;iocs.c:308: __endasm;
+;iocs.c:306: __endasm;
 	push	ix
 	ld	ix,#4
 	add	ix,sp
@@ -330,16 +328,16 @@ _pifiles::
 	or	a
 	jr	nz, loopm
 	ld	(_intval), bc
-;iocs.c:309: return intval;
+;iocs.c:307: return intval;
 	ld	hl, (_intval)
-;iocs.c:310: }
+;iocs.c:308: }
 	ret
-;iocs.c:312: void patch(void)
+;iocs.c:310: void patch(void)
 ;	---------------------------------
 ; Function patch
 ; ---------------------------------
 _patch::
-;iocs.c:465: __endasm;
+;iocs.c:463: __endasm;
 	ROMPATCH:
 	DI	;
 	LD	SP,#00 ;
@@ -495,7 +493,7 @@ _patch::
 	EI	;
 	RET	;
 	PATCODEE:
-;iocs.c:466: }
+;iocs.c:464: }
 	ret
 	.area _CODE
 	.area _INITIALIZER
