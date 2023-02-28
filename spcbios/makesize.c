@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <fcntl.h> 
+#include <unistd.h>
 // #include <io.h> 
 static void Abort (char *fmt,...)
 {
@@ -22,13 +23,21 @@ int main (int argc, char **argv)
   char buf[1];
   int handle = fileno(stdout);
   // setmode(fileno(stdout), O_BINARY);
-  if (argc != 3)
+  if (argc < 2)
      Abort ("Usage: %s bin-file size [> result]", argv[0]);
 
   if ((inFile = fopen(argv[1],"rb")) == NULL)
      Abort ("Cannot open %s\n", argv[1]);
 
-  i = atoi(argv[2]);
+  if (argc < 3) 
+  {
+    fseek(inFile, 0, SEEK_END);
+    i = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    i = i + (256 - i % 256);
+  } else {
+    i = atoi(argv[2]);
+  }
   while ((ch = fgetc(inFile)) != EOF && i > 0)
   {
 	  buf[0] = ch;

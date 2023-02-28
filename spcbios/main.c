@@ -39,14 +39,16 @@ void main(void)
 	while(1)
 	{
 		gotoxy(0,2);
+		if (p == l)
+			pg = t % PAGE - 1;
+		else
+			pg = PAGE - 1;
+		if (c > pg - 1)
+			c = pg - 1;
 		listdir(p, c);
 		printf("-------------------------------       RETURN for Execution");
 		// while(1);
 		gotoxy(4,c+2);
-		if (p == l)
-			pg = t % PAGE;
-		else
-			pg = PAGE;
 		ch = getchar();
 		switch (ch)
 		{
@@ -59,7 +61,7 @@ void main(void)
 					p++;
 				break;
 			case 0x1e:
-				if (c > 1)
+				if (c > 0)
 					c--;
 				break;
 			case 0x1f:

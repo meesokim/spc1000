@@ -91,7 +91,7 @@ load: $(OBJ5)
 $(NAME): $(OBJ)
 	$(CC1) $^ $(LDFLAGS) -o $@.ihex
 	hex2bin $@.ihex
-	./makesize $@.bin 5296 > $@-.bin
+	./makesize $@.bin > $@-.bin
 	mv $@-.bin $@.bin
 $(BOOT): $(OBJ3)	
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
