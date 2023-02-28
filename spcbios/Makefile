@@ -80,8 +80,7 @@ endif
 
 CFLAGS	= -mz80 
 CFLAGS3 = -I.
-#LDFLAGS	= -mz80 --code-loc 0x7ce3  --data-loc 0x9000 --no-std-crt0 
-LDFLAGS	= -mz80 --code-loc 0xcc00  --data-loc 0xf000 --no-std-crt0  --code-size 0x1400
+LDFLAGS	= -mz80 --code-loc 0xcc00 --stack-auto --data-loc 0xe400 --no-std-crt0 --code-size 0x1400 
 LDFLAGS3 = 
 all: load makesize $(NAME) $(BOOT) spc1000 
 
@@ -92,7 +91,7 @@ load: $(OBJ5)
 $(NAME): $(OBJ)
 	$(CC1) $^ $(LDFLAGS) -o $@.ihex
 	hex2bin $@.ihex
-	./makesize $@.bin 5120 > $@-.bin
+	./makesize $@.bin 5296 > $@-.bin
 	mv $@-.bin $@.bin
 $(BOOT): $(OBJ3)	
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex

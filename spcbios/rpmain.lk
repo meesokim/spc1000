@@ -1,7 +1,7 @@
 -mjwx
 -i rpmain.ihex
 -b _CODE = 0xcc00
--b _DATA = 0xf000
+-b _DATA = 0xe400
 -k /usr/bin/../share/sdcc/lib/z80
 -k /usr/share/sdcc/lib/z80
 -l z80

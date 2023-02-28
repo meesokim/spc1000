@@ -2,58 +2,75 @@
 #include <string.h>
 #include "iocs.h"
 
-unsigned char data[0x1000];
+unsigned char data[0x800];
 
 void cas2dsk();
 void dsk2cas();
 void dsk2dsk();
-uint8 listdir(uint8 p, uint8 c, uint8 pg);
+void listdir(uint8 p, uint8 c);
 void bootbasic();
 int pifiles(char *);
 int pioldnum();
 void run(int);
+// const int PAGE=12;
+#define PAGE 12
 void main(void)
 {
-	uint8 ch, p, l, c, pg, num;
-	int t;
-	char *files;
-	const char *param = "SD:/\\*.tap";
+	char  ch, p, l, c, pg;
+	int t = 0, num = 0;
+	// char *files;
+	// const char *param = "SD:/\\*.tap";
+	char *addr = (char *)0x0c7f;
+	*addr = 0;
 	p = 0;
+	l = 0;
 	c = 0;
-	pg = 12;
-	memset(data, 0, 0x800);
+	num = 0;
+	memset(data, 0, sizeof(data));
 	cls();
-	printf(" RPI extension box for SPC1000\n-------------------------------");
+	printf(" RPI extension box for SPC1000\n-----------------------------");
 	ch = 0;
-	t = pifiles(param);
-	l = t / pg;
+	t = pifiles("*.tap");
+	l = (t / PAGE);
 	num = pioldnum();
-	p = num / pg;
-	c = num % pg;
+	num = 0;
+	p = num / PAGE;
+	c = num - PAGE * p;
 	while(1)
 	{
 		gotoxy(0,2);
-		listdir(p, c, pg);
+		listdir(p, c);
 		printf("-------------------------------       RETURN for Execution");
+		// while(1);
 		gotoxy(4,c+2);
+		if (p == l)
+			pg = t % PAGE;
+		else
+			pg = PAGE;
 		ch = getchar();
 		switch (ch)
 		{
 			case 0x1d:
-				p = (p > 0 ? p - 1: 0);
+				if (p > 0)
+					p--;
 				break;
 			case 0x1c:
-				p = (p < l ? p + 1: l);
+				if (p < l)
+					p++;
 				break;
 			case 0x1e:
-				c = (c > 0 ? c - 1: 0);
+				if (c > 1)
+					c--;
 				break;
 			case 0x1f:
-				c = (pg-1 > c ? c + 1: pg-1);
+				if (c < pg-1)
+					c++;
 				break;
 			case 0x0d:
-				run((int)p * pg + c);
+				run((int)p * PAGE + c);
 				break;
+			default:
+				continue;
 		}
 	}
 }
@@ -70,20 +87,21 @@ void run(int num)
 	pload2(num);
 }
 
-uint8 listdir(uint8 p, uint8 c, uint8 pg)
+void listdir(uint8 p, uint8 c)
 {
-	int i = pg * p;
+	int i = PAGE * p;
 	uint8 j = 0;
 	int k = i;
 	int s = 0;
 	while(k--) while(data[s++] != 0);
 	attr_clear();
-	for(;j<pg;j++)
+	for(;j<PAGE;j++)
 	{
 		if (*(data+s) != 0)
 			printf("%03d. %-25s\n", i+j, data+s);
+		else
+			printf("%-30s\n", " ");
 		while(data[s++] != 0);
 	}
 	attr_set(1, 0x840+c*32, 32);
-	return pg;
 }

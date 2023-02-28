@@ -82,13 +82,13 @@ def main(argv=None, decl=None):
             break
         
         if k == 0:
-            fcout.write ('\t')
+            fcout.write (f'\t/*%04x*/' % count)
         fcout.write('0x%02X, ' % int.from_bytes(byte, byteorder='big'))
         count += 1
         k += 1
         if k == 16:     
             k = 0
-            fcout.write('\n')
+            fout.write('\n')
             
     if k != 0:
         fcout.write('\n')

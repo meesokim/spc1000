@@ -3,7 +3,7 @@
 
 static unsigned char io_val;
 static int intval;
-char files[4096];
+// char files[4096];
 static int fnum[512];
 extern char data[];
 
@@ -41,19 +41,22 @@ next:
 char getchar()
 {
 	__asm
+	cont0:
 	call _ASCGET
-	ld (_io_val), a
+	or a
+	jr z, cont0
+	ld l, a
 	__endasm;
-	return io_val;
 }
+
 
 char getch()
 {
 	__asm
 	cont:
-	call _KEYGT
 	push hl
 	push af
+	call _KEYGT
 	jr z, cont
 	ld l, a
 	ld hl, #0xe35
@@ -263,6 +266,7 @@ brun:
 
 void pload2(int num)
 {
+	num;
 	__asm
 	push ix
 	ld ix,#4
@@ -274,14 +278,8 @@ void pload2(int num)
 	__endasm;
 }
 
-int pifiles(char *str)
+int pifiles(char *fl)
 {
-//	char drive[24] = "SD:/";
-//	char pattern[60] = "*.tap";
-//	if (*drv != 0)
-//		strcpy(drive, drv);
-//	if (*pattern != 0)
-//		strcpy(pattern, pat);
 	__asm
 	push ix
 	ld ix,#4
@@ -302,9 +300,12 @@ loopn:
 	inc hl
 	or a
 	jr nz, loopm
-	ld (_intval), bc
+loopq:
+	inc bc
+	push bc
+	pop hl
 	__endasm;
-	return intval;
+	// return intval;
 }
 
 void patch(void)
