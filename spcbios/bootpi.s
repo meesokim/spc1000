@@ -66,9 +66,9 @@ start::
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
-	ld hl, #0xcb00 + #0x1510
+	ld hl, #0xe110
 	ld de, #0x114
-	ld bc, #634-#8
+	ld bc, #634
 	ldir
 	call BASICPATCH
 	call GSAVES
@@ -190,8 +190,4 @@ L0FF16h:    DEC HL                      ;ff1e  2b             541   2697 ;
     LD  HL,#0x7A3B                       ;ff24  21 3b 7a       545   2701 ; 2. put data 09dh at address 7a3bh
     LD  (HL),B                          ;ff27  70             546   2702 ;
 	RET
-
-TITLEMSG:
-    .ascii /MESSAGE/
-    .byte 0
 

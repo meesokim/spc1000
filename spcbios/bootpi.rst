@@ -76,9 +76,9 @@ Hexadecimal [16-Bits]
    CB1D CD 3E CB      [17]   66     call _sd_load
    CB20 21 00 CC      [10]   67 	ld hl, #MAIN
    CB23 22 01 00      [16]   68 	ld (#0x1), hl
-   CB26 21 10 E0      [10]   69 	ld hl, #0xcb00 + #0x1510
+   CB26 21 10 E1      [10]   69 	ld hl, #0xe110
    CB29 11 14 01      [10]   70 	ld de, #0x114
-   CB2C 01 72 02      [10]   71 	ld bc, #634-#8
+   CB2C 01 7A 02      [10]   71 	ld bc, #634
    CB2F ED B0         [21]   72 	ldir
    CB31 CD D2 CB      [17]   73 	call BASICPATCH
    CB34 CD EA 1B      [17]   74 	call GSAVES
@@ -211,11 +211,6 @@ Hexadecimal [16-Bits]
    CBEC 70            [ 7]  191     LD  (HL),B                          ;ff27  70             546   2702 ;
    CBED C9            [10]  192 	RET
                             193 
-   CBEE                     194 TITLEMSG:
-   CBEE 4D 45 53 53 41 47   195     .ascii /MESSAGE/
-        45
-   CBF5 00                  196     .byte 0
-                            197 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 5.
 Hexadecimal [16-Bits]
 
@@ -236,8 +231,8 @@ Symbol Table
     SCRNS0  =  05F3     |     SDCOPY  =  0004     |     SDFORMAT=  0005 
     SDREAD  =  0002     |     SDSEND  =  0003     |     SDWRITE =  0001 
     SECTS   =  0006     |     SIZE    =  0300     |     TICONT  =  0036 
-  5 TITLEMSG   CBEE R   |   5 _sd_load   CB3E R   |   5 recvdata   CBA3 R
-  5 sendcmd    CB6C R   |   5 senddata   CB74 R   |   5 start      CB00 GR
+  5 _sd_load   CB3E R   |   5 recvdata   CBA3 R   |   5 sendcmd    CB6C R
+  5 senddata   CB74 R   |   5 start      CB00 GR
 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 6.
 Hexadecimal [16-Bits]
@@ -249,5 +244,5 @@ Area Table
    2 XSEG       size    0   flags    0
    3 PSEG       size    0   flags    0
    4 _HEADER    size    0   flags    8
-   5 _HEADER0   size   F6   flags    8
+   5 _HEADER0   size   EE   flags    8
 

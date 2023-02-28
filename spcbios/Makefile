@@ -114,4 +114,4 @@ makesize: $(OBJ4)
 	$(AS) -l -o $< 
 
 clean:
-	rm -f *.rel *.lst *.map *.sym *.noi *.ihex *.lk *.mem *.ihx *.o 
+	rm -f *.rel *.lst *.map *.sym *.noi *.ihex *.lk *.mem *.ihx *.o main.asm iocs.asm *.bin *.rst

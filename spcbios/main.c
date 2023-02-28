@@ -18,8 +18,6 @@ void main(void)
 {
 	char  ch, p, l, c, pg;
 	int t = 0, num = 0;
-	// char *files;
-	// const char *param = "SD:/\\*.tap";
 	char *addr = (char *)0x0c7f;
 	*addr = 0;
 	p = 0;
@@ -39,12 +37,13 @@ void main(void)
 	while(1)
 	{
 		gotoxy(0,2);
-		if (p == l)
+		if (p == l) {
 			pg = t % PAGE - 1;
+			if (c > pg - 1)
+				c = pg - 1;
+		}
 		else
 			pg = PAGE - 1;
-		if (c > pg - 1)
-			c = pg - 1;
 		listdir(p, c);
 		printf("-------------------------------       RETURN for Execution");
 		// while(1);
@@ -65,7 +64,7 @@ void main(void)
 					c--;
 				break;
 			case 0x1f:
-				if (c < pg-1)
+				if (c < pg)
 					c++;
 				break;
 			case 0x0d:
