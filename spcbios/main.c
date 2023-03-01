@@ -26,7 +26,7 @@ void main(void)
 	num = 0;
 	memset(data, 0, sizeof(data));
 	cls();
-	printf(" RPI extension box for SPC1000\n-----------------------------");
+	printf(" RPI extension box for SPC1000\n-------------------------------");
 	ch = 0;
 	t = pifiles("*.tap");
 	l = (t / PAGE);
@@ -39,13 +39,13 @@ void main(void)
 		gotoxy(0,2);
 		if (p == l) {
 			pg = t % PAGE - 1;
-			if (c > pg - 1)
-				c = pg - 1;
+			if (c > pg)
+				c = pg;
 		}
 		else
 			pg = PAGE - 1;
 		listdir(p, c);
-		printf("-------------------------------       RETURN for Execution");
+		printf("-------------------------------       meeso.kim@gmail.com");
 		// while(1);
 		gotoxy(4,c+2);
 		ch = getchar();

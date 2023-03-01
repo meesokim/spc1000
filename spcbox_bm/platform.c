@@ -443,11 +443,131 @@ struct __attribute__((__packed__, aligned(4))) IrqControlRegisters
     irq_disable_basic_reg_t DisableBasicIRQs;      // 0x224
 };
 
+#include <stdio.h>
+#include "fatfs/ff.h"
+
+FILE *ob_fopen(const char *filename, const char *mode)
+{
+  FRESULT res;
+  BYTE flags = 0;
+  FIL *fil;
+  int i;
+
+  fil = malloc(sizeof(FIL));
+  if (!fil)
+    return NULL;
+
+  for (i=0; mode[i] != 0; i++) {
+    switch (mode[i]) {
+      case 'w':
+        flags |= FA_WRITE | FA_CREATE_ALWAYS;
+        break;
+      case 'r':
+        flags |= FA_READ;
+        break;
+      case '+':
+        flags |= FA_READ | FA_WRITE;
+        break;
+    }
+  }
+
+  res = f_open(fil, filename, flags);
+  if (res != FR_OK) {
+    free(fil);
+    return NULL;
+  }
+
+  return (FILE *) fil;
+}
+
+int ob_fclose(FILE *stream)
+{
+  FRESULT res;
+  FIL *fil = (FIL *) stream;
+  res = f_close(fil);
+  if (res != FR_OK)
+    return -1;
+
+  free(fil);
+  return 0;
+}
+size_t ob_fread(void *ptr, size_t size, size_t count, FILE *stream)
+{
+  FRESULT res;
+  FIL *fil = (FIL *) stream;
+  UINT bread;
+  res = f_read(fil, ptr, size * count, &bread);
+  if (res != FR_OK)
+    return 0;
+
+  return bread;
+}
+size_t ob_fwrite(const void *ptr, size_t size, size_t count, FILE *stream)
+{
+  FRESULT res;
+  FIL *fil = (FIL *) stream;
+  UINT bwrite;
+  res = f_write(fil, ptr, size * count, &bwrite);
+  if (res != FR_OK)
+    return 0;
+
+  return bwrite;
+}
+int ob_fflush(FILE *stream)
+{
+  FRESULT res;
+  FIL *fil;
+  if (!stream)
+    return 0;
+
+  fil = (FIL *) stream;
+  res = f_sync(fil);
+  if (res != FR_OK)
+    return -1;
+
+  return 0;
+}
+int ob_feof(FILE *stream)
+{
+  FIL *fil = (FIL *) stream;
+  return f_eof(fil);
+}
+int ob_fseek(FILE *stream, long offset, int whence)
+{
+  FRESULT res;
+  FIL *fil = (FIL *) stream;
+  long o;
+  switch (whence) {
+    case SEEK_SET:
+      o = offset;
+      break;
+    case SEEK_CUR:
+      o = offset + f_tell(fil);
+      break;
+    case SEEK_END:
+      o = f_size(fil) + offset;
+      if (o < 0)
+        o = 0;
+      break;
+    default:
+      return -1;
+  }
+  res = f_lseek(fil, o);
+  if (res != FR_OK)
+    return -1;
+
+  return 0;
+}
+
+long ob_ftell(FILE *stream)
+{
+  FIL *fil = (FIL *) stream;
+  return f_tell(fil);
+}
+//[출처] FatFs로 표준 입출력 함수 사용하기(fopen() 등)|작성자 바람
 
 #define IRQ ((volatile __attribute__((aligned(4))) struct IrqControlRegisters *)(uintptr_t)(PERIPHERAL_BASE + 0xB200))
 #define ARMTIMER ((volatile __attribute__((aligned(4))) struct ArmTimerRegisters *)(uintptr_t)(PERIPHERAL_BASE + 0xB400))
-
-
 
 uintptr_t TimerIrqSetup(uint32_t period_in_us) // Function to call on interrupt
 {
@@ -472,6 +592,46 @@ uintptr_t TimerIrqSetup(uint32_t period_in_us) // Function to call on interrupt
 void __sync_synchronize() {
     
 }
+
+#include <utime.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+int
+__utimes (const char *file, const struct timeval tvp[2])
+{
+  struct utimbuf buf, *times;
+  if (tvp)
+    {
+      times = &buf;
+      buf.actime = tvp[0].tv_sec + tvp[0].tv_usec / 1000000;
+      buf.modtime = tvp[1].tv_sec + tvp[1].tv_usec / 1000000;
+    }
+  else
+    times = NULL;
+  return utime (file, times);
+}
+
+int
+utime (const char *file, const struct utimbuf *times)
+{
+  struct timeval timevals[2];
+  struct timeval *tvp;
+  if (times != NULL)
+    {
+      timevals[0].tv_sec = (time_t) times->actime;
+      timevals[0].tv_usec = 0L;
+      timevals[1].tv_sec = (time_t) times->modtime;
+      timevals[1].tv_usec = 0L;
+      tvp = timevals;
+    }
+  else
+    tvp = NULL;
+  return __utimes (file, tvp);
+}
+weak_alias (__utimes, utimes);
+
 
 extern void *__dso_handle;
 extern void *_fini;

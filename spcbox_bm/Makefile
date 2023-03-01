@@ -11,7 +11,7 @@ ROMOBJS = $(shell echo $(ROMS) | sed -r 's/\.rom|\.mx2|\.bin/\.o/g')
 OBJS	= $(shell echo $(SOURCES) | sed -r 's/\.s|\.c|\.cpp|\.cc/\.o/g') $(ROMOBJS) 
 STARTUP = start1.o
 LIBS_DEP = 
-LDFLAGS += -dead_strip -fno-use-cxa-atexit -O2 -fno-threadsafe-statics
+LDFLAGS += -dead_strip -fno-use-cxa-atexit -O2 -fno-threadsafe-statics -lc -lnosys
 -include $(DEPDIR)/*.Po
 
 %.o: %.bin 

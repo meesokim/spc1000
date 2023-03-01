@@ -66,7 +66,6 @@ _main::
 	ld	ix,#0
 	add	ix,sp
 	push	af
-	push	af
 	dec	sp
 ;main.c:22: *addr = 0;
 	ld	hl, #0x0c7f
@@ -81,7 +80,7 @@ _main::
 	ldir
 ;main.c:28: cls();
 	call	_cls
-;main.c:29: printf(" RPI extension box for SPC1000\n-----------------------------");
+;main.c:29: printf(" RPI extension box for SPC1000\n-------------------------------");
 	ld	hl, #___str_0
 	push	hl
 	call	_printf
@@ -101,7 +100,7 @@ _main::
 	pop	af
 	pop	af
 ;main.c:33: num = pioldnum();
-	ld	-5 (ix), l
+	ld	-3 (ix), l
 	call	_pioldnum
 	pop	bc
 ;main.c:35: p = num / PAGE;
@@ -130,7 +129,7 @@ _main::
 	pop	af
 	pop	bc
 ;main.c:40: if (p == l) {
-	ld	a, -5 (ix)
+	ld	a, -3 (ix)
 	sub	a, -2 (ix)
 	jr	NZ,00104$
 ;main.c:41: pg = t % PAGE - 1;
@@ -142,32 +141,18 @@ _main::
 	pop	af
 	pop	af
 	pop	bc
-	ld	d, l
-	dec	d
-;main.c:42: if (c > pg - 1)
-	ld	l, d
-	ld	h, #0x00
-	dec	hl
-	ld	a, -1 (ix)
-	ld	-4 (ix), a
-	xor	a, a
-	ld	-3 (ix), a
-	ld	a, l
-	sub	a, -4 (ix)
-	ld	a, h
-	sbc	a, -3 (ix)
-	jp	PO, 00188$
-	xor	a, #0x80
-00188$:
-	jp	P, 00105$
-;main.c:43: c = pg - 1;
-	ld	a, d
-	add	a, #0xff
-	ld	-1 (ix), a
+	ld	e, l
+	dec	e
+;main.c:42: if (c > pg)
+	ld	a, e
+	sub	a, -1 (ix)
+	jr	NC,00105$
+;main.c:43: c = pg;
+	ld	-1 (ix), e
 	jr	00105$
 00104$:
 ;main.c:46: pg = PAGE - 1;
-	ld	d, #0x0b
+	ld	e, #0x0b
 00105$:
 ;main.c:47: listdir(p, c);
 	push	bc
@@ -207,13 +192,13 @@ _main::
 	jr	Z,00112$
 	sub	a, #0x1f
 	jr	Z,00115$
-	jp	00122$
+	jr	00122$
 ;main.c:54: case 0x1d:
 00106$:
 ;main.c:55: if (p > 0)
 	ld	a, -2 (ix)
 	or	a, a
-	jp	Z, 00122$
+	jr	Z,00122$
 ;main.c:56: p--;
 	dec	-2 (ix)
 ;main.c:57: break;
@@ -222,7 +207,7 @@ _main::
 00109$:
 ;main.c:59: if (p < l)
 	ld	a, -2 (ix)
-	sub	a, -5 (ix)
+	sub	a, -3 (ix)
 	jp	NC, 00122$
 ;main.c:60: p++;
 	inc	-2 (ix)
@@ -242,7 +227,7 @@ _main::
 00115$:
 ;main.c:67: if (c < pg)
 	ld	a, -1 (ix)
-	sub	a, d
+	sub	a, e
 	jp	NC, 00122$
 ;main.c:68: c++;
 	inc	-1 (ix)
@@ -274,13 +259,13 @@ _main::
 ___str_0:
 	.ascii " RPI extension box for SPC1000"
 	.db 0x0a
-	.ascii "-----------------------------"
+	.ascii "-------------------------------"
 	.db 0x00
 ___str_1:
 	.ascii "*.tap"
 	.db 0x00
 ___str_2:
-	.ascii "-------------------------------       RETURN for Execution"
+	.ascii "-------------------------------       meeso.kim@gmail.com"
 	.db 0x00
 ;main.c:79: void run(int num)
 ;	---------------------------------
