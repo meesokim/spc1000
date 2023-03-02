@@ -8,114 +8,109 @@
 
 #include "emu.h"
 #include "fdd.h"
-#include <dirent.h>
-
-#define rATN 0x80
-#define rDAC 0x40
-#define rRFD 0x20
-#define rDAV 0x10
-#define wDAC 0x04<<4
-#define wRFD 0x02<<4
-#define wDAV 0x01<<4
-
-#define RPI_FILES 0x20
-#define RPI_LOAD  0x21
-#define RPI_OLDNUM 0x23
 
 
 /***************************************************************************
     IMPLEMENTATION
 ***************************************************************************/
 
-READ8_MEMBER(spc1000_fdd_exp_device::i8255_c_r)
+uint8_t spc1000_fdd_exp_device::i8255_c_r()
 {
 	return m_i8255_0_pc >> 4;
 }
 
-WRITE8_MEMBER(spc1000_fdd_exp_device::i8255_b_w)
+void spc1000_fdd_exp_device::i8255_b_w(uint8_t data)
 {
 	m_i8255_portb = data;
 }
 
-WRITE8_MEMBER(spc1000_fdd_exp_device::i8255_c_w)
+void spc1000_fdd_exp_device::i8255_c_w(uint8_t data)
 {
-	if (!m_ext)
-		m_i8255_1_pc = data;
+	m_i8255_1_pc = data;
 }
 
 //-------------------------------------------------
 //  fdc interrupt
 //-------------------------------------------------
 
-READ8_MEMBER( spc1000_fdd_exp_device::tc_r )
+uint8_t spc1000_fdd_exp_device::tc_r()
 {
-	logerror("%s: tc_r\n", machine().describe_context());
+	if (!machine().side_effects_disabled())
+	{
+		logerror("%s: tc_r\n", machine().describe_context());
 
-	// toggle tc on read
-	m_fdc->tc_w(true);
-	m_timer_tc->adjust(attotime::zero);
+		// toggle tc on read
+		m_fdc->tc_w(true);
+		m_timer_tc->adjust(attotime::zero);
+	}
 
 	return 0xff;
 }
 
-WRITE8_MEMBER( spc1000_fdd_exp_device::control_w )
+void spc1000_fdd_exp_device::control_w(uint8_t data)
 {
 	logerror("%s: control_w(%02x)\n", machine().describe_context(), data);
 
 	// bit 0, motor on signal
-	if (m_fd0)
-		m_fd0->mon_w(!BIT(data, 0));
-	if (m_fd1)
-		m_fd1->mon_w(!BIT(data, 0));
+	for (auto &fd : m_fd)
+	{
+		floppy_image_device *img = fd->get_device();
+		if (img)
+			img->mon_w(!BIT(data, 0));
+	}
 }
 
-static ADDRESS_MAP_START( sd725_mem, AS_PROGRAM, 8, spc1000_fdd_exp_device )
-	ADDRESS_MAP_UNMAP_HIGH
-	AM_RANGE(0x0000, 0x1fff) AM_ROM
-	AM_RANGE(0x2000, 0xffff) AM_RAM
-ADDRESS_MAP_END
+void spc1000_fdd_exp_device::sd725_mem(address_map &map)
+{
+	map.unmap_value_high();
+	map(0x0000, 0x0fff).rom().region("fdccpu", 0);
+	map(0x4000, 0x7fff).ram(); // 16K dynamic RAM (2x TMS4416-15NL)
+}
 
-static ADDRESS_MAP_START( sd725_io, AS_IO, 8, spc1000_fdd_exp_device )
-	ADDRESS_MAP_UNMAP_HIGH
-	ADDRESS_MAP_GLOBAL_MASK(0xff)
-	AM_RANGE(0xf8, 0xf8) AM_READWRITE(tc_r, control_w) // (R) Terminal Count Port (W) Motor Control Port
-	AM_RANGE(0xfa, 0xfb) AM_DEVICE("upd765", upd765a_device, map)
-	AM_RANGE(0xfc, 0xff) AM_DEVREADWRITE("d8255_master", i8255_device, read, write)
-ADDRESS_MAP_END
+void spc1000_fdd_exp_device::sd725_io(address_map &map)
+{
+	map.unmap_value_high();
+	map.global_mask(0xff);
+	map(0xf8, 0xf8).rw(FUNC(spc1000_fdd_exp_device::tc_r), FUNC(spc1000_fdd_exp_device::control_w)); // (R) Terminal Count Port (W) Motor Control Port
+	map(0xfa, 0xfb).m("upd765", FUNC(upd765a_device::map));
+	map(0xfc, 0xff).rw("d8255_master", FUNC(i8255_device::read), FUNC(i8255_device::write));
+}
 
-static SLOT_INTERFACE_START( sd725_floppies )
-	SLOT_INTERFACE("sd320", EPSON_SD_320)
-SLOT_INTERFACE_END
+static void sd725_floppies(device_slot_interface &device)
+{
+	device.option_add("sd320", EPSON_SD_320);
+}
 
 //-------------------------------------------------
 //  device_add_mconfig
 //-------------------------------------------------
 
-MACHINE_CONFIG_MEMBER( spc1000_fdd_exp_device::device_add_mconfig )
+void spc1000_fdd_exp_device::device_add_mconfig(machine_config &config)
+{
+	// Z80A sub CPU (5 inch floppy drive)
+	Z80(config, m_cpu, 8_MHz_XTAL / 2);
+	m_cpu->set_addrmap(AS_PROGRAM, &spc1000_fdd_exp_device::sd725_mem);
+	m_cpu->set_addrmap(AS_IO, &spc1000_fdd_exp_device::sd725_io);
+	m_cpu->set_irq_acknowledge_callback(NAME([](device_t &, int) { return 0xcf; })); // vector to 0008 in IM 0
 
-	// sub CPU (5 inch floppy drive)
-	MCFG_CPU_ADD("fdccpu", Z80, XTAL_4MHz)
-	MCFG_CPU_PROGRAM_MAP(sd725_mem)
-	MCFG_CPU_IO_MAP(sd725_io)
-
-	MCFG_DEVICE_ADD("d8255_master", I8255, 0)
-	MCFG_I8255_IN_PORTA_CB(DEVREAD8("d8255_master", i8255_device, pb_r))
-	MCFG_I8255_IN_PORTB_CB(DEVREAD8("d8255_master", i8255_device, pa_r))
-	MCFG_I8255_OUT_PORTB_CB(WRITE8(spc1000_fdd_exp_device, i8255_b_w))
-	MCFG_I8255_IN_PORTC_CB(READ8(spc1000_fdd_exp_device, i8255_c_r))
-	MCFG_I8255_OUT_PORTC_CB(WRITE8(spc1000_fdd_exp_device, i8255_c_w))
+	I8255(config, m_ppi);
+	m_ppi->in_pa_callback().set(m_ppi, FUNC(i8255_device::pb_r));
+	m_ppi->in_pb_callback().set(m_ppi, FUNC(i8255_device::pa_r));
+	m_ppi->out_pb_callback().set(FUNC(spc1000_fdd_exp_device::i8255_b_w));
+	m_ppi->in_pc_callback().set(FUNC(spc1000_fdd_exp_device::i8255_c_r));
+	m_ppi->out_pc_callback().set(FUNC(spc1000_fdd_exp_device::i8255_c_w));
 
 	// floppy disk controller
-	MCFG_UPD765A_ADD("upd765", true, true)
-	MCFG_UPD765_INTRQ_CALLBACK(INPUTLINE("fdccpu", INPUT_LINE_IRQ0))
+	UPD765A(config, m_fdc, 8_MHz_XTAL / 2, true, true);
+	m_fdc->intrq_wr_callback().set_inputline(m_cpu, INPUT_LINE_IRQ0);
 
 	// floppy drives
-	MCFG_FLOPPY_DRIVE_ADD("upd765:0", sd725_floppies, "sd320", floppy_image_device::default_floppy_formats)
-	MCFG_FLOPPY_DRIVE_ADD("upd765:1", sd725_floppies, "sd320", floppy_image_device::default_floppy_formats)
-MACHINE_CONFIG_END
+	FLOPPY_CONNECTOR(config, "upd765:0", sd725_floppies, "sd320", floppy_image_device::default_mfm_floppy_formats);
+	FLOPPY_CONNECTOR(config, "upd765:1", sd725_floppies, "sd320", floppy_image_device::default_mfm_floppy_formats);
+}
 
 ROM_START( spc1000_fdd )
-	ROM_REGION(0x10000, "fdccpu", 0)
+	ROM_REGION(0x1000, "fdccpu", 0)
 	ROM_LOAD("sd725a.bin", 0x0000, 0x1000, CRC(96ac2eb8) SHA1(8e9d8f63a7fb87af417e95603e71cf537a6e83f1))
 ROM_END
 
@@ -148,8 +143,9 @@ spc1000_fdd_exp_device::spc1000_fdd_exp_device(const machine_config &mconfig, co
 	device_spc1000_card_interface(mconfig, *this),
 	m_cpu(*this, "fdccpu"),
 	m_fdc(*this, "upd765"),
-	m_pio(*this, "d8255_master"),
-	m_fd0(nullptr), m_fd1(nullptr), m_timer_tc(nullptr), m_i8255_0_pc(0), m_i8255_1_pc(0), m_i8255_portb(0)
+	m_ppi(*this, "d8255_master"),
+	m_fd(*this, "upd765:%u", 0U),
+	m_timer_tc(nullptr), m_i8255_0_pc(0), m_i8255_1_pc(0), m_i8255_portb(0)
 {
 }
 
@@ -160,11 +156,7 @@ spc1000_fdd_exp_device::spc1000_fdd_exp_device(const machine_config &mconfig, co
 
 void spc1000_fdd_exp_device::device_start()
 {
-	m_timer_tc = timer_alloc(TIMER_TC);
-	m_timer_tc->adjust(attotime::never);
-
-	m_fd0 = subdevice<floppy_connector>("upd765:0")->get_device();
-	m_fd1 = subdevice<floppy_connector>("upd765:1")->get_device();
+	m_timer_tc = timer_alloc(FUNC(spc1000_fdd_exp_device::tc_off), this);
 }
 
 //-------------------------------------------------
@@ -173,31 +165,21 @@ void spc1000_fdd_exp_device::device_start()
 
 void spc1000_fdd_exp_device::device_reset()
 {
-	m_cpu->set_input_line_vector(0, 0);
-
-	// enable rom (is this really needed? it does not seem necessary for FDD to work)
-	m_cpu->space(AS_PROGRAM).install_rom(0x0000, 0x0fff, 0x2000, memregion("fdccpu")->base());
 }
 
-void spc1000_fdd_exp_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
+TIMER_CALLBACK_MEMBER(spc1000_fdd_exp_device::tc_off)
 {
-	switch (id)
-	{
-		case TIMER_TC:
-			m_fdc->tc_w(false);
-			break;
-	}
+	m_fdc->tc_w(false);
 }
 
 /*-------------------------------------------------
     read
 -------------------------------------------------*/
 
-READ8_MEMBER(spc1000_fdd_exp_device::read)
+uint8_t spc1000_fdd_exp_device::read(offs_t offset)
 {
-//	static int pdata = 0;
-	// this should be m_pio->read on the whole 0x00-0x03 range?
-	if (offset > 3)
+	// this should be m_ppi->read on the whole 0x00-0x03 range?
+	if (offset >= 3)
 		return 0xff;
 	else
 	{
@@ -205,20 +187,11 @@ READ8_MEMBER(spc1000_fdd_exp_device::read)
 		switch (offset)
 		{
 			case 1:
-				data = (m_ext ? m_data1: m_i8255_portb);
-//				if (m_ext)
-//					printf("port 1:   %02x\n", data);
+				data = m_i8255_portb;
 				break;
 			case 2:
 				data = m_i8255_1_pc >> 4;
-//				if (data != pdata)
-//					printf("port r:%02x\n", data);
-//				pdata = data;
 				break;
-			case 3:
-				data = m_data3;
-				//printf("%c", m_data3 > 0 ? '1' : '0');
-				//fflush(stdout);
 		}
 		return data;
 	}
@@ -227,16 +200,16 @@ READ8_MEMBER(spc1000_fdd_exp_device::read)
 //-------------------------------------------------
 //  write
 //-------------------------------------------------
-#if 0
-WRITE8_MEMBER(spc1000_fdd_exp_device::write)
+
+void spc1000_fdd_exp_device::write(offs_t offset, uint8_t data)
 {
-	// this should be m_pio->write on the whole 0x00-0x03 range?
+	// this should be m_ppi->write on the whole 0x00-0x03 range?
 	if (offset < 3)
 	{
 		switch (offset)
 		{
 			case 0:
-				m_pio->write(space, 1, data);
+				m_ppi->write(1, data);
 				break;
 			case 2:
 				m_i8255_0_pc = data;
@@ -244,217 +217,3 @@ WRITE8_MEMBER(spc1000_fdd_exp_device::write)
 		}
 	}
 }
-#else
-WRITE8_MEMBER(spc1000_fdd_exp_device::write)
-{
-	// this should be m_pio->write on the whole 0x00-0x03 range?
-	static int p = 0, q = 0;
-	static int cmd = 0, len;
-	static char buffer[256*256*64], bufcas[256*256*64/8];
-	static int params[10];
-//	static int args[] {0,4,4,0,7,1,1,0,4,4,0,4,4,2,6,6,0,0,0,0,0,2};
-	static int rpi_idx = 0;
-	static char drive[256];
-	static char pattern[256];
-	static char *rpibuf, filenames[256*256*9], filenames2[256*256*9], filename[256];
-	static int q2 = 0, pos = 0, pose = 0, length = 0, num = 0, oldnum = 0;
-	if (offset <= 3) 
-	{
-		switch (offset)
-		{
-			case 0:
-				m_pio->write(space, 1, data);
-				m_data0 = data;
-				break;
-			case 2:
-//				printf("port 2:%02x\n", data);
-				if (m_ext)
-				{
-					switch (data & 0xf0)
-					{
-						case rATN:
-							p = 0;
-							m_ext = 0;
-							m_i8255_1_pc |= wRFD;
-							break;
-						case rDAV:
-							m_i8255_1_pc |= wDAC;
-							printf("*%s:%02x\n", p == 0 ? "cmd" : "data", m_data0);
-							if (p < 10)
-								params[p] = m_data0;
-							switch (params[0])
-							{
-								case RPI_FILES:
-									if (p == 1)
-									{
-										rpi_idx = 0;
-										strcpy(drive, "SD:/");
-										strcpy(pattern, "*.tap;*.cas");
-										rpibuf = drive;											
-									}
-									if (m_data0 == 0)
-									{
-										if (rpibuf == pattern || p == 0)
-										{
-											printf ("RPI_FILES: drive=%s, pattern=%s\n", drive, pattern);
-											DIR *d = opendir(".");
-											struct dirent *dir;
-											len = 0;
-											int len2 = 0;
-											int length = 0;
-											if (d)
-											{
-												while ((dir = readdir(d)) != NULL)
-												{
-													if (strstr(strlwr(dir->d_name), ".tap") || strstr(strlwr(dir->d_name), ".cas") )
-													{
-														printf("%s\n", dir->d_name);
-														strcpy(filenames+len, dir->d_name);
-														strcpy(filenames2+len2, dir->d_name);
-														length = strlen(dir->d_name);
-														len2 += length > 24 ? 24 : length;
-														len  += length;
-														*(filenames+(len++))='\\';
-														*(filenames2+(len2++))='\\';
-													}
-												}
-												closedir(d);
-												strcpy(buffer, filenames2);
-												printf("%s\n", buffer);
-											}
-											q = 0;
-										}
-									}
-									else if (params[p] == '\\')
-									{
-										rpibuf[rpi_idx] = 0;
-										rpi_idx = 0;
-										rpibuf = pattern;
-									}
-									rpibuf[rpi_idx++] = m_data0;
-									break;
-								case RPI_LOAD:
-									if (p == 2)
-									{
-										num = params[2] * 256 + params[1];
-										oldnum = num;
-										pos = 0;
-										while(num--) while(*(filenames+pos++) != '\\');
-										pose = pos; while(*(filenames+pose++) != '\\');
-										pose -= pos;
-										memcpy(filename, filenames+pos, pose);
-										filename[pose-1] = 0;
-										printf("RPI_LOAD: fnum=%d, %s\n", params[2] * 256 + params[1], filename);
-										FILE* fp = fopen(filename, "rb");
-										if (fp)
-										{
-											fseek(fp, 0L, SEEK_END);
-											length = ftell(fp); rewind(fp);
-											fread(buffer, length, 1, fp);
-											if (filename[pose-2] == 's')
-											{
-												memcpy(bufcas, buffer, length);
-												for(int i = 15; i < length; i++)
-												{
-													buffer[i*8]   = ((bufcas[i] >> 7) & 1) + '0';
-													buffer[i*8+1] = ((bufcas[i] >> 6) & 1) + '0';
-													buffer[i*8+2] = ((bufcas[i] >> 5) & 1) + '0';
-													buffer[i*8+3] = ((bufcas[i] >> 4) & 1) + '0';
-													buffer[i*8+4] = ((bufcas[i] >> 3) & 1) + '0';
-													buffer[i*8+5] = ((bufcas[i] >> 2) & 1) + '0';
-													buffer[i*8+6] = ((bufcas[i] >> 1) & 1) + '0';
-													buffer[i*8+7] = ((bufcas[i] >> 0) & 1) + '0';
-												}
-												length = length * 8;
-											}
-											q2=0;
-											while(buffer[q2] != '1') q2++;
-											printf("file %s is opened (%d)\n", filename, length-q2);
-											fflush(stdout);
-										}
-									}
-									break;
-
-							}
-							break;
-						case rRFD: // 0x20 --> 0x01
-							m_i8255_1_pc |= wDAV;
-							break;							
-						case rDAC:
-							if (m_i8255_1_pc & wDAV)
-							{
-								m_i8255_1_pc &= ~wDAV;
-								q++;
-							}
-						case 0:
-							if (m_i8255_1_pc & wDAC)
-							{
-								p++;
-								m_i8255_1_pc &= ~wDAC;
-							}
-							if (m_ext)
-							{
-								if (m_i8255_1_pc & wDAC)
-								{
-									m_i8255_1_pc &= ~wDAC;
-									p++;
-								}
-								else if (m_i8255_1_pc & wDAV)
-								{
-									m_data1 = buffer[q];
-									//printf("%02x,", m_data1);
-								}
-							}
-					}					
-				}
-				else
-				{
-					m_i8255_0_pc = data;
-					switch (data & 0xf0)
-					{
-						case rATN:
-							p = 0;
-							break;
-						case rDAV:
-							printf("%s:%02x\n", p == 0 ? "cmd" : "data", m_data0);
-							if (p == 0)
-								cmd = m_data0;
-							if (cmd >= 0x20)
-							{
-								m_ext = 1;
-								params[0] = cmd;
-								m_i8255_1_pc |= wDAC;
-								switch (params[0])
-								{
-									case RPI_OLDNUM:
-										buffer[0] = oldnum & 0xff;
-										buffer[1] = oldnum >> 8;
-										q = 0;
-										printf("oldnum = %d\n", oldnum);
-										break;								
-								}
-							}
-							break;
-						case 0:
-							if (m_i8255_1_pc & wDAC)
-							{
-								p++;
-								m_i8255_1_pc &= ~wDAC;
-							}
-					}
-				}
-				break;
-			case 3:
-				if (data == 0)
-					m_data3 = (length > q2 ? 0xff : 0);
-				else
-				{
-					m_data3 = (buffer[q2++] > '0' ? 1 : 0);
-					//printf("%c", m_data3+'0');
-				}
-						
-		}
-	}
-	fflush(stdout);
-}
-#endif

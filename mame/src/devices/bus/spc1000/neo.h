@@ -1,25 +1,25 @@
 // license:BSD-3-Clause
-// copyright-holders:Fabio Priuli
-#ifndef MAME_BUS_SPC1000_VDP_H
-#define MAME_BUS_SPC1000_VDP_H
+// copyright-holders:Miso Kim meeso.kim@gmail.com
+#ifndef MAME_BUS_SPC1000_NEO_H
+#define MAME_BUS_SPC1000_NEO_H
 
 #pragma once
 
 #include "exp.h"
-#include "video/tms9928a.h"
 
 
+class SpcBox;
 //**************************************************************************
 //  TYPE DEFINITIONS
 //**************************************************************************
 
-// ======================> spc1000_vdp_exp_device
+// ======================> spc1000_neo_exp_device
 
-class spc1000_vdp_exp_device : public device_t, public device_spc1000_card_interface
+class spc1000_neo_exp_device : public device_t, public device_spc1000_card_interface
 {
 public:
 	// construction/destruction
-	spc1000_vdp_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
+	spc1000_neo_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
 protected:
 	// device-level overrides
@@ -30,15 +30,16 @@ protected:
 	virtual uint8_t read(offs_t offset) override;
 	virtual void write(offs_t offset, uint8_t data) override;
 
-	DECLARE_WRITE_LINE_MEMBER(vdp_interrupt);
+	// DECLARE_WRITE_LINE_MEMBER(vdp_interrupt);
 
 private:
+	SpcBox *sbox;
 	// internal state
-	required_device<tms9928a_device>   m_vdp;
+	// required_device<tms9928a_device>   m_vdp;
 };
 
 
 // device type definition
-DECLARE_DEVICE_TYPE(SPC1000_VDP_EXP, spc1000_vdp_exp_device)
+DECLARE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device)
 
-#endif // MAME_BUS_SPC1000_VDP_H
+#endif // MAME_BUS_SPC1000_NEO_H
