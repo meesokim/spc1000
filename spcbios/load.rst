@@ -1,4 +1,4 @@
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 1.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 1.
 Hexadecimal [16-Bits]
 
 
@@ -17,7 +17,7 @@ Hexadecimal [16-Bits]
                              12 	.area   PSEG
                              13     .area  _HEADER  (ABS)
    0104                      14 	.org  0x0104
-   0104 00 00 00 00 00 00    15 	.db  0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,0
+   0104 00 00 00 00 00 00    15 	.db  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
         00 00 00 00 00 00
         00 00 00 00
                              16 
@@ -58,7 +58,7 @@ Hexadecimal [16-Bits]
    0136 C5            [11]   51 	PUSH	BC
    0137 E5            [11]   52 	PUSH	HL
    0138 16 D2         [ 7]   53 	LD	D,#0xD2
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 2.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 2.
 Hexadecimal [16-Bits]
 
 
@@ -76,7 +76,7 @@ Hexadecimal [16-Bits]
    014C D5            [11]   64 CLOAD:	PUSH	DE
    014D C5            [11]   65 	PUSH	BC
    014E E5            [11]   66 	PUSH	HL
-   014F 26 02         [ 7]   67 	LD	H,#0x02		;¿ø·¡°ªÀº 002h - ¼Ò½º ¼öÁ¤
+   014F 26 02         [ 7]   67 	LD	H,#0x02		;ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 002h - ï¿½Ò½ï¿½ ï¿½ï¿½ï¿½ï¿½
                              68 ;
    0151                      69 CLOAD7: 
    0151 01 03 C0      [10]   70 	LD	BC,#0x0C003
@@ -118,7 +118,7 @@ Hexadecimal [16-Bits]
    0187 BD            [ 4]  106 	CP	L
    0188 C2 96 01      [10]  107 	JP	NZ,CLOAD2
    018B 7B            [ 4]  108 	LD	A,E
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 3.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 3.
 Hexadecimal [16-Bits]
 
 
@@ -178,7 +178,7 @@ Hexadecimal [16-Bits]
    01E3 26 02         [ 7]  161 	LD	H,#0x02
                             162 ;
    01E5                     163 MVRFYN: 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 4.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 4.
 Hexadecimal [16-Bits]
 
 
@@ -238,7 +238,7 @@ Hexadecimal [16-Bits]
                             216 ;	IN	A,(1)		;IN A,(4001H)
                             217 ;	AND	080h
                             218 ;	JP	NZ,MVRFY4
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 5.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 5.
 Hexadecimal [16-Bits]
 
 
@@ -298,7 +298,7 @@ Hexadecimal [16-Bits]
    0284 D1            [10]  271 	POP	DE
    0285 C1            [10]  272 	POP	BC
    0286 C9            [10]  273 	RET
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 6.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 6.
 Hexadecimal [16-Bits]
 
 
@@ -358,7 +358,7 @@ Hexadecimal [16-Bits]
                             326 ;
                             327 
                             328 ;MOTON:	PUSH	BC
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 7.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 7.
 Hexadecimal [16-Bits]
 
 
@@ -418,7 +418,7 @@ Hexadecimal [16-Bits]
                             381 ;MOTCH:	PUSH	AF
                             382 ;	PUSH	BC
                             383 ;	PUSH	DE
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 8.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 8.
 Hexadecimal [16-Bits]
 
 
@@ -478,7 +478,7 @@ Hexadecimal [16-Bits]
    02D6 FB            [ 4]  436 	ei
    02D7 21 00 FF      [10]  437 	LD hl, #0xFF00
    02DA 22 49 7A      [16]  438 	LD  (MEMMAX),HL
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 9.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 9.
 Hexadecimal [16-Bits]
 
 
@@ -526,7 +526,7 @@ Hexadecimal [16-Bits]
    0375 57 52 49 54 49 4E   479 	.ascii	'WRITING '
         47 20
    037D 00                  480 	.db	0
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 10.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 10.
 Hexadecimal [16-Bits]
 
 Symbol Table
@@ -553,7 +553,7 @@ Symbol Table
   8 _load      02C7 R   |   8 _pload     02C1 R   |   8 bload2     02FF R
   8 brun       0311 R
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80), page 11.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next), page 11.
 Hexadecimal [16-Bits]
 
 Area Table

@@ -12,7 +12,7 @@
 	.area   PSEG
     .area  _HEADER  (ABS)
 	.org  0x0104
-	.db  0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,0
+	.db  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
 
 FSAVE  =  0x0080	
 CKSUM  =  0x039e
@@ -64,7 +64,7 @@ MLOAD:	DI
 CLOAD:	PUSH	DE
 	PUSH	BC
 	PUSH	HL
-	LD	H,#0x02		;¿ø·¡°ªÀº 002h - ¼Ò½º ¼öÁ¤
+	LD	H,#0x02		;ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 002h - ï¿½Ò½ï¿½ ï¿½ï¿½ï¿½ï¿½
 ;
 CLOAD7: 
 	LD	BC,#0x0C003

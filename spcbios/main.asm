@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ANSI-C Compiler
-; Version 4.0.0 #11528 (Linux)
+; Version 3.8.0 #10562 (Linux)
 ;--------------------------------------------------------
 	.module main
 	.optsdcc -mz80
@@ -100,12 +100,11 @@ _main::
 	pop	af
 	pop	af
 ;main.c:33: num = pioldnum();
-	ld	-3 (ix), l
+	ld	-2 (ix), l
 	call	_pioldnum
 	pop	bc
 ;main.c:35: p = num / PAGE;
-	xor	a, a
-	ld	-2 (ix), a
+	ld	-1 (ix), #0x00
 ;main.c:36: c = num - PAGE * p;
 	xor	a, a
 	ld	e, a
@@ -114,7 +113,7 @@ _main::
 	add	a, a
 	add	a, a
 	neg
-	ld	-1 (ix), a
+	ld	-3 (ix), a
 ;main.c:37: while(1)
 00122$:
 ;main.c:39: gotoxy(0,2);
@@ -129,8 +128,8 @@ _main::
 	pop	af
 	pop	bc
 ;main.c:40: if (p == l) {
-	ld	a, -3 (ix)
-	sub	a, -2 (ix)
+	ld	a, -2 (ix)
+	sub	a, -1 (ix)
 	jr	NZ,00104$
 ;main.c:41: pg = t % PAGE - 1;
 	push	bc
@@ -140,15 +139,15 @@ _main::
 	call	__modsint
 	pop	af
 	pop	af
-	pop	bc
 	ld	e, l
+	pop	bc
 	dec	e
 ;main.c:42: if (c > pg)
 	ld	a, e
-	sub	a, -1 (ix)
+	sub	a, -3 (ix)
 	jr	NC,00105$
 ;main.c:43: c = pg;
-	ld	-1 (ix), e
+	ld	-3 (ix), e
 	jr	00105$
 00104$:
 ;main.c:46: pg = PAGE - 1;
@@ -157,8 +156,8 @@ _main::
 ;main.c:47: listdir(p, c);
 	push	bc
 	push	de
-	ld	h, -1 (ix)
-	ld	l, -2 (ix)
+	ld	h, -3 (ix)
+	ld	l, -1 (ix)
 	push	hl
 	call	_listdir
 	ld	hl, #___str_2
@@ -168,13 +167,16 @@ _main::
 	pop	de
 	pop	bc
 ;main.c:50: gotoxy(4,c+2);
-	ld	a, -1 (ix)
-	add	a, #0x02
+	ld	d, -3 (ix)
+	inc	d
+	inc	d
 	push	bc
 	push	de
-	ld	d,a
-	ld	e,#0x04
 	push	de
+	inc	sp
+	ld	a, #0x04
+	push	af
+	inc	sp
 	call	_gotoxy
 	pop	af
 	call	_getchar
@@ -196,47 +198,47 @@ _main::
 ;main.c:54: case 0x1d:
 00106$:
 ;main.c:55: if (p > 0)
-	ld	a, -2 (ix)
+	ld	a, -1 (ix)
 	or	a, a
 	jr	Z,00122$
 ;main.c:56: p--;
-	dec	-2 (ix)
+	dec	-1 (ix)
 ;main.c:57: break;
 	jp	00122$
 ;main.c:58: case 0x1c:
 00109$:
 ;main.c:59: if (p < l)
-	ld	a, -2 (ix)
-	sub	a, -3 (ix)
+	ld	a, -1 (ix)
+	sub	a, -2 (ix)
 	jp	NC, 00122$
 ;main.c:60: p++;
-	inc	-2 (ix)
+	inc	-1 (ix)
 ;main.c:61: break;
 	jp	00122$
 ;main.c:62: case 0x1e:
 00112$:
 ;main.c:63: if (c > 0)
-	ld	a, -1 (ix)
+	ld	a, -3 (ix)
 	or	a, a
 	jp	Z, 00122$
 ;main.c:64: c--;
-	dec	-1 (ix)
+	dec	-3 (ix)
 ;main.c:65: break;
 	jp	00122$
 ;main.c:66: case 0x1f:
 00115$:
 ;main.c:67: if (c < pg)
-	ld	a, -1 (ix)
+	ld	a, -3 (ix)
 	sub	a, e
 	jp	NC, 00122$
 ;main.c:68: c++;
-	inc	-1 (ix)
+	inc	-3 (ix)
 ;main.c:69: break;
 	jp	00122$
 ;main.c:70: case 0x0d:
 00118$:
 ;main.c:71: run((int)p * PAGE + c);
-	ld	e, -2 (ix)
+	ld	e, -1 (ix)
 	ld	d, #0x00
 	ld	l, e
 	ld	h, d
@@ -244,7 +246,7 @@ _main::
 	add	hl, de
 	add	hl, hl
 	add	hl, hl
-	ld	e, -1 (ix)
+	ld	e, -3 (ix)
 	ld	d, #0x00
 	add	hl, de
 	push	bc
@@ -332,17 +334,20 @@ _run::
 	push	bc
 	call	_strlen
 	pop	af
-	ld	a, #0x20
-	sub	a, l
-	ld	c, a
-	ld	a, #0x00
-	sbc	a, h
-	ld	b, a
-	srl	b
-	rr	c
+	ld	c, l
+	ld	b, h
+	ld	hl, #0x0020
+	cp	a, a
+	sbc	hl, bc
+	srl	h
+	rr	l
+	ld	b, l
 	push	de
-	ld	b, #0x08
+	ld	a, #0x08
+	push	af
+	inc	sp
 	push	bc
+	inc	sp
 	call	_gotoxy
 	ld	hl, #___str_4
 	ex	(sp),hl
@@ -372,7 +377,7 @@ _listdir::
 	push	ix
 	ld	ix,#0
 	add	ix,sp
-	ld	hl, #-6
+	ld	hl, #-7
 	add	hl, sp
 	ld	sp, hl
 ;main.c:93: int i = PAGE * p;
@@ -387,42 +392,36 @@ _listdir::
 	ld	c, l
 	ld	b, h
 ;main.c:96: int s = 0;
-	xor	a, a
-	ld	-2 (ix), a
-	ld	-1 (ix), a
+	ld	-2 (ix), #0x00
+	ld	-1 (ix), #0x00
 ;main.c:97: while(k--) while(data[s++] != 0);
-	ld	de, #_data+0
-	inc	sp
-	inc	sp
-	push	bc
+	ld	-5 (ix), c
+	ld	-4 (ix), b
 00104$:
-	pop	hl
-	push	hl
-	ld	a, -6 (ix)
-	add	a, #0xff
-	ld	-6 (ix), a
-	ld	a, -5 (ix)
-	adc	a, #0xff
-	ld	-5 (ix), a
-	ld	a, h
-	or	a, l
+	ld	e, -5 (ix)
+	ld	d, -4 (ix)
+	ld	l, -5 (ix)
+	ld	h, -4 (ix)
+	dec	hl
+	ld	-5 (ix), l
+	ld	-4 (ix), h
+	ld	a, d
+	or	a, e
 	jr	Z,00106$
-	ld	a, -2 (ix)
-	ld	-4 (ix), a
-	ld	a, -1 (ix)
-	ld	-3 (ix), a
+	ld	e, -2 (ix)
+	ld	d, -1 (ix)
 00101$:
-	ld	l, -4 (ix)
-	ld	h, -3 (ix)
-	inc	-4 (ix)
-	jr	NZ,00166$
-	inc	-3 (ix)
-00166$:
-	ld	a, -4 (ix)
-	ld	-2 (ix), a
-	ld	a, -3 (ix)
-	ld	-1 (ix), a
-	add	hl, de
+	ld	l, e
+	ld	h, d
+	inc	de
+	ld	-2 (ix), e
+	ld	-1 (ix), d
+	ld	a, l
+	add	a, #<(_data)
+	ld	l, a
+	ld	a, h
+	adc	a, #>(_data)
+	ld	h, a
 	ld	a, (hl)
 	or	a, a
 	jr	Z,00104$
@@ -430,12 +429,9 @@ _listdir::
 00106$:
 ;main.c:98: attr_clear();
 	push	bc
-	push	de
 	call	_attr_clear
-	pop	de
 	pop	bc
-	xor	a, a
-	ld	-3 (ix), a
+	ld	-3 (ix), #0x00
 00115$:
 ;main.c:99: for(;j<PAGE;j++)
 	ld	a, -3 (ix)
@@ -444,18 +440,18 @@ _listdir::
 ;main.c:101: if (*(data+s) != 0)
 	ld	a, #<(_data)
 	add	a, -2 (ix)
-	ld	-5 (ix), a
+	ld	-7 (ix), a
 	ld	a, #>(_data)
 	adc	a, -1 (ix)
-	ld	-4 (ix), a
-	ld	l, -5 (ix)
-	ld	h, -4 (ix)
+	ld	-6 (ix), a
+	pop	hl
+	push	hl
 	ld	a, (hl)
 	or	a, a
 	jr	Z,00108$
-;main.c:102: printf("%03d. %-25s\n", i+j, data+s);
-	ld	e, -5 (ix)
-	ld	d, -4 (ix)
+;main.c:102: printf("%03d. %-26s\n", i+j, data+s);
+	pop	de
+	push	de
 	ld	l, -3 (ix)
 	ld	h, #0x00
 	add	hl, bc
@@ -471,7 +467,7 @@ _listdir::
 	pop	bc
 	jr	00124$
 00108$:
-;main.c:104: printf("%-30s\n", " ");
+;main.c:104: printf("%-31s\n", " ");
 	push	bc
 	ld	hl, #___str_7
 	push	hl
@@ -483,21 +479,27 @@ _listdir::
 	pop	bc
 ;main.c:105: while(data[s++] != 0);
 00124$:
+	ld	a, -2 (ix)
+	ld	-7 (ix), a
+	ld	a, -1 (ix)
+	ld	-6 (ix), a
 00110$:
-	ld	a, #<(_data)
-	add	a, -2 (ix)
-	ld	e, a
-	ld	a, #>(_data)
-	adc	a, -1 (ix)
-	ld	d, a
-	inc	-2 (ix)
-	jr	NZ,00167$
-	inc	-1 (ix)
-00167$:
-	ld	a, (de)
+	pop	de
+	push	de
+	inc	-7 (ix)
+	jr	NZ,00166$
+	inc	-6 (ix)
+00166$:
+	ld	hl, #_data
+	add	hl, de
+	ld	a, (hl)
 	or	a, a
 	jr	NZ,00110$
 ;main.c:99: for(;j<PAGE;j++)
+	ld	a, -7 (ix)
+	ld	-2 (ix), a
+	ld	a, -6 (ix)
+	ld	-1 (ix), a
 	inc	-3 (ix)
 	jr	00115$
 00113$:
@@ -523,11 +525,11 @@ _listdir::
 	pop	ix
 	ret
 ___str_5:
-	.ascii "%03d. %-25s"
+	.ascii "%03d. %-26s"
 	.db 0x0a
 	.db 0x00
 ___str_6:
-	.ascii "%-30s"
+	.ascii "%-31s"
 	.db 0x0a
 	.db 0x00
 ___str_7:

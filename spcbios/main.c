@@ -99,9 +99,9 @@ void listdir(uint8 p, uint8 c)
 	for(;j<PAGE;j++)
 	{
 		if (*(data+s) != 0)
-			printf("%03d. %-25s\n", i+j, data+s);
+			printf("%03d. %-26s\n", i+j, data+s);
 		else
-			printf("%-30s\n", " ");
+			printf("%-31s\n", " ");
 		while(data[s++] != 0);
 	}
 	attr_set(1, 0x840+c*32, 32);

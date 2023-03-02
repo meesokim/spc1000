@@ -62,13 +62,13 @@ start::
     call _sd_load
 	ex  de, hl
 	ld  bc, #0x101
-	ld  h, #9
+	ld  h, #8
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
-	ld hl, #0xe110
+	ld hl, #0xe010
 	ld de, #0x114
-	ld bc, #634
+	ld bc, #618
 	ldir
 	call BASICPATCH
 	call GSAVES
