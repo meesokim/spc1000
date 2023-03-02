@@ -20,6 +20,7 @@ class spc1000_neo_exp_device : public device_t, public device_spc1000_card_inter
 public:
 	// construction/destruction
 	spc1000_neo_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
+	// static SpcBox *sbox;
 
 protected:
 	// device-level overrides
@@ -31,13 +32,11 @@ protected:
 	virtual void write(offs_t offset, uint8_t data) override;
 
 	// DECLARE_WRITE_LINE_MEMBER(vdp_interrupt);
-
 private:
-	SpcBox *sbox;
 	// internal state
 	// required_device<tms9928a_device>   m_vdp;
+	SpcBox *sbox = 0;
 };
-
 
 // device type definition
 DECLARE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device)
