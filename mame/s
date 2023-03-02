@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./spc1000 spc1000 -window -resolution 640x480 -skip_gameinfo -ext1 neo -uimodekey F6 $1 $2 $3 $4

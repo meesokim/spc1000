@@ -1,0 +1,3 @@
+#!/bin/bash
+
+make SUBTARGET=spc1000 SOURCES=src/mame/samsung/spc1000.cpp $1 $2 $3 $4

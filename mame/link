@@ -1,0 +1,16 @@
+#!/bin/python3
+
+files = [   'src/mame/samsung/spc1000.cpp',
+            'src/devices/bus/spc1000/neo.h',
+            'src/devices/bus/spc1000/neo.cpp',
+            'src/devices/bus/spc1000/spcbox.h',
+]
+
+import os
+
+home = os.path.expanduser("~")
+for file in files:
+    path = f'{home}/mame/{file}'
+    print(path)
+    os.remove(path)
+    os.system(f'ln -s {home}/spc1000/mame/{file} ~/mame/{file}')
