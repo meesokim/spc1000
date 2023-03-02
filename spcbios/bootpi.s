@@ -62,11 +62,11 @@ start::
     call _sd_load
 	ex  de, hl
 	ld  bc, #0x101
-	ld  h, #8
+	ld  h, #9
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
-	ld hl, #0xe010
+	ld hl, #0xe110
 	ld de, #0x114
 	ld bc, #618
 	ldir
