@@ -83,46 +83,46 @@ void gotoxy(uint8 x, uint8 y)
 	__endasm;
 }
 
-char cas_load(unsigned char *data, int len)
-{
-	data;
-	len;
-	__asm
-	push ix
-	ld ix,#4
-	add ix,sp
-	ld l,(ix)
-	ld h,1(ix)
-	ld (MTADRS), hl
-	ld l,2(ix)
-	ld h,3(ix)
-	ld (MTBYTE), hl
-	call _MLOAD
-	ld (_io_val), a
-	pop ix
-	__endasm;
-	return io_val;
-}
+// char cas_load(unsigned char *data, int len)
+// {
+// 	data;
+// 	len;
+// 	__asm
+// 	push ix
+// 	ld ix,#4
+// 	add ix,sp
+// 	ld l,(ix)
+// 	ld h,1(ix)
+// 	ld (MTADRS), hl
+// 	ld l,2(ix)
+// 	ld h,3(ix)
+// 	ld (MTBYTE), hl
+// 	call _MLOAD
+// 	ld (_io_val), a
+// 	pop ix
+// 	__endasm;
+// 	return io_val;
+// }
 
-void cas_save(unsigned char *data, int len)
-{
-	data;
-	len;
-	__asm
-	push ix
-	ld ix,#4
-	add ix,sp
-	ld l,(ix)
-	ld h,1(ix)
-	ld (MTADRS), hl
-	ld l,2(ix)
-	ld h,3(ix)
-	ld (MTBYTE), hl
-	call _MSAVE
-	pop ix
-	__endasm;
-	return;	
-}
+// void cas_save(unsigned char *data, int len)
+// {
+// 	data;
+// 	len;
+// 	__asm
+// 	push ix
+// 	ld ix,#4
+// 	add ix,sp
+// 	ld l,(ix)
+// 	ld h,1(ix)
+// 	ld (MTADRS), hl
+// 	ld l,2(ix)
+// 	ld h,3(ix)
+// 	ld (MTBYTE), hl
+// 	call _MSAVE
+// 	pop ix
+// 	__endasm;
+// 	return;	
+// }
 
 void cls2()
 {

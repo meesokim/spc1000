@@ -138,6 +138,13 @@ public:
     const char *filelist() {
         return flist;
     }
+
+    void updateTime() {
+#ifdef TIMEGETTIME
+            ttime = timeGetTime();
+#endif
+    }
+
     void prev() {
         if (len) {
             if (fileno > 0)
@@ -149,7 +156,7 @@ public:
                 fclose(rfp);
             rfp = 0;
             fsize = 0;
-            // ttime = timeGetTime();
+            updateTime();
             // printf("%d.%s\n", fileno, tapename);
         }
     }
@@ -165,9 +172,13 @@ public:
                 fclose(rfp);
             rfp = 0;
             fsize = 0;
-            // ttime = timeGetTime();
+            updateTime();
             // printf("%d.%s\n", fileno, tapename);
         }
+    }
+
+    const char *getTapeName() {
+        return tapename;
     }
 
 	static char *
@@ -273,7 +284,7 @@ public:
             if (zpos > fsize) {
                 load();
             } else {
-                // ttime = timeGetTime();
+                updateTime();
                 if (cas) {
                     c = '0' + ((data[zpos] >> (7 - bpos++)) & 1);
                     if (bpos > 7)
@@ -290,10 +301,11 @@ public:
         return c;
     }
 
-    // bool time() {
-    //     return timeGetTime() - ttime < 3000;
-    // }
-
+#ifdef TIMEGETTIME        
+    bool time() {
+        return timeGetTime() - ttime < 3000;
+    }
+#endif
     void putc(char c) {
 
     }

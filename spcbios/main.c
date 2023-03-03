@@ -4,6 +4,9 @@
 
 unsigned char data[0x800];
 
+typedef void (*funcptr)(int num);
+#define pload2 ((funcptr)0x312)
+
 void cas2dsk();
 void dsk2cas();
 void dsk2dsk();
@@ -31,7 +34,6 @@ void main(void)
 	t = pifiles("*.tap");
 	l = (t / PAGE);
 	num = pioldnum();
-	num = 0;
 	p = num / PAGE;
 	c = num - PAGE * p;
 	while(1)
@@ -46,7 +48,6 @@ void main(void)
 			pg = PAGE - 1;
 		listdir(p, c);
 		printf("-------------------------------       meeso.kim@gmail.com");
-		// while(1);
 		gotoxy(4,c+2);
 		ch = getchar();
 		switch (ch)

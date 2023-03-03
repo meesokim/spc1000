@@ -34,7 +34,7 @@ int main (int argc, char **argv)
     fseek(inFile, 0, SEEK_END);
     i = ftell(inFile);
     fseek(inFile, 0, SEEK_SET);
-    i = i + (256 - i % 256);
+    i = i + (16 - i % 16);
   } else {
     i = atoi(argv[2]);
   }

@@ -11,11 +11,17 @@
 	.area   XSEG
 	.area   PSEG
     .area  _HEADER  (ABS)
-	.org  0x0104
-	.db  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
+	.org  0x0114
+;	.db  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
 
 FSAVE  =  0x0080	
 CKSUM  =  0x039e
+PLOAD_FAKE = 0x02C1
+
+RPI_FILES	= 0x20
+RPI_LOAD	= 0x21
+RPI_SAVE	= 0x22
+RPI_OLDNUM	= 0x23
 
 FILMOD =  0x1396
 FILNAM =  0x1397
@@ -26,7 +32,6 @@ PROTCT =  0x13ae
 CKSMF1 =  0x11e3
 CKSMF2 =  0x11e5	
 MKLEN  =  0x11e7
-	
 	
 FLOAD:	DI
 	PUSH	DE
@@ -474,6 +479,54 @@ brun:
 ;	LD	(#NRLDED),A
 ;	CALL	#BUFCLR
 ;	jp	NMESOK
+pload2:
+	push ix
+	ld ix,#4
+	add ix,sp	
+	ld l,(ix)
+	ld h,1(ix)
+;	call _rpi_load	
+	ld d, #RPI_LOAD
+	call sendcmd
+	ld d, l
+	call senddata
+	ld d, h
+	call senddata
+	jp PLOAD_FAKE 
+sendcmd:
+    LD	B,#0xC0         	
+    LD	C,#0x02         	
+    LD	A,#0x80         	
+    OUT	(C),A         	
+senddata:	
+    LD	B,#0xC0         	
+    LD	C,#0x02         	
+CHKRFD1:   	
+	IN	A,(C)          	
+    AND	#0x02          	
+    JR	Z,CHKRFD1      	
+    LD	C,#0x02         	
+    XOR	A             	
+    OUT	(C),A         	
+    LD	C,#0x00         	
+    OUT	(C),D         	
+    LD	C,#0x02         	
+    LD	A,#0x10         	
+    OUT	(C),A         	
+    LD	C,#0x02         
+CHKDAC2:   	
+	IN	A,(C)   
+    AND	#0x04          	
+    JR	Z,CHKDAC2      	
+    LD	C,#0x02         
+    XOR	A             
+    OUT	(C),A         	
+    LD	C,#0x02         
+CHKDAC3:   	
+	IN	A,(C)          
+    AND	#0x04          	
+    JR	NZ,CHKDAC3     	
+    RET    
 	.org 0x0375
 WRITEM: 
 	.ascii	'WRITING '
