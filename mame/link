@@ -4,6 +4,7 @@ files = [   'src/mame/samsung/spc1000.cpp',
             'src/devices/bus/spc1000/neo.h',
             'src/devices/bus/spc1000/neo.cpp',
             'src/devices/bus/spc1000/spcbox.h',
+            'scripts/src/bus.lua',
 ]
 
 import os

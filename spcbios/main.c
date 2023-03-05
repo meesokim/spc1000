@@ -29,7 +29,7 @@ void main(void)
 	num = 0;
 	memset(data, 0, sizeof(data));
 	cls();
-	printf(" RPI extension box for SPC1000\n-------------------------------");
+	printf(" SPC-1000 EXTERNAL TAPE LOADER\n\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b");
 	ch = 0;
 	t = pifiles("*.tap");
 	l = (t / PAGE);
@@ -41,13 +41,13 @@ void main(void)
 		gotoxy(0,2);
 		if (p == l) {
 			pg = t % PAGE - 1;
-			if (c > pg)
-				c = pg;
 		}
 		else
 			pg = PAGE - 1;
+		if (c > pg)
+			c = pg;
 		listdir(p, c);
-		printf("-------------------------------       meeso.kim@gmail.com");
+		printf("\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b\x8b      meeso.kim@gmail.com");
 		gotoxy(4,c+2);
 		ch = getchar();
 		switch (ch)
@@ -63,10 +63,18 @@ void main(void)
 			case 0x1e:
 				if (c > 0)
 					c--;
+				else if (p > 0) {
+					p--;
+					c = PAGE;
+				}
 				break;
 			case 0x1f:
 				if (c < pg)
 					c++;
+				else if (p < l) {
+					p++;
+					c = 0;
+				}
 				break;
 			case 0x0d:
 				run((int)p * PAGE + c);

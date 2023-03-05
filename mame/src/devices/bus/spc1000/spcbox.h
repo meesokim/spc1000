@@ -120,10 +120,10 @@ public:
 
     void makelist() {
         const char *tmp, *filename;
-        int no = 0;
+        // int no = 0;
         for (auto& file:files) {
             filename = (const char*)file.second;
-            printf("%03d.%s\n", no++, filename);
+            // printf("%03d.%s\n", no++, filename);
             tmp = strchr(filename, '/');
             if (tmp)
                 filename = tmp + 1;
@@ -316,6 +316,11 @@ public:
         }
         return -1;
     }
+
+    int length() {
+        return len;
+    }
+
 };
 
 #define TAPEFILES
@@ -356,7 +361,7 @@ class SpcBox {
 #if 0    
     #include "spc1000.inc"
 #else
-    uint8_t *spc1000_bin;
+    uint8_t spc1000_bin[8192];
 #endif
     bool exe_req = false;
     uint8_t datain, dataout, direct_value, status, cnt;
@@ -395,18 +400,24 @@ class SpcBox {
         pattern = "*.tap";
         cnt = 0;
         initialize();
-        ifstream is( "spc1000.bin", std::ios::binary );
-		is.seekg(0, is.end);
-		int length = (int)is.tellg();
-		is.seekg(0, is.beg);        
-        spc1000_bin = (unsigned char*)malloc(length);
-        printf("spc1000_bin:%ld\n", (long int)spc1000_bin);
-        is.read((char*)spc1000_bin, length);
-		is.close();        
+        FILE *f = fopen("spc1000.bin", "rb");
+        fseek(f, 0, SEEK_END);
+        int length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        fread(spc1000_bin, length, 1, f);
+        fclose(f);
+        f = fopen("number.txt","r");
+        if (f) {
+            fscanf(f, "%d", &oldnum);
+            fclose(f);
+            if (tape.length() < oldnum) {
+                oldnum = tape.length() - 1;
+            }
+        }
     } 
     void initialize() {
         bsize = direct_value = p = q = 0;
-        fdd[0] = (uint8_t *)spc1000_bin;
+        fdd[0] = spc1000_bin;
         status = 0;
         dataout = 0;
     }
@@ -432,7 +443,7 @@ class SpcBox {
     void execute(bool exe_req) {
         if (!exe_req)
             return;
-        // printf("execute\n");
+        // printf("execute:%02x\n", datain);
         switch(params[0]) {
             case SDINIT:
                 buffer[0] = 100;
@@ -458,7 +469,7 @@ class SpcBox {
                     drv = params[2];
                     tracks = params[3];
                     sectors = params[4];												
-                    rsize = 256 * blocks;
+                    rsize = 256 * (blocks+1);
                     memcpy(rdskbuf, fdd[drv]+(tracks * 16 + (sectors - 1))*256, rsize);
                     printf("\n%dbytes (drive:%d, tracks:%d, sectors:%d, blocks:%d)\n", (int) rsize, drv, tracks, sectors, blocks);
                     // cout << cmds[params[0]] << blocks << "," << drv << "," << tracks << "," << sectors << "," << rsize << " executed" << endl;
@@ -486,10 +497,11 @@ class SpcBox {
                     rpi_idx = 0;
                     rpibuf = (uint8_t *)pattern.c_str();
                 } 
-                if (datain == 0)
+                else if (datain == 0)
                 {
                     strcpy((char *)buffer, files());
                     bsize = strlen((char *)buffer) + 1;
+                    // printf("\n%s\n", buffer);
                 }
                 else if (params[p] == '\\')
                 {
@@ -505,6 +517,11 @@ class SpcBox {
                 {
                     oldnum = fno = params[1] + params[2] * 256;
                     printf("num=%d\n", oldnum);
+                    char number[100];
+                    FILE *f = fopen("number.txt","w");
+                    sprintf(number, "%d\n", oldnum);
+                    fwrite(number, strlen(number)+1, 1, f);
+                    fclose(f);
                     load(oldnum);
                 }
                 break;
@@ -529,11 +546,12 @@ class SpcBox {
         string cmd[4] = {"", "GETDATA", "STATUS", "DIRECT"};
         switch (addr) {
             case 0:
-                ret = cnt;
+                ret = 0;
                 break;
             case 1: // get data
                 ret = dataout;
-                // printf("%02x(%c)\n", ret, ret);
+                // if (params[0] >= 0x20) 
+                //     printf("%c", ret);
                 break;
             case 2: // status
                 ret = status;
@@ -579,7 +597,7 @@ class SpcBox {
                 // if (q < bsize - 1) {
 #ifdef TAPEFILES
                     direct_value = tape.getc() - '0';
-                    printf("%c", direct_value + '0');
+                    // printf("%c", direct_value + '0');
 #else
                     direct_value = 0;
 #endif

@@ -56,10 +56,10 @@ $(error Unable to detect TARGETOS from uname -a: $(UNAME))
 endif
 
 SRC1  = main.c iocs.c  		
-SRC2  = sd725.s crt0spc.s 
+SRC2  = crt0spc.s 
 SRC3  = bootpi.s
 SRC4  = makesize.c
-SRC5  = load.s
+SRC5  = loading.s
 		
 OBJ1	= $(SRC1:.c=.rel)
 OBJ2	= $(SRC2:.s=.rel)
@@ -82,23 +82,25 @@ CFLAGS	= -mz80
 CFLAGS3 = -I.
 LDFLAGS	= -mz80 --code-loc 0xcc00 --stack-auto --data-loc 0xe400 --no-std-crt0 --code-size 0x1400 
 LDFLAGS3 = 
-all: load makesize $(NAME) $(BOOT) spc1000 
+all: loading makesize $(NAME) $(BOOT) spc1000 
 
-load: $(OBJ5)
+loading: $(OBJ5)
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
 	hex2bin $@.ihex
+	./makesize $@.bin
 
 $(NAME): $(OBJ)
 	$(CC1) $^ $(LDFLAGS) -o $@.ihex
 	hex2bin $@.ihex
-	./makesize $@.bin > $@-.bin
-	mv $@-.bin $@.bin
+	./makesize $@.bin
+
 $(BOOT): $(OBJ3)	
 	$(CC1) $^ $(LDFLAGS1) -o $@.ihex
 	hex2bin $@.ihex
-	./makesize $@.bin 256 > boot.bin
+	./makesize $@.bin 256
+
 spc1000: $(NAME) $(BOOT)
-	cat boot.bin $(NAME).bin load.bin > $@.bin
+	cat bootpi.bin $(NAME).bin loading.bin > $@.bin
 	yazd --addr:0xcb00 -lst spc1000.bin > spc1000.lst
 	$(eval V := $(shell ps | grep mame | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//'))
 # if [ "$V" \> "" ]; then kill -9 $V; sleep 1; fi

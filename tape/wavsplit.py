@@ -25,9 +25,10 @@ if __name__ == '__main__':
     print ("frame rates = ", framerate)
     print ("channels = ", nchannels)
     print ("nframes = ", nframes)
+    print ("play time = ", time.strftime('%H:%M:%S.', time.gmtime(nframes/framerate)) )
     #wf2.setparams((1, sampwidth, framerate, nframes, comptype, compname))
     nosound = 0
-    frms = framerate / 10
+    frms = int(framerate / 10)
     starttime = -1
     splitno = 0
     wf2 = None
@@ -43,29 +44,25 @@ if __name__ == '__main__':
         if len(frames) == 0:
             break
 #        print (len(frames))
-        msdata = np.array(struct.unpack('h'*(len(frames)/2), frames))
+        # msdata = np.array(struct.unpack('h'*(len(frames)/2), frames))
         if nchannels > 1:
             lframes = msdata[::2]
             rframes = msdata[1::2]
             msdata = lframes/2 + rframes/2
         if sampwidth == 2:    
-            msdata = np.array(struct.unpack('h'*(len(frames)/2), frames))
-        else:
+            msdata = np.array(struct.unpack('h'*int(len(frames)/2), frames))
+        elif sampwidth == 1:
             msdata = (128 - np.array(struct.unpack('B'*(len(frames)), frames))) - 2            
-        noise = int(np.average(np.abs(msdata)))
+        noise = int(np.std(msdata))
         #print (noise, ' ',end='')
         mx = len(np.where(msdata > 4))
-        if noise < 10 * 256:
+        if noise < 0.05 * 256 ** sampwidth:
             if nosound == 0:
                 starttime = wf.tell()
                 print ("no sound from:", tt.join(' ' + ms), noise)
                 nosound = 1
                 if wf2 is not None:
                     wf2.writeframes(frames)
-                #endtime = moment
-                #splitno += 1
-                #if starttime > -1:
-                #   writewave(wf, starttime, endtime, "%s%d" % (filename,  splitno))
             else:
                 noise0 = noise
         elif nosound == 1:
@@ -89,6 +86,7 @@ if __name__ == '__main__':
             noise0 = noise;
             if wf2 is not None:
                 wf2.writeframes(frames)
-                
+        # print(nosound, noise, tt, end="\r")
+        # print(noise,end=",")
      #       print ("sound:", tt.join(' ' + ms), noise, )
         #wf2.writeframes(struct.pack('h'*(len(monoframes)), *monoframes))

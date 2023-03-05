@@ -133,7 +133,17 @@ def generate_tap(wavefile):
 #            frames = frames[0:][::2]
         #    del frames[samplewidth::1]    # Delete the left stereo channel    
         #    del frames[samplewidth::2]
-        if samplewidth == 2:
+        if samplewidth == 3:
+            import array
+            b = array.array('B', frames)
+            arr = [b[i+2] << 8 | b[i + 1] for i in range(0, len(b), 3)]
+            # arr = [b[i] | b[i + 1] << 8 | b[i + 2] << 16 for i in range(0, len(b), 3)]
+            # for ix in range(0, len(frames), 3):
+            #     print(frames[ix:ix+3]+'\0')
+            #     arr.append(struct.unpack('<i', frames[ix:ix+3]+'\0'))
+            msdata = np.append(msdata,np.array(arr))
+            # msdata = np.append(msdata,np.array(struct.unpack('<I'*(int(len(frames)/3))+'\0', frames)) /100.0)
+        elif samplewidth == 2:
             msdata = np.append(msdata,np.array(struct.unpack('h'*(int(len(frames)/2)), frames)) /100.0)
         else:
             msdata = np.append(msdata,(128 - np.array(struct.unpack('B'*(int(len(frames))), frames))) / 10.0)

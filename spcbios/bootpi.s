@@ -57,19 +57,15 @@ start::
 	xor a
 	ld  l, a
     ld  bc, #0x002
-    ld  h,  #15
+    ld  h,  #21
     ld  de, #BIOS
-    call _sd_load
-	ex  de, hl
-	ld  bc, #0x101
-	ld  h, #9
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
-	ld hl, #0xDF70
-	ld de, #0x114
-	ld bc, #618
-	ldir
+    ld hl, #0x260
+    ld bc, #0x105
+    ld de, #0x114
+    call _sd_load
 	call BASICPATCH
 	call GSAVES
 	xor a
@@ -96,7 +92,7 @@ _sd_load:
     call sendcmd
     pop hl
     pop bc
-    ld  c,#0
+    ; ld  c,#0
 RDLOOPx:
     call recvdata
     ld (hl), d
@@ -175,19 +171,19 @@ CHKDAV1:
 BASICPATCH:	
 	LD  B,#0x09D                          ;ff0d  06 9d          531   2687 ; 1. replace 7c4e --> 7c9d from address 04300h to 01500h  
     LD  HL,#0x04300                       ;ff0f  21 00 43       532   2688 ;
-L0FF0Ah:    LD  A,(HL)                  ;ff12  7e             533   2689 ;
-    CP  #0x7C                            ;ff13  fe 7c          534   2690 ;
-    JR  NZ,L0FF16h                      ;ff15  20 07          535   2691 ; 
-    DEC HL                              ;ff17  2b             536   2692 ;
-    LD  A,(HL)                          ;ff18  7e             537   2693 ;
-    CP  #0x4E                            ;ff19  fe 4e          538   2694 ;
-    JR  NZ,L0FF16h                      ;ff1b  20 01          539   2695 ; 
-    LD  (HL),B                          ;ff1d  70             540   2696 ;
-L0FF16h:    DEC HL                      ;ff1e  2b             541   2697 ;
-    LD  A,H                             ;ff1f  7c             542   2698 ;
-    CP  #0x15                            ;ff20  fe 15          543   2699 ;
-    JR  NC,L0FF0Ah                      ;ff22  30 ee          544   2700 ;
-    LD  HL,#0x7A3B                       ;ff24  21 3b 7a       545   2701 ; 2. put data 09dh at address 7a3bh
-    LD  (HL),B                          ;ff27  70             546   2702 ;
+L0FF0Ah:    LD  A,(HL)                    ;ff12  7e             533   2689 ;
+    CP  #0x7C                             ;ff13  fe 7c          534   2690 ;
+    JR  NZ,L0FF16h                        ;ff15  20 07          535   2691 ; 
+    DEC HL                                ;ff17  2b             536   2692 ;
+    LD  A,(HL)                            ;ff18  7e             537   2693 ;
+    CP  #0x4E                             ;ff19  fe 4e          538   2694 ;
+    JR  NZ,L0FF16h                        ;ff1b  20 01          539   2695 ; 
+    LD  (HL),B                            ;ff1d  70             540   2696 ;
+L0FF16h:    DEC HL                        ;ff1e  2b             541   2697 ;
+    LD  A,H                               ;ff1f  7c             542   2698 ;
+    CP  #0x15                             ;ff20  fe 15          543   2699 ;
+    JR  NC,L0FF0Ah                        ;ff22  30 ee          544   2700 ;
+    LD  HL,#0x7A3B                        ;ff24  21 3b 7a       545   2701 ; 2. put data 09dh at address 7a3bh
+    LD  (HL),B                            ;ff27  70             546   2702 ;
 	RET
 

@@ -45,7 +45,8 @@ if __name__=='__main__':
                 b = []
                 cnt = 0
                 for ix in range(0, 130):
-                    binstr = data[begin+ix*9:begin+ix*9+9]
+                    s = begin+ix*9
+                    binstr = data[s:s+9]
                     # print(binstr,end='')
                     if binstr[-1] == '1':
                         c = int(binstr[:8], 2)
@@ -54,9 +55,10 @@ if __name__=='__main__':
                             cnt += cntbit(c)                       
                         b.append(c)
                     else:
-                        print()
-                        print(ix, binstr)
-                        sys.exit()
+                        b.append(c)
+                        print(s)
+                        print(ix, data[s-10:s+20])
+                        # sys.exit()
                 print()
                 # printhex(b, 16)
                 f = unpack('<b17sHHHH102b', bytes(b[:-2])) + unpack('>H', bytes(b[-2:]))
@@ -74,7 +76,8 @@ if __name__=='__main__':
                     b = []
                     size = (f[2]+2)
                     for ix in range(0, 9 * size, 9):
-                        binstr = data[begin+ix:begin+ix+9]
+                        s = begin+ix
+                        binstr = data[s:s+9]
                         if binstr[-1] == '1':
                             c = int(binstr[:8], 2)
                             if ix < f[2]:
@@ -82,7 +85,7 @@ if __name__=='__main__':
                                 # print(cnt,end=',')                       
                             b.append(c)
                         else:
-                            print()
+                            print(s)
                             print(ix, int(ix/9), binstr)                                
                             sys.exit()
                     printhex(b[-20:], 20)
