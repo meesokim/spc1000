@@ -58,8 +58,11 @@ spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, co
 	: device_t(mconfig, SPC1000_NEO_EXP, tag, owner, clock)
 	, device_spc1000_card_interface(mconfig, *this)
 {
-    if (!::sbox)
+    if (!::sbox) {
+		// TapeFiles *tape = new TapeFiles("tap.zip");
+		// tape->initialize(;
         ::sbox = new SpcBox();
+	}
     sbox=::sbox;
 }
 

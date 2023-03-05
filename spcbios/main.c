@@ -2,7 +2,7 @@
 #include <string.h>
 #include "iocs.h"
 
-unsigned char data[0x800];
+unsigned char data[0xa00];
 
 typedef void (*funcptr)(int num);
 #define pload2 ((funcptr)0x312)
