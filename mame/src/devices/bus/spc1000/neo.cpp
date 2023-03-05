@@ -53,15 +53,16 @@ SpcBox *sbox = 0;
 //-------------------------------------------------
 //  spc1000_neo_exp_device - constructor
 //-------------------------------------------------
+#include "tap.h"
 
 spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, SPC1000_NEO_EXP, tag, owner, clock)
 	, device_spc1000_card_interface(mconfig, *this)
 {
     if (!::sbox) {
-		// TapeFiles *tape = new TapeFiles("tap.zip");
-		// tape->initialize(;
-        ::sbox = new SpcBox();
+		TapeFiles *tape = new TapeFiles();
+		tape->initialize((const char*)tap_zip, sizeof(tap_zip));
+        ::sbox = new SpcBox(tape);
 	}
     sbox=::sbox;
 }

@@ -5,7 +5,9 @@
 #include <string>
 #include <unistd.h>
 #include <algorithm>
+#ifndef RASPPI
 #include <dirent.h>
+#endif
 #include "miniz.h"
 using std::map;
 using std::string;
@@ -48,24 +50,33 @@ public:
     int motor;			// Motor Status
     int pulse;			// Motor Pulse (0->1->0) causes motor state to flip
     TapeFiles(const char *file = 0) {
-        printf("TapeFiles created:%s\n", file);
-        memset(ext, 0, sizeof(ext));
-        if (file) {
-            initialize(file);
-        }
+        // printf("TapeFiles created:%s\n", file);
     }
-    void initialize(const char *exp) {
+    void initialize(const char *exp, int blen = 0) {
         strcpy(ext, exp);
-        // printf("file:%s\n", exp);
         fileno = 0;
-        // printf("file:%s\n", ext);
-        // printf("%s:%d\n", ext, size);
-        // printf("strcasestr:%d\n", strcasestr(ext, ".zip"));
-        if (strcasestr(ext, ".zip")) {
+        if (blen) {
+            zipped = true;
+            memset(&Zip, 0, sizeof(mz_zip_archive));
+            mz_zip_reader_init_mem(&Zip, exp, blen, 0);
+            int nums = (int)mz_zip_reader_get_num_files(&Zip);
+            for (len = 0; len < nums; len++) {
+                char *fname = new char[2048];
+                mz_zip_reader_get_filename(&Zip, len, fname, 2047);
+                files.insert(map<int, const char *>::value_type(len, fname));
+                // printf("%03d.%s\n", len, fname);
+            }
+            if (!len) {
+                files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
+            }            
+        }
+        else if (strcasestr(ext, ".zip")) {
             zipped = true;
             memset(&Zip, 0, sizeof(mz_zip_archive));
 #if 1
+#ifndef MINIZ_NO_STDIO
             mz_zip_reader_init_file(&Zip, ext, 0);
+#endif
 #else
             int size = 0;
 #if 0
@@ -112,7 +123,7 @@ public:
         } else {
             zipped = false;
             skipdir = strlen(ext) + 1;
-#ifdef __circle__            
+#ifdef RASPPI            
 			FRESULT fr;     /* Return value */
 			DIR dj;         /* Directory search object */
 			FILINFO fno;    /* File information */
@@ -406,7 +417,7 @@ class SpcBox {
         RPI_SAVE,
         RPI_OLDNUM,
     };
-#if 0    
+#ifdef RASPPI
     #include "spc1000.inc"
 #else
     uint8_t spc1000_bin[8192];
@@ -431,9 +442,9 @@ class SpcBox {
     SpcBox(TapeFiles *tape0 = 0) {
         if (tape0) {
             tape = tape0;
-        } else {
-            tape = new TapeFiles("../spc1000/tape");
-            // tape->initialize("tap.zip");
+        // } else {
+        //     tape = new TapeFiles("../spc1000/tape");
+        //     // tape->initialize("tap.zip");
         }
         m[0] = "CLEAR";
         m[rATN] = "ATN";
@@ -453,13 +464,16 @@ class SpcBox {
         pattern = "*.tap";
         cnt = 0;
         initialize();
+        FILE *f;
+#ifndef RASPPI        
         const char *filename = "spc1000.bin";
-        FILE *f = fopen(filename, "rb");
+        f = fopen(filename, "rb");
         fseek(f, 0, SEEK_END);
         int length = ftell(f);
         fseek(f, 0, SEEK_SET);
         fread(spc1000_bin, length, 1, f);
         fclose(f);
+#endif
         f = fopen("number.txt","r");
         if (f) {
             fscanf(f, "%d", &oldnum);

@@ -58,7 +58,7 @@ def main(argv=None, decl=None):
 
     bin = args[0]
     base, ext = os.path.splitext(bin)
-    if ext not in ('.tsk', '.bin', '.rom'):
+    if ext not in ('.tsk', '.bin', '.rom', '.zip'):
         print ('Expected binary file with extension either .bin or .tsk')
         return 1
         

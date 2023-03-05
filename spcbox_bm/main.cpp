@@ -38,6 +38,7 @@ using namespace std;
 // #define THREAD                    
 
 // #define printf(fmt, ...) (0)
+#include "tap.h"
 #include "spcbox.h"
 
 extern "C"
@@ -64,9 +65,11 @@ extern "C"
 }
 volatile uint32_t a = 0;
 int main(void) {
+    // // mount("SD:");
 	volatile SpcBox *sbox;
-    mount("SD:");
-    sbox = new SpcBox(); 
+    TapeFiles *tape = new TapeFiles();
+    tape->initialize((const char*)tap_zip, sizeof(tap_zip));
+    sbox = new SpcBox(tape); 
 	GPIO_SEL0(IOSEL0);
     GPIO_SEL1(0);
     GPIO_SEL2(0);
@@ -90,6 +93,7 @@ int main(void) {
                 GPIO_SET(sbox->read(addr));
             } else {
             	GPIO_SEL0(0);
+                a = GPIO_GET();                
                 a = GPIO_GET();                
                 a = GPIO_GET();                
                 a = GPIO_GET();                
