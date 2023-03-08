@@ -117,9 +117,6 @@ public:
             //     filename = (const char*)file.second;
             //     printf("%03d.%s\n", no++, filename);
             // }            
-            if (!len) {
-                files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
-            }
         } else {
             zipped = false;
             skipdir = strlen(ext) + 1;
@@ -146,21 +143,27 @@ public:
             printf("dir:%s(%d)\n", ext, count);
             len = 0;
             int k = 0;
-			while(count--)
-			{
-                char *fname = new char[2048];
-				sprintf(fname, "%s/%s", ext, list[k]->d_name);
-                printf("%d.%s\n", k, fname);
-				if (strcasestr(fname, ".tap") || strcasestr(fname, ".cas"))
-				{
-                    // sprintf(fullname, "%s/%s", dir0, fname);
-                    files.insert(map<int, const char *>::value_type(len++, fname));
-                    // stat(fullname, &tmp_stat);
-                    // roms.push_back(ROMDATA(fname, 'F', tmp_stat.st_size));
-				}
-                // free(list[k]);
-                k++;
-			}    
+            if (count > 0) {
+                while(count--)
+                {
+                    char *fname = new char[2048];
+                    sprintf(fname, "%s/%s", ext, list[k]->d_name);
+                    printf("%d.%s\n", k, fname);
+                    if (strcasestr(fname, ".tap") || strcasestr(fname, ".cas"))
+                    {
+                        // sprintf(fullname, "%s/%s", dir0, fname);
+                        files.insert(map<int, const char *>::value_type(len++, fname));
+                        // stat(fullname, &tmp_stat);
+                        // roms.push_back(ROMDATA(fname, 'F', tmp_stat.st_size));
+                    }
+                    // free(list[k]);
+                    k++;
+                }    
+            }
+            if (!len) {
+                strcpy(ext, "");
+                files.insert(map<int, const char*>::value_type(len, "No tap or cas file"));
+            }
             // free(list); 
 #endif
         }
@@ -184,7 +187,7 @@ public:
                 if (tmp)
                     filename = tmp + 1;
             }
-            else
+            else if (strlen(ext))
                 filename += strlen(ext) + 1;
             // fl = strlen(filename);
             // fl = min(fl, 26);
@@ -291,7 +294,8 @@ public:
     }
 
     int load(int num) {
-        load(files[fileno = num]);  
+        if (num < len)
+            load(files[fileno = num]);  
         return fsize;
     }
 
