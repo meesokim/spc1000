@@ -5,9 +5,9 @@
 #include <string>
 #include <unistd.h>
 #include <algorithm>
-#ifndef RASPPI
+// #ifndef RASPPI
 #include <dirent.h>
-#endif
+// #endif
 #include "miniz.h"
 using std::map;
 using std::string;
@@ -117,41 +117,31 @@ public:
             //     filename = (const char*)file.second;
             //     printf("%03d.%s\n", no++, filename);
             // }            
+            if (!len) {
+                files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
+            }
         } else {
             zipped = false;
-            skipdir = strlen(ext) + 1;
-#ifdef RASPPI            
-			FRESULT fr;     /* Return value */
-			DIR dj;         /* Directory search object */
-			FILINFO fno;    /* File information */
-			FIL File;
-			/* code */
-            const char *curdir = ext;
-			fr = f_opendir(&dj, curdir);
-			if (fr == FR_OK)
-			{
-				while(FR_OK == f_readdir(&dj, &fno) && fno.fname[0] && (strcasestr(fno.fname, ".tap") || strcasestr(fno.fname, ".cas")))
-				{
-                    files.insert(map<int, const char*>::value_type(len++, fno.fname));
-				}
-				f_closedir(&dj);
-			}			
-#else
-			// struct stat tmp_stat; 
-			dirent **list;
-			int count=scandir(ext, &list, NULL, alphasort);
-            printf("dir:%s(%d)\n", ext, count);
-            len = 0;
-            int k = 0;
-            if (count > 0) {
+            DIR* dir = opendir(ext);
+            if (!dir) {
+                files.insert(map<int, const char *>::value_type(len++, ext));
+            } else {
+                closedir(dir);
+                skipdir = strlen(ext) + 1;
+                // struct stat tmp_stat; 
+                dirent **list;
+                int count=scandir(ext, &list, NULL, alphasort);
+                printf("dir:%s(%d)\n", ext, count);
+                len = 0;
+                int k = 0;
                 while(count--)
                 {
                     char *fname = new char[2048];
                     sprintf(fname, "%s/%s", ext, list[k]->d_name);
-                    printf("%d.%s\n", k, fname);
+                    // printf("%d.%s\n", k, fname);
                     if (strcasestr(fname, ".tap") || strcasestr(fname, ".cas"))
                     {
-                        // sprintf(fullname, "%s/%s", dir0, fname);
+                        printf("%d. %s/%s\n", len, ext, fname);
                         files.insert(map<int, const char *>::value_type(len++, fname));
                         // stat(fullname, &tmp_stat);
                         // roms.push_back(ROMDATA(fname, 'F', tmp_stat.st_size));
@@ -159,13 +149,8 @@ public:
                     // free(list[k]);
                     k++;
                 }    
+                // free(list); 
             }
-            if (!len) {
-                strcpy(ext, "");
-                files.insert(map<int, const char*>::value_type(len, "No tap or cas file"));
-            }
-            // free(list); 
-#endif
         }
         makelist();
     }
@@ -195,7 +180,7 @@ public:
             // strcat(flist, filename);
             strcat(flist, "\\");
         }
-        printf("\nfiles:%s\n", flist);
+        // printf("\nfiles:%s\n", flist);
     }
     const char *filelist() {
         return flist;
@@ -320,14 +305,16 @@ public:
             // printf("filename:%s, size:%d\n", tapename, fsize);
         } else {
             rfp = fopen(file, "r");
-            // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
-            strcpy(tapename, file);
-            fseek(rfp, 0L, SEEK_END);
-            fsize = ftell(rfp);
-            // fseek(fp, 0L, SEEK_SET);
-            rewind(rfp);
-            fread(data, 1, fsize, rfp);
-            fclose(rfp);
+            if (rfp) {
+                // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
+                strcpy(tapename, file);
+                fseek(rfp, 0L, SEEK_END);
+                fsize = ftell(rfp);
+                // fseek(fp, 0L, SEEK_SET);
+                rewind(rfp);
+                fread(data, 1, fsize, rfp);
+                fclose(rfp);
+            }
             rfp = 0;
             zpos = 0;
         }
@@ -361,6 +348,7 @@ public:
                 // printf("%c", c, zpos);
             }
         } 
+        // printf("%c", c);
         return c;
     }
 
@@ -429,7 +417,8 @@ class SpcBox {
     bool exe_req = false;
     uint8_t datain, dataout, direct_value, status, cnt;
     uint8_t drv, blocks, tracks, sectors;
-    uint8_t *fdd[3], *writebuf, *rpibuf;
+    uint8_t *fdd[3];
+    uint8_t *writebuf, *rpibuf;
     uint8_t params[10];
     uint32_t p, q, bsize, rsize, oldnum, fno, rpi_idx;
     uint8_t rdskbuf[256*16*80], buffer[1024*1024], wdiskbuf[256*16*80];
@@ -472,11 +461,16 @@ class SpcBox {
 #ifndef RASPPI        
         const char *filename = "spc1000.bin";
         f = fopen(filename, "rb");
-        fseek(f, 0, SEEK_END);
-        int length = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        fread(spc1000_bin, length, 1, f);
-        fclose(f);
+        if (f) {
+            fseek(f, 0, SEEK_END);
+            int length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            fread(spc1000_bin, length, 1, f);
+            fclose(f);
+        }
+        else {
+            printf("No spc1000.bin file\n");
+        }
 #endif
         f = fopen("number.txt","r");
         if (f) {
@@ -574,7 +568,7 @@ class SpcBox {
                 {
                     strcpy((char *)buffer, files());
                     bsize = strlen((char *)buffer) + 1;
-                    printf("\n%s\n", buffer);
+                    // printf("\n%s\n", buffer);
                 }
                 else if (params[p] == '\\')
                 {
