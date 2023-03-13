@@ -22,10 +22,11 @@ if __name__=='__main__':
     files = sys.argv[1:]
     for file in files:
         filename = file.lower()
+        print(file)
         if '*' in filename:
             break
         if '.cas' in filename:
-            data = ''.join(['0'*(8-len(bin(d)[2:]))+bin(d)[2:] for d in open(file, 'rb').read()])
+            data = ''.join(['0'*(8-len(bin(d)[2:]))+bin(d)[2:] for d in open(file, 'rb').read()][16*8:])
             type = 'CAS'
             # print(data)
         elif '.tap' in filename:
@@ -33,6 +34,13 @@ if __name__=='__main__':
             type = 'TAP'
         print(f'filename:{file}')
         print(f'type: {type}')
+        if 'tap/Jet+set+willy.cas' == file:
+        # print('file compare', file == 'tap/Jet+set+willy.cas')
+            data = data[:75932+8] + '1' + data[75932+8:]
+            header = 'SPC-1000.CASfmt '
+            conv = [hex(int(data[i:i+8],2)) for i in range(0, len(data), 8)]
+            print(conv)
+            os.exit()
         index = 0
         offset = 0
         while(True):
@@ -45,7 +53,7 @@ if __name__=='__main__':
                 b = []
                 cnt = 0
                 for ix in range(0, 130):
-                    s = begin+ix*9
+                    s = begin+ix* 9
                     binstr = data[s:s+9]
                     # print(binstr,end='')
                     if binstr[-1] == '1':
@@ -57,17 +65,16 @@ if __name__=='__main__':
                     else:
                         b.append(c)
                         print(s)
-                        print(ix, data[s-10:s+20])
+                        print(ix, data[s-9:s], data[s:s+9], data[s+9:s+18])
                         # sys.exit()
-                print()
                 # printhex(b, 16)
                 f = unpack('<b17sHHHH102b', bytes(b[:-2])) + unpack('>H', bytes(b[-2:]))
                 # print(bytes(b), f)
                 print('type:','basic' if f[0] == 2 else 'machine')
                 print('name:',f[1].decode('ascii',errors="ignore"))
                 print('size:',f[2],'addr:',f'{f[3]:04x}~{f[2]+f[3]:04x}','exec:',f'{f[4]:04x}','prot:',f'{f[5]:04x}')
-                print('checksum:',f[-1],cnt)
-                offset += index + 81
+                print('checksum:',f[-1],cnt, 'OK' if f[-1] == cnt else 'FAIL')
+                offset += index + 130 * 9
                 if mark1 in data[offset:]:
                     cnt = 0
                     index = data[offset:].index(mark1)
@@ -75,22 +82,30 @@ if __name__=='__main__':
                     begin = index+offset+42
                     b = []
                     size = (f[2]+2)
-                    for ix in range(0, 9 * size, 9):
-                        s = begin+ix
+                    for ix in range(0, size):
+                        s = begin+ix*9
                         binstr = data[s:s+9]
                         if binstr[-1] == '1':
                             c = int(binstr[:8], 2)
                             if ix < f[2]:
                                 cnt += cntbit(c)
-                                # print(cnt,end=',')                       
+                                # print(cnt,end=',')                         
                             b.append(c)
                         else:
                             print(s)
                             print(ix, int(ix/9), binstr)                                
                             sys.exit()
                     printhex(b[-20:], 20)
-                    print('size:', len(b)-2)
-                    print('checksum:',unpack('>H', bytes(b[-2:]))[0],cnt,hex(cnt))                                
+                    # print('size:', len(b)-2)
+                    chksum = unpack('>H', bytes(b[-2:]))[0]
+                    print('checksum:',chksum,cnt,hex(cnt), 'OK' if chksum == cnt else 'FAIL')  
+                    print()
             else:
+                for i in range(39, 20, -1):
+                    m = mark[:i]
+                    if m in data[offset:]:
+                        ix = data[offset:].index(m)
+                        print(i, data[offset+ix:offset+ix+2000])
+                        break
                 break
             # print(f'size: {len(data)}')
