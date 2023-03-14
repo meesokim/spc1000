@@ -43,7 +43,7 @@ class TapeFiles {
     // #include "tap.inc"
     char ext[1024];
     char rbuf[8192];
-    char flist[1024*1024];
+    char flist[1024*256];
     uint8_t buf[1024*1024*3];
 public:
     FILE *rfp = 0, *wfp = 0;
@@ -51,10 +51,13 @@ public:
     int pulse;			// Motor Pulse (0->1->0) causes motor state to flip
     TapeFiles(const char *file = 0) {
         // printf("TapeFiles created:%s\n", file);
+        memset(flist, 0, sizeof(flist));
+        memset(buf, 0, sizeof(buf));
     }
     void initialize(const char *exp, int blen = 0) {
         strcpy(ext, exp);
         fileno = 0;
+        printf("ext:%s\n", exp);
         if (blen) {
             zipped = true;
             memset(&Zip, 0, sizeof(mz_zip_archive));
@@ -69,39 +72,24 @@ public:
             if (!len) {
                 files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
             }            
+            printf("blen:%d\n", blen);
         }
         else if (strcasestr(ext, ".zip")) {
+            printf("strcasestr:%s\n", ext);
             zipped = true;
             memset(&Zip, 0, sizeof(mz_zip_archive));
 #if 1
+            FILE *f = fopen(ext, "rb");
+            fseek(f, 0, SEEK_END);
+            int length = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            blen = fread(buf, length, 1, f);
+            printf("blen:%d\n", length);
+            fclose(f);
+            mz_zip_reader_init_mem(&Zip, buf, length, 0);
+#else
 #ifndef MINIZ_NO_STDIO
             mz_zip_reader_init_file(&Zip, ext, 0);
-#endif
-#else
-            int size = 0;
-#if 0
-            FRESULT fr;     /* Return value */
-            FILINFO fno;    /* File information */
-            FIL File;
-            unsigned size = 0;
-            fr = f_open(&File, ext, FA_READ | FA_OPEN_EXISTING);
-            if (fr == FR_OK)
-            {
-                f_read (&File, buf, sizeof(buf), &size);
-                f_close(&File);
-                mz_zip_reader_init_mem(&Zip, buf, size, 0);
-            }
-#else
-            FILE *f = fopen(ext, "rb");
-            // printf("fopen:%d\n", f);
-            fseek(f, 0, SEEK_END);
-            size = ftell(f);
-            // printf("%s:%d\n", ext, size);
-            fseek(f, 0, SEEK_SET);
-            fread(buf,size,1,f);
-            // printf("%s:%d\n", ext, size);
-            mz_zip_reader_init_mem(&Zip, buf, size, 0);
-            // printf("%s:%d\n", ext, size);
 #endif
 #endif
             int nums = (int)mz_zip_reader_get_num_files(&Zip);
@@ -111,25 +99,19 @@ public:
                 files.insert(map<int, const char *>::value_type(len, fname));
                 printf("%03d.%s\n", len, fname);
             }
-            // int no = 0;
-            // const char *filename;
-            // for (auto& file:files) {
-            //     filename = (const char*)file.second;
-            //     printf("%03d.%s\n", no++, filename);
-            // }            
             if (!len) {
                 files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
             }
         } else {
+            printf("else:%s\n", ext);
             zipped = false;
-            DIR* dir = opendir(ext);
-            if (!dir) {
-                files.insert(map<int, const char *>::value_type(len++, ext));
+            if (!opendir(ext)) {
+                files.insert(map<int, const char *>::value_type(len++, exp));
             } else {
-                closedir(dir);
                 skipdir = strlen(ext) + 1;
                 // struct stat tmp_stat; 
                 dirent **list;
+                printf("scandir:%s\n", ext);
                 int count=scandir(ext, &list, NULL, alphasort);
                 printf("dir:%s(%d)\n", ext, count);
                 len = 0;
@@ -138,19 +120,15 @@ public:
                 {
                     char *fname = new char[2048];
                     sprintf(fname, "%s/%s", ext, list[k]->d_name);
-                    // printf("%d.%s\n", k, fname);
+                    // printf("%d(%d).%s\n", k, len, fname);
                     if (strcasestr(fname, ".tap") || strcasestr(fname, ".cas"))
                     {
-                        printf("%d. %s/%s\n", len, ext, fname);
                         files.insert(map<int, const char *>::value_type(len++, fname));
-                        // stat(fullname, &tmp_stat);
-                        // roms.push_back(ROMDATA(fname, 'F', tmp_stat.st_size));
                     }
-                    // free(list[k]);
                     k++;
                 }    
-                // free(list); 
             }
+            printf("files:%s(%d)\n", ext, len);
         }
         makelist();
     }
@@ -164,23 +142,24 @@ public:
     void makelist() {
         const char *tmp, *filename;
         // int no = 0;
-        for (auto& file:files) {
-            filename = (const char*)file.second;
-            // printf("%03d.%s\n", no++, filename);
-            if (zipped) {
-                tmp = strchr(filename, '/');
-                if (tmp)
+        printf("makelist\n");
+        int tlen = 0, llen = 0;
+        for (int i = 0; i < len; i++) {
+            filename = files[i];
+            {
+                tmp = filename + strlen(filename);                
+                while(*tmp != '/' && tmp > filename) tmp--;
+                if (*tmp == '/')
                     filename = tmp + 1;
             }
-            else if (strlen(ext))
-                filename += strlen(ext) + 1;
-            // fl = strlen(filename);
-            // fl = min(fl, 26);
-            strncpy(flist+strlen(flist), filename, min(strlen(filename), 26));
-            // strcat(flist, filename);
-            strcat(flist, "\\");
+            // printf("%03d.%s\n", no++, filename);
+            llen = min(strlen(filename), 26);
+            strncpy(flist+tlen, filename, llen);
+            strcat(flist, "\\\0");
+            // printf("%s\n",flist);
+            tlen += llen + 1;
         }
-        // printf("\nfiles:%s\n", flist);
+        printf("\nfiles:%s\n\n", flist);
     }
     const char *filelist() {
         return flist;
@@ -279,8 +258,7 @@ public:
     }
 
     int load(int num) {
-        if (num < len)
-            load(files[fileno = num]);  
+        load(files[fileno = num]);  
         return fsize;
     }
 
@@ -305,16 +283,13 @@ public:
             // printf("filename:%s, size:%d\n", tapename, fsize);
         } else {
             rfp = fopen(file, "r");
-            if (rfp) {
-                // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
-                strcpy(tapename, file);
-                fseek(rfp, 0L, SEEK_END);
-                fsize = ftell(rfp);
-                // fseek(fp, 0L, SEEK_SET);
-                rewind(rfp);
-                fread(data, 1, fsize, rfp);
-                fclose(rfp);
-            }
+            // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
+            strcpy(tapename, file);
+            fseek(rfp, 0L, SEEK_END);
+            fsize = ftell(rfp);
+            fseek(rfp, 0L, SEEK_SET);
+            fread(data, fsize, 1, rfp);
+            fclose(rfp);
             rfp = 0;
             zpos = 0;
         }
@@ -348,7 +323,6 @@ public:
                 // printf("%c", c, zpos);
             }
         } 
-        // printf("%c", c);
         return c;
     }
 
@@ -417,11 +391,10 @@ class SpcBox {
     bool exe_req = false;
     uint8_t datain, dataout, direct_value, status, cnt;
     uint8_t drv, blocks, tracks, sectors;
-    uint8_t *fdd[3];
-    uint8_t *writebuf, *rpibuf;
+    uint8_t *fdd[3], *writebuf, *rpibuf;
     uint8_t params[10];
     uint32_t p, q, bsize, rsize, oldnum, fno, rpi_idx;
-    uint8_t rdskbuf[256*16*80], buffer[1024*1024], wdiskbuf[256*16*80];
+    uint8_t rdskbuf[256*16*80], buffer[1024*1024], wdskbuf[256*16*80];
     map<uint8_t, string>m, cmds;
     string drive, pattern;
 #ifdef THREAD
@@ -439,6 +412,9 @@ class SpcBox {
         //     tape = new TapeFiles("../spc1000/tape");
         //     // tape->initialize("tap.zip");
         }
+        memset(rdskbuf, 0, sizeof(rdskbuf));
+        memset(wdskbuf, 0, sizeof(wdskbuf));
+        memset(buffer, 0, sizeof(buffer));
         m[0] = "CLEAR";
         m[rATN] = "ATN";
         m[wRFD] = m[rRFD] = "RFD";
@@ -455,10 +431,11 @@ class SpcBox {
         cmds[RPI_OLDNUM] = "RPI_OLDNUM";
         drive = "SD:/";
         pattern = "*.tap";
+        direct_value = 0;
         cnt = 0;
         initialize();
         FILE *f;
-#ifndef RASPPI        
+// #ifndef RASPPI        
         const char *filename = "spc1000.bin";
         f = fopen(filename, "rb");
         if (f) {
@@ -467,11 +444,11 @@ class SpcBox {
             fseek(f, 0, SEEK_SET);
             fread(spc1000_bin, length, 1, f);
             fclose(f);
+            printf("spc1000.bin file loaded\n");
+        } else {
+            printf("no spc1000.bin file\n");
         }
-        else {
-            printf("No spc1000.bin file\n");
-        }
-#endif
+// #endif
         f = fopen("number.txt","r");
         if (f) {
             fscanf(f, "%d", &oldnum);
@@ -480,6 +457,8 @@ class SpcBox {
                 oldnum = tape->length() - 1;
             }
         }
+        else
+            oldnum = -1;
     	printf("number:%d\n", oldnum);
     } 
     void initialize() {
@@ -504,12 +483,12 @@ class SpcBox {
         bsize = 0;
 #endif
     }
-    void execute() {
-        execute(exe_req);
+    bool execute() {
+        return execute(exe_req);
     }
-    void execute(bool exe_req) {
+    bool execute(bool exe_req) {
         if (!exe_req)
-            return;
+            return false;
         // printf("execute:%02x\n", datain);
         switch(params[0]) {
             case SDINIT:
@@ -568,7 +547,7 @@ class SpcBox {
                 {
                     strcpy((char *)buffer, files());
                     bsize = strlen((char *)buffer) + 1;
-                    // printf("\n%s\n", buffer);
+                    printf("\n%s\n", buffer);
                 }
                 else if (params[p] == '\\')
                 {
@@ -582,14 +561,15 @@ class SpcBox {
             case RPI_LOAD:
                 if (p == 2)
                 {
+                    printf("\n");
                     oldnum = fno = params[1] + params[2] * 256;
+                    load(oldnum);
                     printf("num=%d\n", oldnum);
                     char number[100];
                     FILE *f = fopen("number.txt","w");
                     sprintf(number, "%d\n", oldnum);
                     fwrite(number, strlen(number)+1, 1, f);
                     fclose(f);
-                    load(oldnum);
                 }
                 break;
             case RPI_OLDNUM:
@@ -606,6 +586,7 @@ class SpcBox {
         p++;
         status |= wDAC;
         this->exe_req = false;
+        return true;
     }
     uint8_t read(uint8_t addr) {
         uint8_t ret = 0;
@@ -613,7 +594,7 @@ class SpcBox {
         string cmd[4] = {"", "GETDATA", "STATUS", "DIRECT"};
         switch (addr) {
             case 0:
-                ret = 0;
+                ret = datain;
                 break;
             case 1: // get data
                 ret = dataout;
@@ -661,15 +642,13 @@ class SpcBox {
                 cnt = data;
                 break;
             case 3: // direct access clock for direct input
-                // if (q < bsize - 1) {
 #ifdef TAPEFILES
                     direct_value = tape->getc() - '0';
                     // printf("%c", direct_value + '0');
 #else
                     direct_value = 0;
 #endif
-                    q++;
-                // }
+                    // q++;
                 break;
             case 2: // status check
                 // printf("out(%02x):%s          \n", addr, m[data].c_str());

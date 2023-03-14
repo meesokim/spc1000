@@ -6,7 +6,7 @@
 #pragma once
 
 #include "exp.h"
-
+#include "softlist_dev.h"
 
 class SpcBox;
 //**************************************************************************
@@ -15,30 +15,58 @@ class SpcBox;
 
 // ======================> spc1000_neo_exp_device
 
-class spc1000_neo_exp_device : public device_t, public device_spc1000_card_interface
+class spc1000_neo_exp_device : public device_t, public device_spc1000_card_interface, public device_image_interface
 {
 public:
 	// construction/destruction
 	spc1000_neo_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
-	// static SpcBox *sbox;
+	virtual ~spc1000_neo_exp_device();
+
+	// image-level overrides
+	virtual image_init_result call_load() override;
+	virtual image_init_result call_create(int format_type, util::option_resolution *format_options) override;
+	virtual void call_unload() override;
+	virtual std::string call_display() override;
+
+	virtual bool is_readable()  const noexcept override { return true; }
+	virtual bool is_writeable() const noexcept override { return true; }
+	virtual bool is_creatable() const noexcept override { return true; }
+	virtual bool is_reset_on_load() const noexcept override { return false; }
+	virtual bool support_command_line_image_creation() const noexcept override { return true; }
+	virtual const char *image_interface() const noexcept override { return m_interface; }
+	virtual const char *file_extensions() const noexcept override { return m_extension_list; }
+	virtual const char *image_type_name() const noexcept override { return "files"; }
+	virtual const char *image_brief_type_name() const noexcept override { return "file"; }
 
 protected:
+
 	// device-level overrides
 	virtual void device_start() override;
 	virtual void device_reset() override;
 	virtual void device_add_mconfig(machine_config &config) override;
 
+	// image-level overrides
+	virtual const software_list_loader &get_software_list_loader() const override;
+
 	virtual uint8_t read(offs_t offset) override;
 	virtual void write(offs_t offset, uint8_t data) override;
+
+
 
 	// DECLARE_WRITE_LINE_MEMBER(vdp_interrupt);
 private:
 	// internal state
 	// required_device<tms9928a_device>   m_vdp;
 	SpcBox *sbox = 0;
+	char            m_extension_list[256];
+	const char *                    m_interface;
+	image_init_result internal_load(bool is_create);
 };
 
 // device type definition
 DECLARE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device)
+
+// device iterator
+typedef device_type_enumerator<spc1000_neo_exp_device> neo_device_enumerator;
 
 #endif // MAME_BUS_SPC1000_NEO_H
