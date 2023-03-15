@@ -43,7 +43,7 @@ void spc1000_neo_exp_device::device_add_mconfig(machine_config &config)
 //  GLOBAL VARIABLES
 //**************************************************************************
 
-DEFINE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device, "spc1000_neo_exp", "SPC1000 VDP expansion")
+DEFINE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device, "spc1000_neo_exp", "SPC1000 NEO expansion")
 
 //**************************************************************************
 //  LIVE DEVICE
@@ -60,7 +60,7 @@ spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, co
 	, device_spc1000_card_interface(mconfig, *this)
 	, device_image_interface(mconfig, *this)
 {
-	strcpy(m_extension_list, ".tap;.cas;.zip");
+	strcpy(m_extension_list, "tap,cas,zip,*");
 }
 
 
@@ -124,11 +124,14 @@ spc1000_neo_exp_device::~spc1000_neo_exp_device()
 
 image_init_result spc1000_neo_exp_device::call_create(int format_type, util::option_resolution *format_options)
 {
+	// printf("display:%s\n", format_options);
+	printf("call_create\n");
 	return internal_load(true);
 }
 
 image_init_result spc1000_neo_exp_device::call_load()
 {
+	printf("call_load\n");
 	return internal_load(false);
 }
 
@@ -268,7 +271,7 @@ std::string spc1000_neo_exp_device::call_display()
 {
 	// const int ANIMATION_FPS = 1;
 
-	std::string result;
+	std::string result = "";
 
 	// // only show the image when a cassette is loaded and the motor is on
 	// if (exists() && !is_stopped() && motor_on())

@@ -408,9 +408,6 @@ class SpcBox {
     SpcBox(TapeFiles *tape0 = 0) {
         if (tape0) {
             tape = tape0;
-        // } else {
-        //     tape = new TapeFiles("../spc1000/tape");
-        //     // tape->initialize("tap.zip");
         }
         memset(rdskbuf, 0, sizeof(rdskbuf));
         memset(wdskbuf, 0, sizeof(wdskbuf));
@@ -435,7 +432,6 @@ class SpcBox {
         cnt = 0;
         initialize();
         FILE *f;
-// #ifndef RASPPI        
         const char *filename = "spc1000.bin";
         f = fopen(filename, "rb");
         if (f) {
@@ -448,7 +444,6 @@ class SpcBox {
         } else {
             printf("no spc1000.bin file\n");
         }
-// #endif
         f = fopen("number.txt","r");
         if (f) {
             fscanf(f, "%d", &oldnum);
@@ -458,7 +453,7 @@ class SpcBox {
             }
         }
         else
-            oldnum = -1;
+            oldnum = 0;
     	printf("number:%d\n", oldnum);
     } 
     void initialize() {

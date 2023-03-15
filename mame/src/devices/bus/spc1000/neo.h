@@ -32,8 +32,8 @@ public:
 	virtual bool is_writeable() const noexcept override { return true; }
 	virtual bool is_creatable() const noexcept override { return true; }
 	virtual bool is_reset_on_load() const noexcept override { return false; }
-	virtual bool support_command_line_image_creation() const noexcept override { return true; }
-	virtual const char *image_interface() const noexcept override { return m_interface; }
+	virtual bool support_command_line_image_creation() const noexcept override { return false; }
+	virtual const char *image_interface() const noexcept override { return "FILE"; }
 	virtual const char *file_extensions() const noexcept override { return m_extension_list; }
 	virtual const char *image_type_name() const noexcept override { return "files"; }
 	virtual const char *image_brief_type_name() const noexcept override { return "file"; }
@@ -47,19 +47,16 @@ protected:
 
 	// image-level overrides
 	virtual const software_list_loader &get_software_list_loader() const override;
+	image_init_result load() { printf("load\n"); return image_init_result::PASS; };
+	image_init_result load_internal() { printf("load\n"); return image_init_result::PASS; };
 
 	virtual uint8_t read(offs_t offset) override;
 	virtual void write(offs_t offset, uint8_t data) override;
 
-
-
-	// DECLARE_WRITE_LINE_MEMBER(vdp_interrupt);
 private:
-	// internal state
-	// required_device<tms9928a_device>   m_vdp;
 	SpcBox *sbox = 0;
 	char            m_extension_list[256];
-	const char *                    m_interface;
+	const char *m_interface;
 	image_init_result internal_load(bool is_create);
 };
 
