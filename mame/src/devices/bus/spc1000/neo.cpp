@@ -7,6 +7,8 @@
 ***************************************************************************/
 
 #include <map>
+#include <regex>
+#include <filesystem>
 #include <string>
 #include <fstream>
 using namespace std;
@@ -63,6 +65,72 @@ spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, co
 	strcpy(m_extension_list, "tap,cas,zip,*");
 }
 
+std::vector<std::string_view> Split(const std::string_view str, const char delim = ',')
+{   
+    std::vector<std::string_view> result;
+
+    int indexCommaToLeftOfColumn = 0;
+    int indexCommaToRightOfColumn = -1;
+
+    for (int i=0;i<static_cast<int>(str.size());i++)
+    {
+        if (str[i] == delim)
+        {
+            indexCommaToLeftOfColumn = indexCommaToRightOfColumn;
+            indexCommaToRightOfColumn = i;
+            int index = indexCommaToLeftOfColumn + 1;
+            int length = indexCommaToRightOfColumn - index;
+
+            // Bounds checking can be omitted as logically, this code can never be invoked 
+            // Try it: put a breakpoint here and run the unit tests.
+            /*if (index + length >= static_cast<int>(str.size()))
+            {
+                length--;
+            }               
+            if (length < 0)
+            {
+                length = 0;
+            }*/
+
+            std::string_view column(str.data() + index, length);
+            result.push_back(column);
+        }
+    }
+    const std::string_view finalColumn(str.data() + indexCommaToRightOfColumn + 1, str.size() - indexCommaToRightOfColumn - 1);
+    result.push_back(finalColumn);
+    return result;
+}
+
+static std::optional<std::string> find_file(const std::string& search_path, const std::regex& regex) {
+    const std::filesystem::directory_iterator end;
+    try {
+        for (std::filesystem::directory_iterator iter{search_path}; iter != end; iter++) {
+            const std::string file_ext = iter->path().extension().string();
+            if (std::filesystem::is_regular_file(*iter)) {
+                if (std::regex_match(file_ext, regex)) {
+                    return (iter->path().string());
+                }
+            }
+        }
+    }
+    catch (std::exception&) {}
+    return std::nullopt;
+}
+
+image_init_result spc1000_neo_exp_device::load(std::string_view path) {
+	for(auto& de : std::filesystem::directory_iterator(string(path))) {
+		// returns the number of deleted entities since c++17:
+		printf("%s\n", string(de.path()).c_str());
+		// count += std::filesystem::remove_all(de.path());
+	}	
+	if (path.find("*")) {
+		auto tokens = Split(path, '*');
+
+		std::regex re("*.tap");
+		find_file(string(string(path)), re);
+	};
+	return image_init_result::PASS;
+}
 
 //-------------------------------------------------
 //  device_start - device-specific startup
@@ -72,6 +140,7 @@ void spc1000_neo_exp_device::device_start()
 {
     if (!::sbox) {
 		TapeFiles *tape = new TapeFiles();
+		printf("filename:%s\n", filename());
 		if (filename())
 			tape->initialize(filename());
 		else

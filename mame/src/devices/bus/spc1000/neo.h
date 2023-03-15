@@ -47,8 +47,10 @@ protected:
 
 	// image-level overrides
 	virtual const software_list_loader &get_software_list_loader() const override;
-	image_init_result load() { printf("load\n"); return image_init_result::PASS; };
+	image_init_result load(std::string_view path) override;
+	//  { printf("load:%s\n", std::string(path).c_str()); return image_init_result::PASS; };
 	image_init_result load_internal() { printf("load\n"); return image_init_result::PASS; };
+	image_init_result finish_load() { printf("finish_load\n"); return image_init_result::PASS; };
 
 	virtual uint8_t read(offs_t offset) override;
 	virtual void write(offs_t offset, uint8_t data) override;
