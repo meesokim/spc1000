@@ -5,7 +5,7 @@
 unsigned char data[0xa00];
 
 typedef void (*funcptr)(int num);
-#define pload2 ((funcptr)0x312)
+#define pload2 ((funcptr)0x316)
 
 void cas2dsk();
 void dsk2cas();

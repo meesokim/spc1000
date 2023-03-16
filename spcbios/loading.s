@@ -438,8 +438,8 @@ _load:
 	call PSGST
 	call FLOAD
 	ld a, (FILMOD)
-	cp #2
-	jr nz, bload2
+	cp #1
+	jr z, bload2
 	im 1
 	ei
 	LD hl, #0xFF00
@@ -464,10 +464,13 @@ bload2:
 	ld a, h	
 	or l
 	cp #1
-	jr z, _load
+	jr nz, _load
 	or a
 	jr nz, brun
 	ld hl, (MTADRS)
+	ld a, h
+	or l
+	jr z, _load
 brun:	
 	jp (hl)
 ;	call #NEW
@@ -495,6 +498,7 @@ pload2:
 	call senddata
 	ld d, h
 	call senddata
+	xor a
 	jp _pload 
 sendcmd:
     LD	B,#0xC0         	

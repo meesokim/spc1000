@@ -45,6 +45,7 @@ class TapeFiles {
     char rbuf[8192];
     char flist[1024*256];
     uint8_t buf[1024*1024*3];
+    bool just_loaded = false;
 public:
     FILE *rfp = 0, *wfp = 0;
     int motor;			// Motor Status
@@ -53,6 +54,13 @@ public:
         // printf("TapeFiles created:%s\n", file);
         memset(flist, 0, sizeof(flist));
         memset(buf, 0, sizeof(buf));
+    }
+    void initialize(const char *tapefiles[], int size) {
+        printf("files#:%d\n", size);
+        for (int i=0; i<size; i++) {
+            files.insert(map<int, const char *>::value_type(len++, tapefiles[i]));
+        }
+        makelist();
     }
     void initialize(const char *exp, int blen = 0) {
         strcpy(ext, exp);
@@ -151,6 +159,7 @@ public:
                 while(*tmp != '/' && tmp > filename) tmp--;
                 if (*tmp == '/')
                     filename = tmp + 1;
+                // printf("filename:%s\n", filename);
             }
             // printf("%03d.%s\n", no++, filename);
             llen = min(strlen(filename), 26);
@@ -301,10 +310,15 @@ public:
             cas = false;
         }
         printf("filename:%s(%d)\n", file, fsize);
+        just_loaded = true;
     }
 
     char getc() {
         char c = '0';
+        if (just_loaded) {
+            just_loaded = false;
+            return c;
+        }
         if (len) {
             if (zpos > fsize) {
                 load();
