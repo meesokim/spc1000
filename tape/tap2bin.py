@@ -63,6 +63,7 @@ if __name__=='__main__':
                 # print(mark, end=' ')
                 begin = index+offset+82
                 sbuf = StringIO()
+                sbuf.write('0')
                 sbuf.write(mark)
                 b = []
                 cnt = 0
@@ -98,7 +99,7 @@ if __name__=='__main__':
                     cnt = 0
                     index = data[offset:].index(mark1)
                     smark = offset+index 
-                    sbuf.write('0'*20)
+                    sbuf.write('0')
                     sbuf.write(mark1)
                     # print(mark1, end=' ')
                     # print(f'mark1({index+offset:07d}):{data[index+offset:index+offset+42]}')

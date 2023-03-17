@@ -464,7 +464,7 @@ bload2:
 	ld a, h	
 	or l
 	cp #1
-	jr nz, _load
+	jr c, _load
 	or a
 	jr nz, brun
 	ld hl, (MTADRS)

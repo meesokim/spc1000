@@ -60,6 +60,8 @@ private:
 	char            m_extension_list[256];
 	const char *m_interface;
 	image_init_result internal_load(bool is_create);
+	const char *files[1024];
+	int size = 0;
 };
 
 // device type definition

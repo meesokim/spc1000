@@ -58,6 +58,7 @@ public:
     void initialize(const char *tapefiles[], int size) {
         printf("files#:%d\n", size);
         for (int i=0; i<size; i++) {
+            printf("%s\n", tapefiles[i]);
             files.insert(map<int, const char *>::value_type(len++, tapefiles[i]));
         }
         makelist();
@@ -148,20 +149,12 @@ public:
     }
 
     void makelist() {
-        const char *tmp, *filename;
+        const char *filename;
         // int no = 0;
         printf("makelist\n");
         int tlen = 0, llen = 0;
         for (int i = 0; i < len; i++) {
-            filename = files[i];
-            {
-                tmp = filename + strlen(filename);                
-                while(*tmp != '/' && tmp > filename) tmp--;
-                if (*tmp == '/')
-                    filename = tmp + 1;
-                // printf("filename:%s\n", filename);
-            }
-            // printf("%03d.%s\n", no++, filename);
+            filename = fileonly(files[i]);
             llen = min(strlen(filename), 26);
             strncpy(flist+tlen, filename, llen);
             strcat(flist, "\\\0");
@@ -180,19 +173,26 @@ public:
 #endif
     }
 
+    const char *fileonly(const char *filename) {
+        const char *tmp = filename + strlen(filename);                
+        while(*tmp != '/' && tmp > filename) tmp--;
+        if (*tmp == '/')
+            tmp = tmp + 1;
+        return tmp;
+    }
+
     void prev() {
         if (len) {
             if (fileno > 0)
                 fileno--;
             else 
                 fileno = len - 1;
-            strcpy(tapename, files[fileno] + skipdir);
             if (rfp)
                 fclose(rfp);
             rfp = 0;
             fsize = 0;
             updateTime();
-            // printf("%d.%s\n", fileno, tapename);
+            sprintf(tapename, "%d.%s", fileno, fileonly(files[fileno]));
         }
     }
 
@@ -202,13 +202,12 @@ public:
                 fileno++;
             else
                 fileno = 0;
-            strcpy(tapename, files[fileno] + skipdir);
             if (rfp)
                 fclose(rfp);
             rfp = 0;
             fsize = 0;
             updateTime();
-            // printf("%d.%s\n", fileno, tapename);
+            sprintf(tapename, "%d.%s", fileno, fileonly(files[fileno]));
         }
     }
 
@@ -291,9 +290,9 @@ public:
             zpos = 0;
             // printf("filename:%s, size:%d\n", tapename, fsize);
         } else {
-            rfp = fopen(file, "r");
+            rfp = fopen(files[fileno], "r");
             // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
-            strcpy(tapename, file);
+            // strcpy(tapename, file);
             fseek(rfp, 0L, SEEK_END);
             fsize = ftell(rfp);
             fseek(rfp, 0L, SEEK_SET);

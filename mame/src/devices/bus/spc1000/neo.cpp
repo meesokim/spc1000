@@ -65,7 +65,7 @@ spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, co
 	strcpy(m_extension_list, "tap,cas,zip,*");
 }
 
-std::vector<std::string_view> Split(const std::string_view str, const char delim = ',')
+std::vector<std::string_view> Split(const std::string_view str, const char delim = ';')
 {   
     std::vector<std::string_view> result;
 
@@ -101,34 +101,13 @@ std::vector<std::string_view> Split(const std::string_view str, const char delim
     return result;
 }
 
-static std::optional<std::string> find_file(const std::string& search_path, const std::regex& regex) {
-    const std::filesystem::directory_iterator end;
-    try {
-        for (std::filesystem::directory_iterator iter{search_path}; iter != end; iter++) {
-            const std::string file_ext = iter->path().extension().string();
-            if (std::filesystem::is_regular_file(*iter)) {
-                if (std::regex_match(file_ext, regex)) {
-                    return (iter->path().string());
-                }
-            }
-        }
-    }
-    catch (std::exception&) {}
-    return std::nullopt;
-}
-
 image_init_result spc1000_neo_exp_device::load(std::string_view path) {
-	for(auto& de : std::filesystem::directory_iterator(string(path))) {
-		// returns the number of deleted entities since c++17:
-		printf("%s\n", string(de.path()).c_str());
-		// count += std::filesystem::remove_all(de.path());
+	for(auto& de : Split(path)) {
+		char *str = new char[string(de).length()+1];
+		strcpy(str, string(de).c_str()); 
+		files[size++] = (const char *)str;
+		// printf("%s\n", files[size++]);
 	}	
-	if (path.find("*")) {
-		auto tokens = Split(path, '*');
-
-		std::regex re("*.tap");
-		find_file(string(string(path)), re);
-	};
 	return image_init_result::PASS;
 }
 
@@ -143,6 +122,8 @@ void spc1000_neo_exp_device::device_start()
 		printf("filename:%s\n", filename());
 		if (filename())
 			tape->initialize(filename());
+		else if (size>0) 
+			tape->initialize(files, size);
 		else
 			tape->initialize((const char*)tap_zip, sizeof(tap_zip));
         ::sbox = new SpcBox(tape);
