@@ -57,7 +57,7 @@ start::
 	xor a
 	ld  l, a
     ld  bc, #0x002
-    ld  h,  #18
+    ld  h,  #0x15
     ld  de, #BIOS
     call _sd_load
 	ld hl, #MAIN
