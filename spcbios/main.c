@@ -94,8 +94,7 @@ void run(int num)
 	printf("Loading...(%d)", num);
 	gotoxy((32-strlen(data+s))/2, 8);
 	printf("%s", data+s);
-	gotoxy(0,10);
-	printf("123");
+	gotoxy(1,10);
 	pload2(num);
 }
 
