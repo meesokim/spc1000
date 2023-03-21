@@ -57,13 +57,13 @@ start::
 	xor a
 	ld  l, a
     ld  bc, #0x002
-    ld  h,  #0x15
+    ld  h,  #0x14
     ld  de, #BIOS
     call _sd_load
 	ld hl, #MAIN
 	ld (#0x1), hl
     ld hl, #0x260
-    ld bc, #0x104
+    ld bc, #0x105
     ld de, #0x114
     call _sd_load
 	call BASICPATCH

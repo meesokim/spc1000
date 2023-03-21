@@ -469,6 +469,7 @@ class SpcBox {
         } else {
             printf("no spc1000.bin file\n");
         }
+        fdd[0] = spc1000_bin;
         f = fopen("number.txt","r");
         if (f) {
             fscanf(f, "%d", &oldnum);
@@ -483,7 +484,6 @@ class SpcBox {
     } 
     void initialize() {
         bsize = direct_value = p = q = 0;
-        fdd[0] = spc1000_bin;
         status = 0;
         dataout = 0;
 #ifdef THREAD        
@@ -666,6 +666,7 @@ class SpcBox {
         return ret;
     };
     void write(uint8_t addr, uint8_t data) {
+        // printf("sbox%d:%02x\n", addr, data);        
         switch (addr) {
             case 0: // output data
                 datain = data;
@@ -676,7 +677,9 @@ class SpcBox {
                 break;
             case 3: // direct access clock for direct input
 #ifdef TAPEFILES
-                    direct_value = tape->getc() - '0';
+                    // printf("%lx, bsize=%d\n", (uint64_t)tape, bsize);
+                    if (bsize > 100)
+                        direct_value = tape->getc() - '0';
                     // printf("%c", direct_value + '0');
 #else
                     direct_value = 0;

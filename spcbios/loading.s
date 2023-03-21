@@ -24,6 +24,13 @@ RPI_LOAD	= 0x21
 RPI_SAVE	= 0x22
 RPI_OLDNUM	= 0x23
 
+CURY   =  0x11ee
+CURX   =  0x11ed
+CURXY  =  0x11ed
+DEPRT  =  0x0015
+ACCPRT =  0x0012
+CR2    =  0x0823
+CR1    =  0x0B6e
 FILMOD =  0x1396
 FILNAM =  0x1397
 MTBYTE =  0x13a8
@@ -119,7 +126,10 @@ CLOAD1:
 ;
 CLOAD8: XOR	A
 ;
-CLOAD4: POP	HL
+CLOAD4: 
+	LD  DE, #FILMOD
+	CALL DEPRT
+	POP	HL
 	POP	BC
 	POP	DE
 ;	CALL	MOTCH
@@ -499,6 +509,8 @@ pload2:
 	ld d, h
 	call senddata
 	xor a
+	ld hl, #0x00a
+	ld (CURXY), a
 	jp _pload 
 sendcmd:
     LD	B,#0xC0         	

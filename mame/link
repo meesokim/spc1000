@@ -8,6 +8,7 @@ files = [   'src/mame/samsung/spc1000.cpp',
             'src/devices/bus/spc1000/tap.cpp',
             'scripts/src/bus.lua',
             'src/lib/util/options.cpp',
+            'src/emu/diimage.h',
 ]
 
 import os

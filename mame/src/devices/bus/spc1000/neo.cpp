@@ -105,7 +105,9 @@ image_init_result spc1000_neo_exp_device::load(std::string_view path) {
 	for(auto& de : Split(path)) {
 		char *str = new char[string(de).length()+1];
 		strcpy(str, string(de).c_str()); 
-		files[size++] = (const char *)str;
+		ifstream f(str);
+		if (f.good())
+			files[size++] = (const char *)str;
 		// printf("%s\n", files[size++]);
 	}	
 	return image_init_result::PASS;
@@ -158,8 +160,9 @@ void spc1000_neo_exp_device::write(offs_t offset, uint8_t data)
 {
 	if (offset <= 0xff)
 	{
+		// printf("neo%d:%02x\n", offset, data);
 		sbox->write(offset, data);
-        sbox->execute();
+        //sbox->execute();
 	}
 }
 

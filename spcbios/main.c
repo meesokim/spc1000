@@ -91,9 +91,11 @@ void run(int num)
 	cls2();
 	while(k--) while(data[s++] != 0);
 	gotoxy(10, 6);
-	printf("Loading...%d", num);
+	printf("Loading...(%d)", num);
 	gotoxy((32-strlen(data+s))/2, 8);
 	printf("%s", data+s);
+	gotoxy(0,10);
+	printf("123");
 	pload2(num);
 }
 
