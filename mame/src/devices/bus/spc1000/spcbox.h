@@ -38,7 +38,7 @@ class TapeFiles {
     mz_zip_archive Zip;
     int zpos = 0;
     char bpos = 0;
-    char data[1024*1024*4];
+    char *data = 0;
     // char buf[1024*1024*4];
     // #include "tap.inc"
     char ext[1024];
@@ -108,9 +108,6 @@ public:
                 files.insert(map<int, const char *>::value_type(len, fname));
                 printf("%03d.%s\n", len, fname);
             }
-            if (!len) {
-                files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
-            }
         } else {
             printf("else:%s\n", ext);
             zipped = false;
@@ -139,6 +136,9 @@ public:
             }
             printf("files:%s(%d)\n", ext, len);
         }
+        if (!len) {
+            files.insert(map<int, const char*>::value_type(len++, "No tap or cas file"));
+        }
         makelist();
     }
 
@@ -152,6 +152,7 @@ public:
         const char *filename;
         // int no = 0;
         printf("makelist\n");
+        flist[0] = 0;
         int tlen = 0, llen = 0;
         for (int i = 0; i < len; i++) {
             filename = fileonly(files[i]);
@@ -174,6 +175,7 @@ public:
     }
 
     const char *fileonly(const char *filename) {
+        printf("%s\n", filename);
         const char *tmp = filename + strlen(filename);                
         while(*tmp != '/' && tmp > filename) tmp--;
         if (*tmp == '/')
@@ -280,6 +282,9 @@ public:
             size_t uncomp_size;
             // mz_zip_reader_extract_file_to_mem_no_alloc(&Zip, tapename, data, sizeof(data), 0, rbuf, sizeof(rbuf));
             char *p = (char *)mz_zip_reader_extract_file_to_heap(&Zip, tapename, &uncomp_size, 0);
+            if (data)
+                free(data);
+            data = (char *)malloc(uncomp_size);
             memcpy(data, p, uncomp_size);
             free(p);
             fsize = uncomp_size;
@@ -291,13 +296,16 @@ public:
             // printf("filename:%s, size:%d\n", tapename, fsize);
         } else {
             rfp = fopen(files[fileno], "r");
-            // printf("file load: %s %x\n", file, (uint32_t)(uint64_t)rfp);
             // strcpy(tapename, file);
             fseek(rfp, 0L, SEEK_END);
             fsize = ftell(rfp);
             fseek(rfp, 0L, SEEK_SET);
+            if (data)
+                free(data);
+            data = (char *)malloc(fsize);
             fread(data, fsize, 1, rfp);
             fclose(rfp);
+            // printf("file load: %s %x (%d)\n", file, (uint32_t)(uint64_t)rfp, fsize);
             rfp = 0;
             zpos = 0;
         }
@@ -320,7 +328,8 @@ public:
         }
         if (len) {
             if (zpos > fsize) {
-                load();
+                zpos = bpos = 0;
+                just_loaded = true;
             } else {
                 updateTime();
                 if (cas) {
@@ -362,7 +371,9 @@ public:
 };
 
 #define TAPEFILES
-
+#include <chrono>
+#include <thread>
+#include <condition_variable>
 class SpcBox {
   private:
     #define rATN (1<<7)
@@ -411,8 +422,9 @@ class SpcBox {
     map<uint8_t, string>m, cmds;
     string drive, pattern;
 #ifdef THREAD
-    std::vector<std::thread> threads;
-    thread t;
+    std::condition_variable cv;
+    std::mutex cv_m; 
+    std::thread *th = 0;
 #endif
   public:
 #ifdef TAPEFILES
@@ -474,6 +486,12 @@ class SpcBox {
         fdd[0] = spc1000_bin;
         status = 0;
         dataout = 0;
+#ifdef THREAD        
+        if (!th) {
+            th = new std::thread( [&]() { execute_thread(); });
+            printf("thread created\n");
+        }
+#endif        
     }
 
     const char * files() {
@@ -491,13 +509,21 @@ class SpcBox {
         bsize = 0;
 #endif
     }
+#ifdef THREAD
+    bool execute_thread() {
+        while(true) {
+            std::unique_lock<std::mutex> lk(cv_m);
+            cv.wait(lk, [this]{return this->exe_req == true;});
+            execute(exe_req);
+        }
+    }
+#endif
     bool execute() {
         return execute(exe_req);
     }
     bool execute(bool exe_req) {
         if (!exe_req)
             return false;
-        // printf("execute:%02x\n", datain);
         switch(params[0]) {
             case SDINIT:
                 buffer[0] = 100;
@@ -569,10 +595,9 @@ class SpcBox {
             case RPI_LOAD:
                 if (p == 2)
                 {
-                    printf("\n");
                     oldnum = fno = params[1] + params[2] * 256;
-                    load(oldnum);
-                    printf("num=%d\n", oldnum);
+                    bsize = tape->load(oldnum);
+                    printf("num=%d, size=%d\n", oldnum, bsize);
                     char number[100];
                     FILE *f = fopen("number.txt","w");
                     sprintf(number, "%d\n", oldnum);
@@ -682,14 +707,12 @@ class SpcBox {
                     } else {
                         printf("%02x,", datain);
                     }
-#ifdef THREAD                    
-                    threads.push_back(thread([this] { this->execute(this); }));
-                    for (auto& t:threads)
-                        if (t.joinable()) {
-                            t.join();
-                        }
-#endif                        
                     exe_req = true;
+#ifdef THREAD                    
+                    cv.notify_all();
+#else
+                    execute();
+#endif
                     dataout = 0;
                 } else if (!data){
                     if (status & wDAC) {
