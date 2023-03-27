@@ -1,0 +1,13 @@
+--- scripts/src/bus.lua	2023-03-27 11:03:47.986642849 +0900
++++ /home-mc/meeso.kim/spc1000/mame/scripts/src/bus.lua	2023-03-15 12:20:35.737527247 +0900
+@@ -2300,6 +2299,10 @@
+ 		MAME_DIR .. "src/devices/bus/spc1000/fdd.h",
+ 		MAME_DIR .. "src/devices/bus/spc1000/vdp.cpp",
+ 		MAME_DIR .. "src/devices/bus/spc1000/vdp.h",
++		MAME_DIR .. "src/devices/bus/spc1000/neo.cpp",
++		MAME_DIR .. "src/devices/bus/spc1000/neo.h",
++		MAME_DIR .. "src/devices/bus/spc1000/tap.cpp",
++		MAME_DIR .. "src/devices/bus/spc1000/tap.h",
+ 	}
+ end
+ 

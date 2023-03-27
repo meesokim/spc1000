@@ -57,9 +57,13 @@ public:
     }
     void initialize(const char *tapefiles[], int size) {
         printf("files#:%d\n", size);
-        for (int i=0; i<size; i++) {
-            printf("%s\n", tapefiles[i]);
-            files.insert(map<int, const char *>::value_type(len++, tapefiles[i]));
+        if (size == 1 && strcasestr(tapefiles[0], ".zip")) {
+            initialize(tapefiles[0], 0);
+        } else {
+            for (int i=0; i<size; i++) {
+                printf("%s\n", tapefiles[i]);
+                files.insert(map<int, const char *>::value_type(len++, tapefiles[i]));
+            }
         }
         makelist();
     }
@@ -303,7 +307,8 @@ public:
             if (data)
                 free(data);
             data = (char *)malloc(fsize);
-            fread(data, fsize, 1, rfp);
+            size_t len = fread(data, fsize, 1, rfp);
+            len++;
             fclose(rfp);
             // printf("file load: %s %x (%d)\n", file, (uint32_t)(uint64_t)rfp, fsize);
             rfp = 0;
@@ -457,13 +462,16 @@ class SpcBox {
         cnt = 0;
         initialize();
         FILE *f;
+        size_t len;
+        int ret;
         const char *filename = "spc1000.bin";
         f = fopen(filename, "rb");
         if (f) {
             fseek(f, 0, SEEK_END);
             int length = ftell(f);
             fseek(f, 0, SEEK_SET);
-            fread(spc1000_bin, length, 1, f);
+            len = fread(spc1000_bin, length, 1, f);
+            len++;
             fclose(f);
             printf("spc1000.bin file loaded\n");
         } else {
@@ -472,7 +480,8 @@ class SpcBox {
         fdd[0] = spc1000_bin;
         f = fopen("number.txt","r");
         if (f) {
-            fscanf(f, "%d", &oldnum);
+            ret = fscanf(f, "%d", &oldnum);
+            ret++;
             fclose(f);
             if (tape->length() < oldnum) {
                 oldnum = tape->length() - 1;

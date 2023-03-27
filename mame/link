@@ -6,16 +6,19 @@ files = [   'src/mame/samsung/spc1000.cpp',
             'src/devices/bus/spc1000/spcbox.h',
             'src/devices/bus/spc1000/tap.h',
             'src/devices/bus/spc1000/tap.cpp',
-            'scripts/src/bus.lua',
-            'src/lib/util/options.cpp',
-            'src/emu/diimage.h',
+            'bus.lua.p0',
+            'diimage.h.p0',
 ]
 
 import os
 
 home = os.path.expanduser("~")
+target = f'{home}/mame'
 for file in files:
-    path = f'{home}/mame/{file}'
-    print(path)
-    os.remove(path)
-    os.system(f'ln -s {home}/spc1000/mame/{file} ~/mame/{file}')
+    if '.p0' in file:
+        os.system(f'patch -d {target} -p0 < {file}')
+    else:
+        path = f'{target}/{file}'
+        print(path)
+        os.remove(path)
+        os.system(f'ln -s {home}/spc1000/mame/{file} ~/mame/{file}')
