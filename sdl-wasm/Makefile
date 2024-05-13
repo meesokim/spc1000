@@ -3,7 +3,6 @@ SOURCE = main.c MC6847.c z80_zazu.c cassette.c AY8910.c Debug.c keyboard.c
 sdl-wasm: $(SOURCE)
 	emcc $(SOURCE) \
 	-DWASM \
-	-I/usr/include/SDL2 \
 	-s WASM=1 \
 	-s USE_SDL=2 \
 	-s USE_SDL_IMAGE=2 \
