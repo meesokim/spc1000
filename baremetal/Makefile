@@ -9,16 +9,28 @@
 #LIBCIRCLE = libcircle
 #endif
 
+USE_VCHIQ_SOUND=1
+
 CIRCLEHOME = ../../circle
 INCLUDE = -I$(CIRCLEHOME)/addon
 TAP_FILE = apple.tap
 BMP = samsung
 GCC = gcc
 
-#OBJS	= main.o kernel.o
-OBJS = main.o kernel.o pwmsound.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
+ifeq ($(strip $(USE_VCHIQ_SOUND)),1)
+LIBS    = $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
+          $(CIRCLEHOME)/addon/vc4/vchiq/libvchiq.a \
+		  $(CIRCLEHOME)/lib/sched/libsched.a \
+          $(CIRCLEHOME)/addon/linux/liblinuxemu.a
 
-LIBS = ugui/libugui$(RASPPI).a \
+CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
+CPPFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
+endif
+
+#OBJS	= main.o kernel.o
+OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
+
+LIBS += ugui/libugui$(RASPPI).a \
 	   $(CIRCLEHOME)/lib/usb/libusb.a \
 	   $(CIRCLEHOME)/lib/fs/libfs.a \
 	   $(CIRCLEHOME)/lib/input/libinput.a \

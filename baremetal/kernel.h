@@ -34,12 +34,21 @@ class CKernel;
 #include <circle/logger.h>
 #include <circle/types.h>
 // #include <circle/pwmsounddevice.h>
+#include <circle/sound/pwmsoundbasedevice.h>
+#include <circle/sound/i2ssoundbasedevice.h>
+#include <circle/sound/hdmisoundbasedevice.h>
+#include <circle/sound/usbsoundbasedevice.h>
+#include <circle/usb/usbhcidevice.h>
 #include <circle/pwmoutput.h>
 #include <circle/usb/usbkeyboard.h>   
 #include <circle/usb/dwhcidevice.h>
 #include "ugui/uguicpp.h"
 #include "pwmsound.h"
 #include "AY8910.h"
+
+#ifdef USE_VCHIQ_SOUND                                                                                                                      
+	#include <vc4/sound/vchiqsoundbasedevice.h>                                                                                 
+#endif
 
 enum TShutdownMode
 {
@@ -67,15 +76,18 @@ private:
 	CScreenDevice8		m_Screen;
 	CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
-	CInterruptSystem	m_Interrupt;
+	CInterruptSystem    m_Interrupt;
 	CTimer				m_Timer;
 	CLogger				m_Logger;
+#if RASPPI <= 4
+	CI2CMaster          m_I2CMaster;    
+#endif
+	CUSBHCIDevice      m_USBHCI; 
 
-	CDWHCIDevice		m_DWHCI;
-	CPWMSound			m_PWMSound; 
-	//CPWMSoundDevice		m_PWMSoundDevice;
-	//void OutZ80(register word Port,register byte Value);
-	//byte InZ80(register word Port);	
+#ifdef USE_VCHIQ_SOUND
+	CVCHIQDevice        m_VCHIQ;
+#endif
+	CSoundBaseDevice    *m_pSound;
 	CUGUI				m_GUI;
 	volatile TShutdownMode m_ShutdownMode;	
 	int 				reset_flag;

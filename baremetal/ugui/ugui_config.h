@@ -13,7 +13,9 @@
 #if DEPTH == 16
 #define USE_COLOR_RGB565   // RGB = 0bRRRRRGGGGGGBBBBB
 #elif DEPTH == 8
+#ifndef USE_COLOR_INDEX
 #define USE_COLOR_INDEX
+#endif
 #endif
 
 /* Enable needed fonts here */

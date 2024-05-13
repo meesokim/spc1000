@@ -31,15 +31,42 @@ int printf(const char *format, ...);
  }
 #endif
 #include "kernel.h"
-#include "AY8910.h"
-#include "casswindow.h"
 #include <circle/string.h>
 #include <circle/screen.h>
 #include <circle/debug.h>
+#include <circle/sound/pwmsoundbasedevice.h>
+#include <circle/sound/i2ssoundbasedevice.h>
+#include <circle/sound/hdmisoundbasedevice.h>
+#include <circle/sound/usbsoundbasedevice.h>
 #include <circle/util.h>
+#include "config.h"
+#include "AY8910.h"
+#include "casswindow.h"
 #include <assert.h>
-
+#ifdef USE_VCHIQ_SOUND
+        #include <vc4/sound/vchiqsoundbasedevice.h>
+#endif
 //#define SOUND_SAMPLES		(sizeof Sound / sizeof Sound[0] / SOUND_CHANNELS)
+
+#if WRITE_FORMAT == 0
+        #define FORMAT          SoundFormatUnsigned8
+        #define TYPE            u8
+        #define TYPE_SIZE       sizeof (u8)
+        #define FACTOR          ((1 << 7)-1)
+        #define NULL_LEVEL      (1 << 7)
+#elif WRITE_FORMAT == 1
+        #define FORMAT          SoundFormatSigned16
+        #define TYPE            s16
+        #define TYPE_SIZE       sizeof (s16)
+        #define FACTOR          ((1 << 15)-1)
+        #define NULL_LEVEL      0
+#elif WRITE_FORMAT == 2
+        #define FORMAT          SoundFormatSigned24
+        #define TYPE            s32
+        #define TYPE_SIZE       (sizeof (u8)*3)
+        #define FACTOR          ((1 << 23)-1)
+        #define NULL_LEVEL      0
+#endif
 
 extern char tap0[];
 extern char samsung_bmp_c[];
@@ -66,8 +93,15 @@ CKernel::CKernel(void)
 	  m_Memory(TRUE),
 	  m_Timer(&m_Interrupt),
 	  m_Logger(LogPanic, &m_Timer),
-	  m_DWHCI(&m_Interrupt, &m_Timer),
-	  m_ShutdownMode(ShutdownNone), m_PWMSound(&m_Interrupt), m_GUI(&m_Screen)
+#if RASPPI <= 4
+      m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
+#endif
+      m_USBHCI (&m_Interrupt, &m_Timer, FALSE),
+#ifdef USE_VCHIQ_SOUND
+      m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
+#endif
+	//   m_DWHCI(&m_Interrupt, &m_Timer),
+	  m_ShutdownMode(ShutdownNone), m_GUI(&m_Screen)
 // ,m_PWMSoundDevice (&m_Interrupt)
 {
 	//m_PWMSoundDevice.CancelPlayback();
@@ -130,7 +164,7 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
-		bOK = m_DWHCI.Initialize ();
+		// bOK = m_DWHCI.Initialize ();
 	}                       	
 	int num = 0;
 	printf("m_DWHCI!!!\n");	
@@ -139,10 +173,28 @@ boolean CKernel::Initialize (void)
 		bOK = m_Timer.Initialize ();
 	}
 	printf("m_Timer!!!\n");	
+#if RASPPI <= 4
+	if (bOK)
+	{
+			bOK = m_I2CMaster.Initialize ();
+	}
+#endif
+
+	if (bOK)
+	{
+			bOK = m_USBHCI.Initialize ();
+	}	
+#ifdef USE_VCHIQ_SOUND
+	if (bOK)
+	{
+			bOK = m_VCHIQ.Initialize ();
+	}
+#endif
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);
 	printf("spcKeyMap!!!\n");	
+	
 	reset();
 	printf("reset!!!\n");	
 	return bOK;
@@ -195,9 +247,50 @@ TShutdownMode CKernel::Run (void)
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+        // select the sound device
+#if RASPPI <= 4
+	const char *pSoundDevice = m_Options.GetSoundDevice ();
+	if (strcmp (pSoundDevice, "sndpwm") == 0)
+	{
+			m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+	}
+	else if (strcmp (pSoundDevice, "sndi2s") == 0)
+	{
+			m_pSound = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, FALSE,
+												&m_I2CMaster, DAC_I2C_ADDRESS);
+	}
+	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
+	{
+			m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+	}
+#if RASPPI >= 4
+	else if (strcmp (pSoundDevice, "sndusb") == 0)
+	{
+			m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
+	}
+#endif
+	else
+	{
+#ifdef USE_VCHIQ_SOUND
+			m_pSound = new CVCHIQSoundBaseDevice (&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
+									(TVCHIQSoundDestination) m_Options.GetSoundOption ());
+#else
+			m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+#endif
+	}
+#else
+	m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
+#endif
 	//printf("Keyboard Start!\n");	
 //	CCassWindow CassWindow (0, 0);
-#if 1
+	// configure sound device
+	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
+	{
+			m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
+	}
+	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
+
+#if 0
 	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
 	if (pKeyboard == 0)
 	{
