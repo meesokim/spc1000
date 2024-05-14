@@ -272,6 +272,7 @@ void emscripten_set_main_loop(void (*loop)(), int x, int y )
     while(!quit)
     {    
         loop();
+        sleep(0.03);
     }
 }
 #endif 
