@@ -1,0 +1,7 @@
+
+CFLAGS += -ISDL2/include
+
+LDFLAGS += -LSDL2
+
+LIBS := -lSDL2 $(LIBS)
+LIBS_DEP += SDL2/libSDL2.a

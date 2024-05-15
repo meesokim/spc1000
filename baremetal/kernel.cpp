@@ -158,38 +158,38 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
-		bOK = m_Interrupt.Initialize ();
+		// bOK = m_Interrupt.Initialize ();
 	}
 	printf("m_Interrupt!!!\n");
 
-	if (bOK)
-	{
-		// bOK = m_DWHCI.Initialize ();
-	}                       	
+	// if (bOK)
+	// {
+	// 	bOK = m_DWHCI.Initialize ();
+	// }                       	
 	int num = 0;
 	printf("m_DWHCI!!!\n");	
-	if (bOK)
-	{
-		bOK = m_Timer.Initialize ();
-	}
+	// if (bOK)
+	// {
+	// 	bOK = m_Timer.Initialize ();
+	// }
 	printf("m_Timer!!!\n");	
-#if RASPPI <= 4
-	if (bOK)
-	{
-			bOK = m_I2CMaster.Initialize ();
-	}
-#endif
+// #if RASPPI <= 4
+// 	if (bOK)
+// 	{
+// 			bOK = m_I2CMaster.Initialize ();
+// 	}
+// #endif
 
-	if (bOK)
-	{
-			bOK = m_USBHCI.Initialize ();
-	}	
-#ifdef USE_VCHIQ_SOUND
-	if (bOK)
-	{
-			bOK = m_VCHIQ.Initialize ();
-	}
-#endif
+// 	if (bOK)
+// 	{
+// 			bOK = m_USBHCI.Initialize ();
+// 	}	
+// #ifdef USE_VCHIQ_SOUND
+// 	if (bOK)
+// 	{
+// 			bOK = m_VCHIQ.Initialize ();
+// 	}
+// #endif
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);
