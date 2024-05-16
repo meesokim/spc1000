@@ -85,9 +85,9 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
-		CString str;
-		str.Format("Hello, World\n");
-		m_Screen.Write(str, str.GetLength());
+		// CString str;
+		// str.Format("Hello, World\n");
+		// m_Screen.Write(str, str.GetLength());
 	}
 
 	if (bOK)
