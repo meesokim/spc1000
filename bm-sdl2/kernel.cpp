@@ -25,6 +25,7 @@
 #include <circle/sound/usbsoundbasedevice.h>
 #include <circle/machineinfo.h>
 #include <circle/util.h>
+#include <circle/string.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -84,6 +85,9 @@ boolean CKernel::Initialize (void)
 	if (bOK)
 	{
 		bOK = m_Screen.Initialize ();
+		CString str;
+		str.Format("Hello, World\n");
+		m_Screen.Write(str, str.GetLength());
 	}
 
 	if (bOK)
