@@ -30,20 +30,14 @@
 #include <circle/timer.h>
 #include <circle/logger.h>
 #include <circle/sched/scheduler.h>
-#include <circle/sound/pwmsoundbasedevice.h>
+#include <circle/i2cmaster.h>
+#include <circle/usb/usbhcidevice.h>
+#include <circle/sound/soundbasedevice.h>
 #include <circle/types.h>
-#include "config.h"
+#include "oscillator.h"
 
-#ifndef USE_USB
-	#include <circle/sound/i2ssoundbasedevice.h>
-#else
-	#include <circle/usb/usbhcidevice.h>
-	#include <circle/sound/usbsoundbasedevice.h>
-#endif
-
-#ifdef ENABLE_RECORDER
-	#include <SDCard/emmc.h>
-	#include <fatfs/ff.h>
+#ifdef USE_VCHIQ_SOUND
+	#include <vc4/vchiq/vchiqdevice.h>
 #endif
 
 enum TShutdownMode
@@ -64,6 +58,11 @@ public:
 	TShutdownMode Run (void);
 
 private:
+	void WriteSoundData (unsigned nFrames);
+
+	void GetSoundData (void *pBuffer, unsigned nFrames);
+
+private:
 	// do not change this order
 	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
@@ -75,21 +74,18 @@ private:
 	CTimer			m_Timer;
 	CLogger			m_Logger;
 	CScheduler		m_Scheduler;
-#ifdef USE_USB
+#if RASPPI <= 4
+	CI2CMaster		m_I2CMaster;
+#endif
 	CUSBHCIDevice		m_USBHCI;
-#endif
 
-#ifdef ENABLE_RECORDER
-	CEMMCDevice		m_EMMC;
-	FATFS			m_FileSystem;
+#ifdef USE_VCHIQ_SOUND
+	CVCHIQDevice		m_VCHIQ;
 #endif
+	CSoundBaseDevice	*m_pSound;
 
-#ifndef USE_USB
-	CI2SSoundBaseDevice	*m_pSoundIn;
-#else
-	CUSBSoundBaseDevice	*m_pSoundIn;
-#endif
-	CPWMSoundBaseDevice	*m_pSoundOut;
+	COscillator m_LFO;
+	COscillator m_VFO;
 };
 
 #endif

@@ -18,11 +18,20 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "kernel.h"
+#include "config.h"
+#include <circle/sound/pwmsoundbasedevice.h>
+#include <circle/sound/i2ssoundbasedevice.h>
+#include <circle/sound/hdmisoundbasedevice.h>
+#include <circle/sound/usbsoundbasedevice.h>
+#include <circle/machineinfo.h>
 #include <circle/util.h>
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-#ifdef ENABLE_RECORDER
-	#include "soundrecorder.h"
+#ifdef USE_VCHIQ_SOUND
+	#include <vc4/sound/vchiqsoundbasedevice.h>
 #endif
 
 #if WRITE_FORMAT == 0
@@ -43,12 +52,6 @@
 	#define TYPE_SIZE	(sizeof (u8)*3)
 	#define FACTOR		((1 << 23)-1)
 	#define NULL_LEVEL	0
-#elif WRITE_FORMAT == 3
-	#define FORMAT		SoundFormatSigned24_32
-	#define TYPE		s32
-	#define TYPE_SIZE	(sizeof (s32))
-	#define FACTOR		((1 << 23)-1)
-	#define NULL_LEVEL	0
 #endif
 
 static const char FromKernel[] = "kernel";
@@ -57,14 +60,15 @@ CKernel::CKernel (void)
 :	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
-#ifdef USE_USB
+#if RASPPI <= 4
+	m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
+#endif
 	m_USBHCI (&m_Interrupt, &m_Timer, FALSE),
+#ifdef USE_VCHIQ_SOUND
+	m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 #endif
-#ifdef ENABLE_RECORDER
-	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
-#endif
-	m_pSoundIn (0),
-	m_pSoundOut (0)
+	m_pSound (0),
+	m_VFO (&m_LFO)		// LFO modulates the VFO
 {
 	m_ActLED.Blink (5);	// show we are alive
 }
@@ -108,17 +112,22 @@ boolean CKernel::Initialize (void)
 		bOK = m_Timer.Initialize ();
 	}
 
-#ifdef USE_USB
+#if RASPPI <= 4
+	if (bOK)
+	{
+		bOK = m_I2CMaster.Initialize ();
+	}
+#endif
+
 	if (bOK)
 	{
 		bOK = m_USBHCI.Initialize ();
 	}
-#endif
 
-#ifdef ENABLE_RECORDER
+#ifdef USE_VCHIQ_SOUND
 	if (bOK)
 	{
-		bOK = m_EMMC.Initialize ();
+		bOK = m_VCHIQ.Initialize ();
 	}
 #endif
 
@@ -129,104 +138,127 @@ TShutdownMode CKernel::Run (void)
 {
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 
-#ifdef ENABLE_RECORDER
-	// mount file system
-	if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
+	// select the sound device
+#if RASPPI <= 4
+	const char *pSoundDevice = m_Options.GetSoundDevice ();
+	if (strcmp (pSoundDevice, "sndpwm") == 0)
 	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
+		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
 	}
-
-	// start sound recorder task
-	CSoundRecorder *pRecorder = new CSoundRecorder (&m_FileSystem);
-	assert (pRecorder != 0);
+	else if (strcmp (pSoundDevice, "sndi2s") == 0)
+	{
+		m_pSound = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, FALSE,
+						    &m_I2CMaster, DAC_I2C_ADDRESS);
+	}
+	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
+	{
+		m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+	}
+#if RASPPI >= 4
+	else if (strcmp (pSoundDevice, "sndusb") == 0)
+	{
+		m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
+	}
 #endif
-
-	// create sound devices
-#ifndef USE_USB
-	m_pSoundIn = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, TRUE, 0, 0,
-					      CI2SSoundBaseDevice::DeviceModeRXOnly);
+	else
+	{
+#ifdef USE_VCHIQ_SOUND
+		m_pSound = new CVCHIQSoundBaseDevice (&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
+					(TVCHIQSoundDestination) m_Options.GetSoundOption ());
 #else
-	m_pSoundIn = new CUSBSoundBaseDevice (SAMPLE_RATE, CUSBSoundBaseDevice::DeviceModeRXOnly);
-#endif
-	assert (m_pSoundIn != 0);
-
-	m_pSoundOut = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-	assert (m_pSoundOut != 0);
-
-	// configure sound devices
-	if (!m_pSoundIn->AllocateReadQueue (QUEUE_SIZE_MSECS))
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate input sound queue");
-	}
-
-	m_pSoundIn->SetReadFormat (FORMAT, WRITE_CHANNELS);
-
-	if (!m_pSoundOut->AllocateQueue (QUEUE_SIZE_MSECS))
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate output sound queue");
-	}
-
-	m_pSoundOut->SetWriteFormat (FORMAT, WRITE_CHANNELS);
-
-	// start sound devices
-	if (!m_pSoundIn->Start ())
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot start input sound device");
-	}
-
-	if (!m_pSoundOut->Start ())
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot start output sound device");
-	}
-
-#ifdef INPUT_JACK
-	// enable input jack and set volume
-	CSoundController *pController = m_pSoundIn->GetController ();
-	if (pController)
-	{
-		pController->EnableJack (INPUT_JACK);
-
-#ifdef INPUT_VOLUME
-		CSoundController::TControlInfo Info =
-			pController->GetControlInfo (CSoundController::ControlVolume, INPUT_JACK,
-						     CSoundController::ChannelAll);
-
-		if (Info.Supported)
-		{
-			pController->SetControl (CSoundController::ControlVolume, INPUT_JACK,
-						 CSoundController::ChannelAll, INPUT_VOLUME);
-		}
+		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
 #endif
 	}
+#else
+	m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
 #endif
+	assert (m_pSound != 0);
 
-	// copy sound data
-	for (unsigned nCount = 0; 1; nCount++)
+	// initialize oscillators
+	m_LFO.SetWaveform (WaveformSine);
+	m_LFO.SetFrequency (10.0);
+
+	m_VFO.SetWaveform (WaveformSine);
+	m_VFO.SetFrequency (440.0);
+	m_VFO.SetModulationVolume (0.25);
+
+	// configure sound device
+	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
 	{
-		u8 Buffer[TYPE_SIZE*WRITE_CHANNELS*4096];
-		int nBytes = m_pSoundIn->Read (Buffer, sizeof Buffer);
-		if (nBytes > 0)
-		{
-			int nResult = m_pSoundOut->Write (Buffer, nBytes);
-			if (nResult != nBytes)
-			{
-				m_Logger.Write (FromKernel, LogWarning, "Sound data dropped");
-			}
+		m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
+	}
 
-#ifdef ENABLE_RECORDER
-			nResult = pRecorder->Write (Buffer, nBytes);
-			if (nResult != nBytes)
-			{
-				m_Logger.Write (FromKernel, LogWarning,
-						"Sound data dropped (recorder)");
-			}
-#endif
-		}
+	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
+
+	// initially fill the whole queue with data
+	unsigned nQueueSizeFrames = m_pSound->GetQueueSizeFrames ();
+
+	WriteSoundData (nQueueSizeFrames);
+
+	// start sound device
+	if (!m_pSound->Start ())
+	{
+		m_Logger.Write (FromKernel, LogPanic, "Cannot start sound device");
+	}
+
+	m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
+
+	// output sound data
+	for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
+	{
+		m_Scheduler.MsSleep (QUEUE_SIZE_MSECS / 2);
+
+		// fill the whole queue free space with data
+		WriteSoundData (nQueueSizeFrames - m_pSound->GetQueueFramesAvail ());
 
 		m_Screen.Rotor (0, nCount);
-
-		m_Scheduler.Yield ();
 	}
 
 	return ShutdownHalt;
+}
+
+void CKernel::WriteSoundData (unsigned nFrames)
+{
+	const unsigned nFramesPerWrite = 1000;
+	u8 Buffer[nFramesPerWrite * WRITE_CHANNELS * TYPE_SIZE];
+
+	while (nFrames > 0)
+	{
+		unsigned nWriteFrames = nFrames < nFramesPerWrite ? nFrames : nFramesPerWrite;
+
+		GetSoundData (Buffer, nWriteFrames);
+
+		unsigned nWriteBytes = nWriteFrames * WRITE_CHANNELS * TYPE_SIZE;
+
+		int nResult = m_pSound->Write (Buffer, nWriteBytes);
+		if (nResult != (int) nWriteBytes)
+		{
+			m_Logger.Write (FromKernel, LogError, "Sound data dropped");
+		}
+
+		nFrames -= nWriteFrames;
+
+		m_Scheduler.Yield ();		// ensure the VCHIQ tasks can run
+	}
+}
+
+void CKernel::GetSoundData (void *pBuffer, unsigned nFrames)
+{
+	u8 *pBuffer8 = (u8 *) pBuffer;
+
+	unsigned nSamples = nFrames * WRITE_CHANNELS;
+
+	for (unsigned i = 0; i < nSamples;)
+	{
+		m_LFO.NextSample ();
+		m_VFO.NextSample ();
+
+		float fLevel = m_VFO.GetOutputLevel ();
+		TYPE nLevel = (TYPE) (fLevel*VOLUME * FACTOR + NULL_LEVEL);
+
+		memcpy (&pBuffer8[i++ * TYPE_SIZE], &nLevel, TYPE_SIZE);
+#if WRITE_CHANNELS == 2
+		memcpy (&pBuffer8[i++ * TYPE_SIZE], &nLevel, TYPE_SIZE);
+#endif
+	}
 }

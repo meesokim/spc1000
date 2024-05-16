@@ -2,19 +2,18 @@
 # Makefile
 #
 
-#ENABLE_RECORDER = 1
+#USE_VCHIQ_SOUND = 1
 
-CIRCLEHOME = ../..
+# CIRCLEHOME = $(CIRCLE)
 
-OBJS	= main.o kernel.o
+OBJS	= main.o kernel.o oscillator.o
 
-ifeq ($(strip $(ENABLE_RECORDER)),1)
-OBJS	+= soundrecorder.o queue.o
+ifeq ($(strip $(USE_VCHIQ_SOUND)),1)
+LIBS	= $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
+	  $(CIRCLEHOME)/addon/vc4/vchiq/libvchiq.a \
+	  $(CIRCLEHOME)/addon/linux/liblinuxemu.a
 
-LIBS	= $(CIRCLEHOME)/addon/fatfs/libfatfs.a \
-	  $(CIRCLEHOME)/addon/SDCard/libsdcard.a
-
-CFLAGS += -DENABLE_RECORDER=$(ENABLE_RECORDER)
+CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 endif
 
 LIBS	+= $(CIRCLEHOME)/lib/sched/libsched.a \
@@ -24,12 +23,9 @@ LIBS	+= $(CIRCLEHOME)/lib/sched/libsched.a \
 	   $(CIRCLEHOME)/lib/fs/libfs.a \
 	   $(CIRCLEHOME)/lib/libcircle.a
 
-include ../Rules.mk
-include SDL2/pkgconfig.mk
-include SDL2_image/pkgconfig.mk
-include SDL2_mixer/pkgconfig.mk
--include $(DEPS)
+include $(CIRCLEHOME)/Rules.mk
 
+-include $(DEPS)
 
 all:
 	make -C zlib
@@ -40,7 +36,7 @@ all:
 	make -C SDL2_image
 	make -C SDL2_mixer
 
-clean:
+clean1:
 	make -C zlib -k clean
 	make -C libpng -k clean
 	make -C libogg -k clean
