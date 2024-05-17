@@ -16,7 +16,7 @@
  */
 
 #include "../../SDL_internal.h"
-#include "SDL_raspberry.h"
+#include "SDL_circle.h"
 
 #ifdef HAVE_USPI
 #include "uspi.h"

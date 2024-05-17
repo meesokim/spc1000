@@ -20,13 +20,13 @@
 */
 #include "../../SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_RASPBERRY
+#if SDL_VIDEO_DRIVER_CIRCLE
 
 #include "../SDL_sysvideo.h"
-#include "SDL_rpivideo.h"
-#include "SDL_rpiframebuffer_c.h"
+#include "SDL_circle_video.h"
+#include "SDL_circle_framebuffer_c.h"
 
-#include "../../core/raspberry/SDL_raspberry.h"
+#include "../../core/circle/SDL_circle.h"
 
 static unsigned int fb_width;
 static unsigned int fb_height;
@@ -37,7 +37,7 @@ static unsigned int fb_pitch;
 static unsigned int fb_buffer_addr[2];
 static unsigned int fb_buffer;
 
-int RASPBERRY_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch) {
+int CIRCLE_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch) {
     unsigned int mb_addr = 0x40007000;      // 0x7000 in L2 cache coherent mode
     volatile unsigned int *mailbuffer = (unsigned int *) mb_addr;
     SDL_VideoDisplay *display = SDL_GetDisplayForWindow(window);
@@ -118,7 +118,7 @@ int RASPBERRY_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * forma
     return 0;
 }
 
-int RASPBERRY_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect * rects, int numrects) {
+int CIRCLE_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect * rects, int numrects) {
     unsigned int mb_addr = 0x40007000;      // 0x7000 in L2 cache coherent mode
     volatile unsigned int *mailbuffer = (unsigned int *) mb_addr;
 
@@ -158,10 +158,10 @@ int RASPBERRY_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect
     return 0;
 }
 
-void RASPBERRY_DestroyWindowFramebuffer(_THIS, SDL_Window * window) {
+void CIRCLE_DestroyWindowFramebuffer(_THIS, SDL_Window * window) {
 
 }
 
-#endif /* SDL_VIDEO_DRIVER_RASPBERRY */
+#endif /* SDL_VIDEO_DRIVER_CIRCLE */
 
 /* vi: set ts=4 sw=4 expandtab: */

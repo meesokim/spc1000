@@ -33,9 +33,9 @@
 #include "../SDL_pixels_c.h"
 #include "../../events/SDL_events_c.h"
 
-#include "SDL_rpivideo.h"
-#include "SDL_rpievents_c.h"
-#include "SDL_rpiframebuffer_c.h"
+#include "SDL_circle_video.h"
+#include "SDL_circle_events_c.h"
+#include "SDL_circle_framebuffer_c.h"
 
 #include "../../core/circle/SDL_circle.h"
 

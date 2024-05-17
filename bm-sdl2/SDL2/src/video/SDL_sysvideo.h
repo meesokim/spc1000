@@ -384,6 +384,9 @@ extern VideoBootStrap Wayland_bootstrap;
 #if SDL_VIDEO_DRIVER_RASPBERRY
 extern VideoBootStrap RASPBERRY_bootstrap;
 #endif
+#if SDL_VIDEO_DRIVER_CIRCLE
+extern VideoBootStrap CIRCLE_bootstrap;
+#endif
 
 extern SDL_VideoDevice *SDL_GetVideoDevice(void);
 extern int SDL_AddBasicVideoDisplay(const SDL_DisplayMode * desktop_mode);

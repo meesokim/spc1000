@@ -20,8 +20,8 @@
 */
 #include "../../SDL_internal.h"
 
-#include "SDL_rpivideo.h"
+#include "SDL_circle_video.h"
 
-extern void RASPBERRY_PumpEvents(_THIS);
+extern void CIRCLE_PumpEvents(_THIS);
 
 /* vi: set ts=4 sw=4 expandtab: */

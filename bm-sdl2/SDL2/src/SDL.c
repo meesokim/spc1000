@@ -443,6 +443,8 @@ SDL_GetPlatform()
     return "PlayStation Portable";
 #elif defined(__RASPBERRY_PI__)
     return "RaspberryPi";
+#elif defined(__CIRCLE__)
+    return "Circle";
 #else
     return "Unknown (see SDL_platform.h)";
 #endif

@@ -45,6 +45,8 @@
 #include "SDL_config_psp.h"
 #elif defined(__RASPBERRY_PI__)
 #include "SDL_config_raspberry.h"
+#elif defined(__CIRCLE__)
+#include "SDL_config_circle.h"
 #else
 /* This is a minimal configuration just to get SDL running on new platforms */
 #include "SDL_config_minimal.h"

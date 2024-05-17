@@ -20,7 +20,7 @@
 */
 #include "../../SDL_internal.h"
 
-#if defined(SDL_JOYSTICK_RASPBERRY)
+#if defined(SDL_JOYSTICK_CIRCLE)
 
 #include "SDL_joystick.h"
 #include "../SDL_sysjoystick.h"
@@ -480,6 +480,6 @@ SDL_JoystickGUID SDL_SYS_JoystickGetGUID(SDL_Joystick * joystick)
     return joystick->hwdata->guid;
 }
 
-#endif /* SDL_JOYSTICK_RASPBERRY */
+#endif /* SDL_JOYSTICK_CIRCLE */
 
 /* vi: set ts=4 sw=4 expandtab: */

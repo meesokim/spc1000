@@ -72,6 +72,9 @@ static const char *s_ControllerMappings [] =
 #elif defined(__RASPBERRY_PI__)
     "4e45532047616d657061640000000000,NES Gamepad,a:b7,b:b6,dpdown:b2,dpleft:b1,dpright:b0,dpup:b3,guide:b5,start:b4,",
     "030000004c0500006802000000010000,PS3 Controller,a:b9,b:b10,back:b7,dpdown:b1,dpleft:b0,dpright:b2,dpup:b3,guide:b18,leftshoulder:b13,leftstick:b6,lefttrigger:b15,leftx:a0,lefty:a1,rightshoulder:b12,rightstick:b5,righttrigger:b14,rightx:a2,righty:a3,start:b4,x:b8,y:b11,",
+#elif defined(__CIRCLE__)
+    "4e45532047616d657061640000000000,NES Gamepad,a:b7,b:b6,dpdown:b2,dpleft:b1,dpright:b0,dpup:b3,guide:b5,start:b4,",
+    "030000004c0500006802000000010000,PS3 Controller,a:b9,b:b10,back:b7,dpdown:b1,dpleft:b0,dpright:b2,dpup:b3,guide:b18,leftshoulder:b13,leftstick:b6,lefttrigger:b15,leftx:a0,lefty:a1,rightshoulder:b12,rightstick:b5,righttrigger:b14,rightx:a2,righty:a3,start:b4,x:b8,y:b11,",
 #endif
     NULL
 };

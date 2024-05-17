@@ -98,6 +98,9 @@ static VideoBootStrap *bootstrap[] = {
 #if SDL_VIDEO_DRIVER_RASPBERRY
     &RASPBERRY_bootstrap,
 #endif
+#if SDL_VIDEO_DRIVER_CIRCLE
+    &CIRCLE_bootstrap,
+#endif
     NULL
 };
 

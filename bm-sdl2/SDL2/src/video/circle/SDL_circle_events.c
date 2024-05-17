@@ -20,22 +20,22 @@
 */
 #include "../../SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_RASPBERRY
+#if SDL_VIDEO_DRIVER_CIRCLE
 
 /* Being a null driver, there's no event stream. We just define stubs for
    most of the API. */
 
 #include "../../events/SDL_events_c.h"
 
-#include "SDL_rpivideo.h"
-#include "SDL_rpievents_c.h"
+#include "SDL_circle_video.h"
+#include "SDL_circle_events_c.h"
 
 void
-RASPBERRY_PumpEvents(_THIS)
+CIRCLE_PumpEvents(_THIS)
 {
 
 }
 
-#endif /* SDL_VIDEO_DRIVER_RASPBERRY */
+#endif /* SDL_VIDEO_DRIVER_CIRCLE */
 
 /* vi: set ts=4 sw=4 expandtab: */
