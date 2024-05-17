@@ -13,7 +13,8 @@ LIBS	= $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
 	  $(CIRCLEHOME)/addon/vc4/vchiq/libvchiq.a \
 	  $(CIRCLEHOME)/addon/linux/liblinuxemu.a
 
-CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
+CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND) -D__CIRCLE__
+DEFINE += -D__CIRCLE__
 endif
 
 LIBS	+= $(CIRCLEHOME)/lib/sched/libsched.a \
@@ -21,11 +22,17 @@ LIBS	+= $(CIRCLEHOME)/lib/sched/libsched.a \
 	   $(CIRCLEHOME)/lib/usb/libusb.a \
 	   $(CIRCLEHOME)/lib/input/libinput.a \
 	   $(CIRCLEHOME)/lib/fs/libfs.a \
-	   $(CIRCLEHOME)/lib/libcircle.a
+	   $(CIRCLEHOME)/lib/libcircle.a \
+	   SDL2/libSDL2.a \
+	   SDL2_image/libSDL2_image.a \
+	   SDL2_mixer/libSDL2_mixer.a \
+	   kernel/libkernel.a
 
 include $(CIRCLEHOME)/Rules.mk
 
 -include $(DEPS)
+
+INCLUDE += -ISDL2/include
 
 all:
 	make -C zlib

@@ -9,21 +9,22 @@ AR := $(TOOLCHAIN)ar
 OBJCOPY := $(TOOLCHAIN)objcopy
 
 DEPDIR := .deps
+USPI := 1
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard 
-CFLAGS = -O3 -Iinclude -Isrc -I../kernel -ffreestanding -fvisibility=hidden -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -D_REENTRANT -D__CIRCLE__ 
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+CFLAGS = -Wall -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -fsigned-char -I../kernel -I$(CIRCLEHOME)/include -D__RASPBERRY_PI__
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
+LDFLAGS = -T ../kernel/raspberry.ld -nostartfiles -fno-exceptions -fno-unwind-tables -fno-rtti -Wl,-Map=kernel.map -o kernel.elf
 
-all: libSDL2.a
+ifeq ($(USPI),1)
+CFLAGS += -DHAVE_USPI
+endif
 
-OBJS = $(shell find . -name *.c -print | sed -r 's/\.c+/\.o/g')
-
--include $(shell find $(DEPDIR) -name *.Po -print)
-
-libSDL2.a: $(OBJS) Makefile
-	$(AR) rcs $@ $(OBJS)
+LDFLAGS += -L../kernel
+LIBS += -lkernel
+LIBS_DEP += ../kernel/libkernel.a
 
 %.o: %.c
 	@mkdir -p $(DEPDIR)/$(@D)
@@ -38,12 +39,11 @@ libSDL2.a: $(OBJS) Makefile
 %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-install:
-	-mkdir -p $(PREFIX)/include/SDL2
-	cp -f include/* $(PREFIX)/include/SDL2
-	-mkdir -p $(PREFIX)/lib
-	cp -f libSDL2.a $(PREFIX)/lib
+%.o: %.png
+	$(LD) -r -b binary -o $@ $<
 
-clean:
-	rm -f $(OBJS) libSDL2.a
-	rm -rf $(DEPDIR)
+%.o: %.ogg
+	$(LD) -r -b binary -o $@ $<
+
+%.o: %.txt
+	$(LD) -r -b binary -o $@ $<

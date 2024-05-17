@@ -13,8 +13,8 @@ DEFS = -D_REENTRANT -D__CIRCLE__ -DLOAD_BMP -DLOAD_GIF -DLOAD_PNG -DHAVE_HIDDEN 
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp
-CFLAGS = -O3 -I../SDL2/include -I../libpng -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp $(DEFS)
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard 
+CFLAGS = -O3 -I../SDL2/include -I../libpng -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard  $(DEFS)
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 
 all: deps libSDL2_image.a
