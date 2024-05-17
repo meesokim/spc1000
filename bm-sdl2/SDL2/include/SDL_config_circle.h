@@ -32,7 +32,7 @@
 /* Useful headers */
 #define HAVE_ALLOCA_H 1
 #define HAVE_SYS_TYPES_H 1
-#define HAVE_STDIO_H 1
+// #define HAVE_STDIO_H 1
 #define STDC_HEADERS 1
 #define HAVE_STDLIB_H 1
 #define HAVE_STDARG_H 1
@@ -42,7 +42,7 @@
 #define HAVE_STRINGS_H 1
 #define HAVE_INTTYPES_H 1
 #define HAVE_STDINT_H 1
-#define HAVE_CTYPE_H 1
+// #define HAVE_CTYPE_H 1
 #define HAVE_MATH_H 1
 /* #undef HAVE_ICONV_H */
 /* #undef HAVE_SIGNAL_H */
@@ -61,8 +61,8 @@
 /* #undef HAVE_SETENV */
 /* #undef HAVE_PUTENV */
 /* #undef HAVE_UNSETENV */
-#define HAVE_QSORT 1
-#define HAVE_ABS 1
+// #define HAVE_QSORT 1
+// #define HAVE_ABS 1
 #define HAVE_BCOPY 1
 #define HAVE_MEMSET 1
 #define HAVE_MEMCPY 1
@@ -78,21 +78,21 @@
 /* #undef HAVE_INDEX */
 /* #undef HAVE_RINDEX */
 #define HAVE_STRCHR 1
-#define HAVE_STRRCHR 1
+// #define HAVE_STRRCHR 1
 #define HAVE_STRSTR 1
 /* #undef HAVE_ITOA */
 /* #undef HAVE__LTOA */
 /* #undef HAVE__UITOA */
 /* #undef HAVE__ULTOA */
-#define HAVE_STRTOL 1
-#define HAVE_STRTOUL 1
+// #define HAVE_STRTOL 1
+// #define HAVE_STRTOUL 1
 /* #undef HAVE__I64TOA */
 /* #undef HAVE__UI64TOA */
-#define HAVE_STRTOLL 1
+// #define HAVE_STRTOLL 1
 #define HAVE_STRTOULL 1
-#define HAVE_STRTOD 1
+// #define HAVE_STRTOD 1
 #define HAVE_ATOI 1
-#define HAVE_ATOF 1
+// #define HAVE_ATOF 1
 #define HAVE_STRCMP 1
 #define HAVE_STRNCMP 1
 /* #undef HAVE__STRICMP */
@@ -100,9 +100,9 @@
 /* #undef HAVE__STRNICMP */
 #define HAVE_STRNCASECMP 1
 /* #undef HAVE_SSCANF */
-#define HAVE_VSSCANF 1
+// #define HAVE_VSSCANF 1
 /* #undef HAVE_SNPRINTF */
-#define HAVE_VSNPRINTF 1
+// #define HAVE_VSNPRINTF 1
 /* #undef HAVE_M_PI */
 #define HAVE_ATAN 1
 #define HAVE_ATAN2 1

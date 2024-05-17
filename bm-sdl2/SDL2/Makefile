@@ -12,8 +12,8 @@ DEPDIR := .deps
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp
-CFLAGS = -O3 -Iinclude -Isrc -I../kernel -ffreestanding -fvisibility=hidden -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp -D_REENTRANT -D__CIRCLE__ 
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+CFLAGS = -O3 -Iinclude -Isrc -I../kernel -ffreestanding -fvisibility=hidden -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -D_REENTRANT -D__CIRCLE__ 
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 
 all: libSDL2.a

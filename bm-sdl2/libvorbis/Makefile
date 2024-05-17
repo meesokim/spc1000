@@ -12,8 +12,8 @@ DEPDIR := .deps
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp
-CFLAGS = -DHAVE_CONFIG_H -I. -I../libogg/include -Iinclude -Ilib -O20 -Wall -Wextra -ffast-math -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp -D_REENTRANT -fsigned-char -Wdeclaration-after-statement 
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+CFLAGS = -DHAVE_CONFIG_H -I. -I../libogg/include -Iinclude -Ilib -O20 -Wall -Wextra -ffast-math -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -D_REENTRANT -fsigned-char -Wdeclaration-after-statement 
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 
 all: libvorbis.a

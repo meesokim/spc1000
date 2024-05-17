@@ -12,8 +12,8 @@ DEPDIR := .deps
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp
-CFLAGS = -DHAVE_CONFIG_H -I. -I../zlib -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp 
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+CFLAGS = -DHAVE_CONFIG_H -I. -I../zlib -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard 
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 
 all: deps libpng.a
@@ -53,5 +53,5 @@ install:
 	cp -f libpng.a $(PREFIX)/lib
 
 clean:
-	rm -f *.o libpng.a
+	rm -f arm/*.o *.o libpng.a
 	rm -rf $(DEPDIR)
