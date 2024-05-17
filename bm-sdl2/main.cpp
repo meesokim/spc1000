@@ -20,7 +20,7 @@
 #include "kernel.h"
 #include <circle/startup.h>
 
-#if 0
+#if 1
 int main (void)
 {
 	// cannot return here because some destructors used in CKernel are not implemented
@@ -48,6 +48,7 @@ int main (void)
 }
 #endif
 
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -420,7 +421,7 @@ int main() {
     SDL_Event event;
     // struct timer_wait tw;
     // int led_status = LOW;
-
+	// Kernel.Initialize ();
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
@@ -510,8 +511,10 @@ int main() {
     }
 }
 
+#endif
 
 #include <circle/timer.h>
+#include "kernel/platform.h"
 
 extern CTimer time; 
 

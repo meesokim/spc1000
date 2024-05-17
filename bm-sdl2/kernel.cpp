@@ -17,7 +17,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#if 0
+#if 1
 #include "kernel.h"
 #include "config.h"
 #include <circle/sound/pwmsoundbasedevice.h>
@@ -31,6 +31,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <SDL.h>
+
 #ifdef USE_VCHIQ_SOUND
 	#include <vc4/sound/vchiqsoundbasedevice.h>
 #endif
@@ -56,9 +59,12 @@
 #endif
 
 static const char FromKernel[] = "kernel";
+CKernelOptions		m_Options;
+CScreenDevice		m_Screen(m_Options.GetWidth (), m_Options.GetHeight ());
 
 CKernel::CKernel (void)
-:	m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
+:	
+	// m_Screen (m_Options.GetWidth (), m_Options.GetHeight ()),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 #if RASPPI <= 4
@@ -207,6 +213,8 @@ TShutdownMode CKernel::Run (void)
 
 	m_Logger.Write (FromKernel, LogNotice, "Playing modulated 440 Hz tone");
 
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+
 	// output sound data
 	for (unsigned nCount = 0; m_pSound->IsActive (); nCount++)
 	{
@@ -268,6 +276,7 @@ void CKernel::GetSoundData (void *pBuffer, unsigned nFrames)
 }
 #endif 
 
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -730,15 +739,4 @@ void main() {
     }
 }
 
-
-#include <circle/timer.h>
-
-extern CTimer time; 
-
-extern "C"
-{
-int usleep(useconds_t ms) {
-    time.MsDelay(ms);
-	return 0;
-}
-}
+#endif
