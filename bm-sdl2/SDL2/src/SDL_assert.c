@@ -116,7 +116,10 @@ static void SDL_ExitProcess(int exitcode)
 #ifdef __WIN32__
     ExitProcess(exitcode);
 #else
+#ifdef __CIRCLE__
+#else
     _exit(exitcode);
+#endif
 #endif
 }
 

@@ -65,9 +65,9 @@ private:
 private:
 	// do not change this order
 	CActLED			m_ActLED;
-	CKernelOptions		m_Options;
+	// CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
-	CScreenDevice		m_Screen;
+	// CScreenDevice		m_Screen;
 	CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
 	CInterruptSystem	m_Interrupt;

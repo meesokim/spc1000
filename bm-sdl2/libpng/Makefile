@@ -53,5 +53,5 @@ install:
 	cp -f libpng.a $(PREFIX)/lib
 
 clean:
-	rm -f *.o libpng.a
+	rm -f arm/*.o *.o libpng.a
 	rm -rf $(DEPDIR)

@@ -45,7 +45,7 @@ all:
 	make -C SDL2_mixer
 	make
 
-clean1:
+clean1: clean
 	make -C zlib -k clean
 	make -C libpng -k clean
 	make -C libogg -k clean
@@ -53,4 +53,5 @@ clean1:
 	make -C SDL2 -k clean
 	make -C SDL2_image -k clean
 	make -C SDL2_mixer -k clean
-	rm -f *.o *.d *.elf *.lst *.map
+	make -C kernel -k clean
+	rm -f *.o *.d *.elf *.lst *.map *.img
