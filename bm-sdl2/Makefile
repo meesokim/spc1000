@@ -39,9 +39,11 @@ all:
 	make -C libpng
 	make -C libogg
 	make -C libvorbis
+	make -C kernel
 	make -C SDL2
 	make -C SDL2_image
 	make -C SDL2_mixer
+	make
 
 clean1:
 	make -C zlib -k clean
