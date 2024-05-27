@@ -1,0 +1,2 @@
+#!/bin/bash
+qemu-system-arm -M raspi0 -bios kernel.img
