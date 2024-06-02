@@ -85,7 +85,7 @@
 /* #undef HAVE__UITOA */
 /* #undef HAVE__ULTOA */
 // #define HAVE_STRTOL 1
-// #define HAVE_STRTOUL 1
+#define HAVE_STRTOUL 1
 /* #undef HAVE__I64TOA */
 /* #undef HAVE__UI64TOA */
 // #define HAVE_STRTOLL 1

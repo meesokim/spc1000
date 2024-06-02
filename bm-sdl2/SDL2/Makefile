@@ -12,7 +12,7 @@ DEPDIR := .deps
 
 PREFIX := /opt/raspberry-pi
 
-ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard 
 CFLAGS = -O3 -Iinclude -Isrc -I../kernel -ffreestanding -fvisibility=hidden -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -D_REENTRANT -D__CIRCLE__ 
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 

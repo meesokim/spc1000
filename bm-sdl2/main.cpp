@@ -17,10 +17,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+#if 0
 #include "kernel.h"
 #include <circle/startup.h>
 
-#if 1
 int main (void)
 {
 	// cannot return here because some destructors used in CKernel are not implemented
@@ -46,9 +46,9 @@ int main (void)
 		return EXIT_HALT;
 	}
 }
-#endif
 
-#if 0
+#endif 
+#if 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -414,14 +414,14 @@ void SDL_RenderConsole(SDL_Renderer *renderer) {
     }
 }
 
-int main() {
+void main() {
     int w, h;
     SDL_Window *screen;
     SDL_Renderer *renderer;
     SDL_Event event;
     // struct timer_wait tw;
     // int led_status = LOW;
-	// Kernel.Initialize ();
+
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
@@ -511,10 +511,8 @@ int main() {
     }
 }
 
-#endif
 
 #include <circle/timer.h>
-#include "kernel/platform.h"
 
 extern CTimer time; 
 
@@ -525,3 +523,5 @@ int usleep(useconds_t ms) {
 	return 0;
 }
 }
+
+#endif

@@ -14,7 +14,7 @@ USPI := 1
 PREFIX := /opt/raspberry-pi
 
 ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
-CFLAGS = -Wall -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -fsigned-char -I../kernel -D__RASPBERRY_PI__
+CFLAGS = -Wall -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -fsigned-char -I../kernel -I$(CIRCLEHOME)/include -D__RASPBERRY_PI__
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 LDFLAGS = -T ../kernel/raspberry.ld -nostartfiles -fno-exceptions -fno-unwind-tables -fno-rtti -Wl,-Map=kernel.map -o kernel.elf
 
