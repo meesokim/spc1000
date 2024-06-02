@@ -139,6 +139,7 @@ void process_input() {
         if (event.type == SDL_QUIT)
         {
             quit = 1;
+            printf("quit!\n");
         }
         process_event(&event);
     }
@@ -206,22 +207,22 @@ void execute()
     static int tick = 0;
     static int count = 0;
     static clock_t t = 0;
-    clock_t t0 = clock();
     static int cnt = 0;
     static int icnt = 0;
     if (t)
-        R->cyc = (t0 - t) * 4000;
-    while (R->cyc > 0)
+        cnt = (clock() - t) * I_PERIOD;
+    else
+        t = clock();
+    while (cnt > 0)
     {
         count = R->cyc;
         z80_step(R); // Z-80 emulation
-        cnt += (count - R->cyc);
-        spcsys.cycles += cnt;    
-        if (cnt / I_PERIOD > icnt)
+        cnt -= (R->cyc - count);
+        spcsys.cycles += (R->cyc - count);    
+        if (R->cyc / I_PERIOD > icnt)
         {
-            tick+=1;		// advance spc tick by 1 msec
-            icnt += 1;
-            // printf("tick:%d, ICount:%d\n", tick, R->ICount);
+            tick = R->cyc / I_PERIOD;	// advance spc tick by 1 msec
+            // printf("tick:%d, ICount:%d\n", tick, R->cyc);
             spcsys.tick += (TURBO + 1);
             // cnt -= I_PERIOD;
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
@@ -245,16 +246,20 @@ void execute()
                     draw(buf);
                     SDL_RenderPresent(renderer);
                     Loop8910(&spcsys.ay8910, 1);
-                    // printf("%d, %d\r", tick, spcsys.cycles);
-                }
-                if (tick % 300 == 0)
-                {
+                    // printf("%d, %d, %d\n", tick, spcsys.cycles, spcsys.cycles / I_PERIOD);
+                // }
+                // if (tick % 300 == 0)
+                // {
                     process_input();
                 }
             }
+            icnt = R->cyc / I_PERIOD;
+            if (quit) {
+                break;
+            }
         }
     }
-    t = clock() + 100;
+    t = clock();
 }
 void main_loop() {
     execute();
@@ -269,11 +274,14 @@ void destroy() {
 #ifndef WASM
 void emscripten_set_main_loop(void (*loop)(), int x, int y )
 {
+    // printf("execute!\n");
+    
     while(!quit)
     {    
         loop();
-        sleep(0.03);
+        // sleep(0.03);
     }
+    // printf("exit!!\n");
 }
 #endif 
 
@@ -291,7 +299,7 @@ void load_rom()
 
 int main() {
     init();
-    load_textures();
+    // load_textures();
     load_rom();
     InitIOSpace();
 	buf = InitMC6847(); // Tells VRAM address to MC6847 module and init
