@@ -41,7 +41,7 @@ SPCSimul  spcsim;
 // extern byte *z80mem;
 
 #define FCLOSE(x)	fclose(x),(x)=NULL
-#define I_PERIOD 4000
+// #define I_PERIOD 40
 #define TURBO (spconf.turbo) 
 #define I_PERIOD_TURBO (I_PERIOD * (TURBO + 1))
 #define INTR_PERIOD 16.6666
@@ -210,19 +210,18 @@ void execute()
     static int cnt = 0;
     static int icnt = 0;
     if (t)
-        cnt = (clock() - t) * I_PERIOD;
+        cnt = (clock()/10 - t) * I_PERIOD;
     else
-        t = clock();
+        t = clock()/10;
     while (cnt > 0)
     {
         count = R->cyc;
         z80_step(R); // Z-80 emulation
         cnt -= (R->cyc - count);
         spcsys.cycles += (R->cyc - count);    
-        if (R->cyc / I_PERIOD > icnt)
+        if (R->cyc / I_PERIOD > tick)
         {
             tick = R->cyc / I_PERIOD;	// advance spc tick by 1 msec
-            // printf("tick:%d, ICount:%d\n", tick, R->cyc);
             spcsys.tick += (TURBO + 1);
             // cnt -= I_PERIOD;
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
@@ -236,7 +235,7 @@ void execute()
             }
             else
             {
-                if (tick % 33 == 0)			// check refresh timer
+                if (tick % 330 == 0)			// check refresh timer
                 {
                     // SDL_LockSurface(vdpsf);
                     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -247,19 +246,18 @@ void execute()
                     SDL_RenderPresent(renderer);
                     Loop8910(&spcsys.ay8910, 1);
                     // printf("%d, %d, %d\n", tick, spcsys.cycles, spcsys.cycles / I_PERIOD);
-                // }
-                // if (tick % 300 == 0)
-                // {
-                    process_input();
                 }
             }
-            icnt = R->cyc / I_PERIOD;
+            process_input();
+            // icnt = R->cyc / I_PERIOD;
             if (quit) {
                 break;
             }
         }
+        // printf("\r");
+        // printf("tick:%d, cnt:%d  \r", tick, cnt);
     }
-    t = clock();
+    t = clock()/10;
 }
 void main_loop() {
     execute();
@@ -279,7 +277,6 @@ void emscripten_set_main_loop(void (*loop)(), int x, int y )
     while(!quit)
     {    
         loop();
-        // sleep(0.03);
     }
     // printf("exit!!\n");
 }
