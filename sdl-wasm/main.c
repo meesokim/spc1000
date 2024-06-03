@@ -225,7 +225,7 @@ void execute()
             spcsys.tick += (TURBO + 1);
             // cnt -= I_PERIOD;
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
-            if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
+            if (tick % 260 == 0)	// 1/60 sec interrupt timer expired
             {
                 if (R->interrupt_mode)	// if interrupt enabled, call Z-80 interrupt routine
                 {
@@ -246,9 +246,9 @@ void execute()
                     SDL_RenderPresent(renderer);
                     Loop8910(&spcsys.ay8910, 1);
                     // printf("%d, %d, %d\n", tick, spcsys.cycles, spcsys.cycles / I_PERIOD);
+                    process_input();
                 }
             }
-            process_input();
             // icnt = R->cyc / I_PERIOD;
             if (quit) {
                 break;

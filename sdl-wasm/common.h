@@ -242,7 +242,7 @@ extern int TURBO;
 
 #define SCREEN_WIDTH
 
-#define I_PERIOD 4000
+#define I_PERIOD 400
 #define TURBO (spconf.turbo) 
 #define I_PERIOD_TURBO (I_PERIOD * (TURBO + 1))
 #define INTR_PERIOD 16.6666
