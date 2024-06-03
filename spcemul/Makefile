@@ -2,11 +2,14 @@ CC = gcc
 CXX=g++
 NAME  = spcemul
 
-
+UNAME = $(shell uname -a)
 ifndef TARGETOS
 
+ifeq ($(firstword $(filter Linux,$(UNAME))),Linux)
+TARGETOS = linux
+endif
+
 ifeq ($(OS),Windows_NT)
-UNAME = $(shell uname -a)
 ifeq ($(firstword $(filter MINGW,$(UNAME))),MINGW64)
 TARGETOS = win64
 else
@@ -19,11 +22,6 @@ ifneq ($(OS2_SHELL),)
 TARGETOS = os2
 else
 
-UNAME = $(shell uname -a)
-
-ifeq ($(firstword $(filter Linux,$(UNAME))),Linux)
-TARGETOS = linux
-endif
 ifeq ($(firstword $(filter Solaris,$(UNAME))),Solaris)
 TARGETOS = solaris
 endif
