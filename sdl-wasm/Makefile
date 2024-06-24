@@ -12,7 +12,7 @@ wasm: $(SOURCE)
 	--memoryprofiler \
 	-s SDL2_IMAGE_FORMATS='["png","bmp"]' \
 	--preload-file assets \
-	-o page.html
+	-o index.html
 
 bin: $(SOURCE)
 	gcc $(SOURCE) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lSDL2_image -DNATIVE 

@@ -211,8 +211,6 @@ void execute()
     static int icnt = 0;
     if (t)
         cnt = (clock()/10 - t) * I_PERIOD;
-    else
-        t = clock()/10;
     while (cnt > 0)
     {
         count = R->cyc;
@@ -225,12 +223,13 @@ void execute()
             spcsys.tick += (TURBO + 1);
             // cnt -= I_PERIOD;
             // R->ICount += I_PERIOD;//_TURBO;	// re-init counter (including compensation)
-            if (tick % 260 == 0)	// 1/60 sec interrupt timer expired
+            if (tick % 26 == 0)	// 1/60 sec interrupt timer expired
             {
                 if (R->interrupt_mode)	// if interrupt enabled, call Z-80 interrupt routine
                 {
                     R->iff1 = 1;
                     z80_gen_int(R, 0);
+                    process_input();
                 }
             }
             else
@@ -246,7 +245,6 @@ void execute()
                     SDL_RenderPresent(renderer);
                     Loop8910(&spcsys.ay8910, 1);
                     // printf("%d, %d, %d\n", tick, spcsys.cycles, spcsys.cycles / I_PERIOD);
-                    process_input();
                 }
             }
             // icnt = R->cyc / I_PERIOD;
@@ -728,6 +726,7 @@ void OutZ80(register word Port,register byte Value)
 
 byte InZ80(register word Port)
 {
+    byte val = 0xff;
 	if (Port >= 0x8000 && Port <= 0x8009) // Keyboard Matrix
 	{
 		// if (!(spcsys.cas.motor && spconf.casTurbo))
@@ -748,16 +747,16 @@ byte InZ80(register word Port)
             {
                 spcsys.IPLK = 0;
                 spcsys.IPL_SW = 0;
-                return spcsys.keyMatrix[Port-0x8000] & 0xfe;
+                val = spcsys.keyMatrix[Port-0x8000] & 0xfe;
+                break;
             }
-            return spcsys.keyMatrix[Port-0x8000];
-			break;
+            val = spcsys.keyMatrix[Port-0x8000];
         case 0x9000:
         case 0x9001:
         case 0x9002:
             break;
 		}
-		return 0xff;
+		return val;
 	}
 	else if ((Port & 0xFFF0) == 0xc000)
     {

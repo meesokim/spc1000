@@ -396,7 +396,7 @@ byte DebugZ80(register z80 *R)
 //  if (symtbl[R->PC]) sprintf(PC, "%04X(%s)", R->PC, symtbl[R->PC]); else sprintf(PC, "%04X", R->PC);
   printf
   (
-    "PC:%s SP:%04X A='%c' AF:%04X HL:%s DE:%s BC:%s  IX:%04X IY:%04X I:%02X\n",
+    "PC:%s SP:%04X A='%c' AF:%04X HL:%04x DE:%04x BC:%04x  IX:%04X IY:%04X I:%02X\n",
     PC,R->sp,(R->a < 0x80 && R->a > 0x20 ? R->a : ' '), get_af(R), get_hl(R), get_de(R), get_bc(R), R->ix,R->iy,R->i
   );
 
@@ -541,7 +541,7 @@ byte DebugZ80(register z80 *R)
             p++;
         }
         if (*p == ':') {
-            sscanf(S, "%x:", &Addr);
+            sscanf(S, "%hx:", &Addr);
 //            printf("Addr=0x%x\n",Addr);
             while(*p != 0 && *p++ != ' ');
             while(*p != 0) {
