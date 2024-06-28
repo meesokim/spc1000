@@ -20,6 +20,7 @@
 #define _SPC1000_MC6847Screen_h
 
 #include <circle/bcmframebuffer.h>
+#include <circle/screen.h>
 #include <circle/types.h>
 
 class CMC6847Screen

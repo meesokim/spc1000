@@ -46,23 +46,42 @@ boolean CMC6847Screen::Initialize (u8 *pVideoMem)
 
 	// Color palette definition, uses RGB565 format
 	// Needs to be defined BEFORE call Initialize
-	m_pFrameBuffer->SetPalette (0, 0x0000);  // black
-	m_pFrameBuffer->SetPalette (1, 0x0010);  // blue
-	m_pFrameBuffer->SetPalette (2, 0x8000);  // red
-	m_pFrameBuffer->SetPalette (3, 0x8010);  // magenta
-	m_pFrameBuffer->SetPalette (4, 0x0400);  // green
-	m_pFrameBuffer->SetPalette (5, 0x0410);  // cyan
-	m_pFrameBuffer->SetPalette (6, 0x8400);  // yellow
-	m_pFrameBuffer->SetPalette (7, 0x8410);  // white
-	m_pFrameBuffer->SetPalette (8, 0x0000);  // black
-	m_pFrameBuffer->SetPalette (9, 0x001F);  // bright blue
-	m_pFrameBuffer->SetPalette (10, 0xF800); // bright red
-	m_pFrameBuffer->SetPalette (11, 0xF81F); // bright magenta
-	m_pFrameBuffer->SetPalette (12, 0x07E0); // bright green
-	m_pFrameBuffer->SetPalette (13, 0x07FF); // bright cyan
-	m_pFrameBuffer->SetPalette (14, 0xFFE0); // bright yellow
-	m_pFrameBuffer->SetPalette (15, 0xFFFF); // bright white
-
+	m_pFrameBuffer->SetPalette ( 0, COLOR16(0x00, 0x00, 0x00));  // black
+	m_pFrameBuffer->SetPalette ( 1, COLOR16(0x07, 0xff, 0x00));  // green
+	m_pFrameBuffer->SetPalette ( 2, COLOR16(0xff, 0xff, 0x00));  // yellow
+	m_pFrameBuffer->SetPalette ( 3, COLOR16(0x3b, 0x08, 0xff));  // blue
+	m_pFrameBuffer->SetPalette ( 4, COLOR16(0xcc, 0x00, 0x3b));  // red
+	m_pFrameBuffer->SetPalette ( 5, COLOR16(0xff, 0xff, 0xff));  // buff
+	m_pFrameBuffer->SetPalette ( 6, COLOR16(0x07, 0xe3, 0x99));  // cyan
+	m_pFrameBuffer->SetPalette ( 7, COLOR16(0xff, 0x1c, 0xff));  // magenta
+	m_pFrameBuffer->SetPalette ( 8, COLOR16(0xff, 0x81, 0x00));  // orange
+	m_pFrameBuffer->SetPalette ( 9, COLOR16(0x07, 0xff, 0x00));  // green
+	m_pFrameBuffer->SetPalette (10, COLOR16(0xff, 0xff, 0xff)); // buff
+	m_pFrameBuffer->SetPalette (11, COLOR16(0x00, 0x3f, 0x00)); // dark green
+	m_pFrameBuffer->SetPalette (12, COLOR16(0x07, 0xff, 0x00)); // bright green
+	m_pFrameBuffer->SetPalette (13, COLOR16(0x91, 0x00, 0x00)); // dark orange
+	m_pFrameBuffer->SetPalette (14, COLOR16(0xff, 0x81, 0x00)); // bright orange
+	m_pFrameBuffer->SetPalette (0xff, COLOR16(0xff, 0xff, 0xff));
+	m_pFrameBuffer->SetPalette (0x46, COLOR16(0xff, 0x00, 0x00)); 
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x00, 0x00, 0x00, 0xff)); /* BLACK */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x07, 0xff, 0x00, 0xff)); /* GREEN */ 
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0xff, 0x00, 0xff)); /* YELLOW */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x3b, 0x08, 0xff, 0xff)); /* BLUE */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xcc, 0x00, 0x3b, 0xff)); /* RED */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0xff, 0xff, 0xff)); /* BUFF */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x07, 0xe3, 0x99, 0xff)); /* CYAN */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0x1c, 0xff, 0xff)); /* MAGENTA */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0x81, 0x00, 0xff)); /* ORANGE */
+	
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x07, 0xff, 0x00, 0xff)); /* GREEN */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0xff, 0xff, 0xff)); /* BUFF */
+	
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x00, 0x3f, 0x00, 0xff)); /* ALPHANUMERIC DARK GREEN */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x07, 0xff, 0x00, 0xff)); /* ALPHANUMERIC BRIGHT GREEN */ 
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0x91, 0x00, 0x00, 0xff)); /* ALPHANUMERIC DARK ORANGE */
+	// m_Screen.SetPalette(c++, (u32)COLOR32(0xff, 0x81, 0x00, 0xff)); /* ALPHANUMERIC BRIGHT ORANGE */		
+	// m_Screen.SetPalette(0xff,(u32)COLOR32(0xff, 0xff, 0xff, 0xff));
+	// m_Screen.SetPalette(0x46,(u32)COLOR32(0xff, 0x00, 0x00, 0xff));
 	if (!m_pFrameBuffer->Initialize()) {
 		return FALSE;
 	}
