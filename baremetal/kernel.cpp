@@ -92,17 +92,18 @@ CKernel::CKernel(void)
 	: m_Screen(320, 240),
 	  m_Memory(TRUE),
 	  m_Timer(&m_Interrupt),
-	  m_Logger(LogPanic, &m_Timer),
-#if RASPPI <= 4
-      m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
-#endif
-      m_USBHCI (&m_Interrupt, &m_Timer, FALSE),
+	//   m_Logger(LogPanic, &m_Timer),
+// #if RASPPI <= 4
+//       m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
+// #endif
+      m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
 #ifdef USE_VCHIQ_SOUND
       m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 #endif
 	//   m_DWHCI(&m_Interrupt, &m_Timer),
-	  m_ShutdownMode(ShutdownNone), m_GUI(&m_Screen)
-// ,m_PWMSoundDevice (&m_Interrupt)
+	  m_ShutdownMode(ShutdownNone), 
+	  m_GUI(&m_Screen)
+// ,m_PWMSoundDevice (&m_Interrupt)	
 {
 	//m_PWMSoundDevice.CancelPlayback();
 	m_ActLED.Blink (5);	// show we are alive
@@ -151,7 +152,7 @@ boolean CKernel::Initialize (void)
 			pTarget = &m_Screen;
 		}
 
-		bOK = m_Logger.Initialize (pTarget);
+		// bOK = m_Logger.Initialize (pTarget);
 	}
 	// memset(m_Screen.GetBuffer(), 0xff, 320*240);
 	printf("Screen!!!\n");
@@ -246,7 +247,7 @@ TShutdownMode CKernel::Run (void)
 	//m_PWMSound.Play(this);//, SOUND_CHANNELS, SOUND_BITS,Sound, SOUND_SAMPLES );
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
-	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
         // select the sound device
 #if RASPPI <= 4
 	const char *pSoundDevice = m_Options.GetSoundDevice ();
@@ -254,11 +255,11 @@ TShutdownMode CKernel::Run (void)
 	{
 			m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
 	}
-	else if (strcmp (pSoundDevice, "sndi2s") == 0)
-	{
-			m_pSound = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, FALSE,
-												&m_I2CMaster, DAC_I2C_ADDRESS);
-	}
+	// else if (strcmp (pSoundDevice, "sndi2s") == 0)
+	// {
+	// 		m_pSound = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, FALSE,
+	// 											&m_I2CMaster, DAC_I2C_ADDRESS);
+	// }
 	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
 	{
 			m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
@@ -286,7 +287,7 @@ TShutdownMode CKernel::Run (void)
 	// configure sound device
 	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
 	{
-			m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
+			// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
 	}
 	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
 
@@ -308,7 +309,7 @@ TShutdownMode CKernel::Run (void)
 		if (reset_flag) {
 			ResetZ80(R);
 			R->ICount = I_PERIOD;
-			pticks = ticks = m_Timer.GetClockTicks();
+			// pticks = ticks = m_Timer.GetClockTicks();
 			spcsys.cycles = 0;	
 			reset_flag = 0;
 		}
@@ -335,19 +336,20 @@ TShutdownMode CKernel::Run (void)
 				R->ICount -= 20;
 			}
 			ay8910.Loop8910(&spcsys.ay8910, 1);
-			ticks = m_Timer.GetClockTicks() - ticks;
+			// ticks = m_Timer.GetClockTicks() - ticks;
 			if (!spcsys.cas.read)
-				m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
+				// m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
+				R;
 			else
 				spcsys.cas.read = 0;
 			//m_Timer.usDelay(ticks);
-			ticks = m_Timer.GetClockTicks();
+			// ticks = m_Timer.GetClockTicks();
 			if (frame%1000  == 0)
 			{
 				//printf ("Address: %04x)", R->PC);
 				//s_pThis->printf("%d, %d\n", spcsys.cycles-cycles, m_Timer.GetClockTicks() - time);
 				cycles = spcsys.cycles;
-				time = m_Timer.GetClockTicks();
+				// time = m_Timer.GetClockTicks();
 			}
 		}
 	}

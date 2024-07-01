@@ -40,7 +40,7 @@ class CKernel;
 #include <circle/sound/usbsoundbasedevice.h>
 #include <circle/usb/usbhcidevice.h>
 #include <circle/pwmoutput.h>
-#include <circle/usb/usbkeyboard.h>   
+#include <circle/usb/usbkeyboard.h>
 #include <circle/usb/dwhcidevice.h>
 #include "ugui/uguicpp.h"
 #include "pwmsound.h"
@@ -69,21 +69,21 @@ public:
 
 private:
 	// do not change this order
+	CScreenDevice8		m_Screen;
 	CMemorySystem		m_Memory;
+	CTimer				m_Timer;
 	CActLED				m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
-	CScreenDevice8		m_Screen;
-	CSerialDevice		m_Serial;
+	// CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
 	CInterruptSystem    m_Interrupt;
-	CTimer				m_Timer;
-	CLogger				m_Logger;
-#if RASPPI <= 4
-	CI2CMaster          m_I2CMaster;    
-#endif
-	CUSBHCIDevice      m_USBHCI; 
-
+	// CLogger				m_Logger;
+// #if RASPPI <= 4
+// 	CI2CMaster          m_I2CMaster;    
+// #endif
+	CUSBHCIDevice      	m_USBHCI; 
+	// CDWHCIDevice 		m_DWHCI;
 #ifdef USE_VCHIQ_SOUND
 	CVCHIQDevice        m_VCHIQ;
 #endif

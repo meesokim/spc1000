@@ -369,6 +369,17 @@ void pinMode(int pin, int mode)
     
 }
 
+SDL_Palette *create_palette()
+{
+    SDL_Palette *p = SDL_AllocPalette(2);
+    p->colors[0].r = 0xff;
+    p->colors[0].g = 0x00;
+    p->colors[0].b = 0x00;
+    p->colors[1].r = 0xff;
+    p->colors[1].g = 0xff;
+    p->colors[1].b = 0xff;
+    return p;
+}
 
 int main() {
     int w, h;
@@ -384,12 +395,22 @@ int main() {
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
     SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_BORDERLESS, &screen, &renderer);
-    SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_INDEX8, SDL_TEXTUREACCESS_STREAMING, w, h);
+    // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
+    SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
+    SDL_Palette *palette = create_palette();
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
+    if (!texture) {
+        printf("%s\n", SDL_GetError());
+    }
+    SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
     // Sets a specific screen resolution
     // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
     SDL_Color colors[2] = {{255,0,0,255}, {0,255,0,255}};
     SDL_SetPaletteColors(surface->format->palette, colors, 0, 2);
+    SDL_SetSurfacePalette(fb, palette);
+    SDL_SetSurfacePalette(surface, palette);
+    SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
+    SDL_SetSurfaceBlendMode(fb, SDL_BLENDMODE_NONE);
     SDL_GetWindowSize(screen, &w, &h);
     SDL_InitConsole(w, h);
 
@@ -463,16 +484,26 @@ int main() {
         //     digitalWrite(16, led_status);
         //     cursor_visible = cursor_visible ? 0 : 1;
         // }
-        uint8_t offscreen[w * h];
-        for(uint8_t* p = offscreen; p != &offscreen[w * h] ; p+=2) {
-        p[0] = 0x0; p[1] = 0x01;
+        uint16_t pixels[w * h];
+        // uint8_t *pixels = (Uint8 *) fb->pixels;
+        // uint8_t *pixels;
+        // SDL_LockTexture(texture, NULL, (void **)&pixels, &w);
+        for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
+            p[0] = 0xff00; p[1] = 0x0;
         }
-        SDL_UpdateTexture(texture, NULL, offscreen, w);
+        int ret = SDL_UpdateTexture(texture, NULL, pixels, w);
+        if (ret < 0) 
+        {
+            printf("%s\n", SDL_GetError());
+            exit(0);
+        }
+        // SDL_UnlockTexture(texture);
         SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
-        // SDL_RenderClear(renderer);
+        SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
-
-        // SDL_RenderConsole(renderer);
+        // SDL_BlitScaled(surface, NULL, fb, NULL);
+        // SDL_UpdateWindowSurface(screen);
+        SDL_RenderConsole(renderer);
 
         SDL_RenderPresent(renderer);
     }
