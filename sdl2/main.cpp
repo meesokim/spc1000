@@ -4,6 +4,8 @@
 
 #include <SDL.h>
 
+#include "mc6847.h"
+#include "keyboard.h"
 // #include "../kernel/platform.h"
 // #include "../kernel/wiring.h"
 
@@ -388,7 +390,11 @@ int main() {
     SDL_Event event;
     // struct timer_wait tw;
     int led_status = LOW;
-
+    CMC6847 mc6847;
+    CKeyboard kbd;
+    uint8_t vram[0x2000];
+    memset(vram, 0xff, 0x2000);
+    mc6847.Initialize(vram);
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
     // Default screen resolution (set in config.txt or auto-detected)
@@ -402,25 +408,25 @@ int main() {
     if (!texture) {
         printf("%s\n", SDL_GetError());
     }
-    SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
-    // Sets a specific screen resolution
-    // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
-    SDL_Color colors[2] = {{255,0,0,255}, {0,255,0,255}};
-    SDL_SetPaletteColors(surface->format->palette, colors, 0, 2);
-    SDL_SetSurfacePalette(fb, palette);
-    SDL_SetSurfacePalette(surface, palette);
-    SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
-    SDL_SetSurfaceBlendMode(fb, SDL_BLENDMODE_NONE);
-    SDL_GetWindowSize(screen, &w, &h);
-    SDL_InitConsole(w, h);
+    // SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
+    // // Sets a specific screen resolution
+    // // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
+    // SDL_Color colors[2] = {{255,0,0,255}, {0,255,0,255}};
+    // SDL_SetPaletteColors(surface->format->palette, colors, 0, 2);
+    // SDL_SetSurfacePalette(fb, palette);
+    // SDL_SetSurfacePalette(surface, palette);
+    // SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
+    // SDL_SetSurfaceBlendMode(fb, SDL_BLENDMODE_NONE);
+    // SDL_GetWindowSize(screen, &w, &h);
+    // SDL_InitConsole(w, h);
 
-    SDL_DrawStringAt(1, (txt_width - 22) / 2, "**** RASPBERRY-PI ****");
-    SDL_DrawStringAt(3, (txt_width - 30) / 2, "BARE-METAL SDL SYSTEM TEMPLATE\r\n");
+    // SDL_DrawStringAt(1, (txt_width - 22) / 2, "**** RASPBERRY-PI ****");
+    // SDL_DrawStringAt(3, (txt_width - 30) / 2, "BARE-METAL SDL SYSTEM TEMPLATE\r\n");
 
     pinMode(16, OUTPUT);
     // register_timer(&tw, 250000);
 
-    SDL_DrawString("\r\nREADY\r\n");
+    // SDL_DrawString("\r\nREADY\r\n");
 
     while(event.type != SDL_QUIT) {
         while (SDL_PollEvent(&event)) {
@@ -428,54 +434,58 @@ int main() {
                 break;
             }
             else if (event.type == SDL_KEYDOWN) {
-                switch(event.key.keysym.scancode) {
-                    case SDL_SCANCODE_UP:
-                        if (cur_y > 0)
-                            cur_y--;
-                        break;
-                    case SDL_SCANCODE_DOWN:
-                        if (cur_y < txt_height - 1)
-                            cur_y++;
-                        break;
-                    case SDL_SCANCODE_LEFT:
-                        if (cur_x > 0)
-                            cur_x--;
-                        else if (cur_y > 0) {
-                            cur_y--;
-                            cur_x = txt_width - 1;
-                        }
-                        break;
-                    case SDL_SCANCODE_RIGHT:
-                        if (cur_x < txt_width - 1)
-                            cur_x++;
-                        else if (cur_y < txt_height - 1) {
-                            cur_y++;
-                            cur_x = 0;
-                        }
-                        break;
-                    case SDL_SCANCODE_HOME:
-                        cur_x = 0;
-                        break;
-                    case SDL_SCANCODE_END:
-                        cur_x = txt_width - 1;
-                        break;
-                    case SDL_SCANCODE_RETURN:
-                        SDL_DrawString("\r\n");
-                        break;
-                    default: {
-                        SDL_Keymod mod = SDL_GetModState();
-                        if ((mod & (KMOD_LSHIFT | KMOD_RSHIFT)) != 0) {
-                            char c = keyShift_it[event.key.keysym.scancode];
-                            if (c >= ' ')
-                                SDL_DrawChar(c);
-                        }
-                        else {
-                            char c = keyNormal_it[event.key.keysym.scancode];
-                            if (c >= ' ')
-                                SDL_DrawChar(c);
-                        }
-                    }
-                }
+                kbd.ProcessKeyDown(event.key.keysym.sym);
+                // switch(event.key.keysym.scancode) {
+                //     case SDL_SCANCODE_UP:
+                //         if (cur_y > 0)
+                //             cur_y--;
+                //         break;
+                //     case SDL_SCANCODE_DOWN:
+                //         if (cur_y < txt_height - 1)
+                //             cur_y++;
+                //         break;
+                //     case SDL_SCANCODE_LEFT:
+                //         if (cur_x > 0)
+                //             cur_x--;
+                //         else if (cur_y > 0) {
+                //             cur_y--;
+                //             cur_x = txt_width - 1;
+                //         }
+                //         break;
+                //     case SDL_SCANCODE_RIGHT:
+                //         if (cur_x < txt_width - 1)
+                //             cur_x++;
+                //         else if (cur_y < txt_height - 1) {
+                //             cur_y++;
+                //             cur_x = 0;
+                //         }
+                //         break;
+                //     case SDL_SCANCODE_HOME:
+                //         cur_x = 0;
+                //         break;
+                //     case SDL_SCANCODE_END:
+                //         cur_x = txt_width - 1;
+                //         break;
+                //     case SDL_SCANCODE_RETURN:
+                //         SDL_DrawString("\r\n");
+                //         break;
+                //     default: {
+                //         SDL_Keymod mod = SDL_GetModState();
+                //         if ((mod & (KMOD_LSHIFT | KMOD_RSHIFT)) != 0) {
+                //             char c = keyShift_it[event.key.keysym.scancode];
+                //             if (c >= ' ')
+                //                 SDL_DrawChar(c);
+                //         }
+                //         else {
+                //             char c = keyNormal_it[event.key.keysym.scancode];
+                //             if (c >= ' ')
+                //                 SDL_DrawChar(c);
+                //         }
+                //     }
+                // }
+            } 
+            else if (event.type == SDL_KEYUP) {
+                kbd.ProcessKeyUp(event.key.keysym.sym);
             }
         }
 
@@ -484,13 +494,11 @@ int main() {
         //     digitalWrite(16, led_status);
         //     cursor_visible = cursor_visible ? 0 : 1;
         // }
-        uint16_t pixels[w * h];
-        // uint8_t *pixels = (Uint8 *) fb->pixels;
-        // uint8_t *pixels;
-        // SDL_LockTexture(texture, NULL, (void **)&pixels, &w);
-        for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
-            p[0] = 0xff00; p[1] = 0x0;
-        }
+        // for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
+        //     p[0] = 0xff00; p[1] = 0x0;
+        // }
+        mc6847.Update();
+        uint16_t *pixels = mc6847.GetBuffer();
         int ret = SDL_UpdateTexture(texture, NULL, pixels, w);
         if (ret < 0) 
         {
@@ -498,12 +506,12 @@ int main() {
             exit(0);
         }
         // SDL_UnlockTexture(texture);
-        SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
-        SDL_RenderClear(renderer);
+        // SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
+        // SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         // SDL_BlitScaled(surface, NULL, fb, NULL);
         // SDL_UpdateWindowSurface(screen);
-        SDL_RenderConsole(renderer);
+        // SDL_RenderConsole(renderer);
 
         SDL_RenderPresent(renderer);
     }
