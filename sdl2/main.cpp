@@ -4,6 +4,7 @@
 
 #include <SDL.h>
 
+#include "cpu.h"
 #include "mc6847.h"
 #include "keyboard.h"
 // #include "../kernel/platform.h"
@@ -383,11 +384,29 @@ SDL_Palette *create_palette()
     return p;
 }
 
+uint8_t memory[0x10000];
+
+static uint8_t rb(void *userdata, uint16_t addr) {
+  return memory[addr];
+}
+
+static void wb(void *userdata, uint16_t addr, uint8_t val) {
+  memory[addr] = val;
+}
+
+static uint8_t in(z80 *, uint16_t port) {
+  return 0xFF;
+}
+
+static void out(z80 *, uint16_t port, uint8_t val) {
+}
+
 int main() {
     int w, h;
     SDL_Window *screen;
     SDL_Renderer *renderer;
     SDL_Event event;
+    CPU cpu;
     // struct timer_wait tw;
     int led_status = LOW;
     CMC6847 mc6847;
@@ -400,7 +419,7 @@ int main() {
     // Default screen resolution (set in config.txt or auto-detected)
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
-    SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_BORDERLESS, &screen, &renderer);
+    SDL_CreateWindowAndRenderer(w << 1, h << 1, SDL_WINDOW_BORDERLESS, &screen, &renderer);
     // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
     SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
     SDL_Palette *palette = create_palette();
