@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <SDL.h>
-
+#include <SDL_mixer.h>
 #include "cpu.h"
 #include "mc6847.h"
 #include "ay8910.h"
@@ -554,6 +554,30 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 }
 
 #define CPU_FREQ 4000000
+#define PSG_CLOCK 44100
+
+static unsigned ptime;
+static unsigned ctime;
+
+unsigned int execute(Uint32 interval, void* name)
+{
+    static int frame = 0;
+    ctime = SDL_GetTicks();
+    int steps = (ctime - ptime) * CPU_FREQ/1000;
+    cpu.pulse_irq(0);
+    steps = cpu.step_n(steps);
+    cpu.clr_irq();
+    if (frame++%2)
+        mc6847.Update();
+    ay8910.ctx.bobo = steps * PSG_CLOCK;
+    while (0 < ay8910.ctx.bobo) {
+        ay8910.ctx.bobo -= CPU_FREQ;
+        ay8910.tick(81);
+    }
+    SDL_MixAudio((uint8_t *)ay8910.sound, 0, ay8910.bidx, SDL_MIX_MAXVOLUME);
+    ptime = ctime;
+    return 0;
+}
 
 int main() {
     int w, h;
@@ -567,11 +591,11 @@ int main() {
     cpu.set_in_out(in, out);
     mc6847.Initialize();
 
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
     // Default screen resolution (set in config.txt or auto-detected)
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
-    SDL_CreateWindowAndRenderer(w << 1, h << 1, SDL_WINDOW_BORDERLESS, &screen, &renderer);
+    SDL_CreateWindowAndRenderer(w * 3, h * 3, SDL_WINDOW_BORDERLESS, &screen, &renderer);
     // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
     SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
     SDL_Palette *palette = create_palette();
@@ -579,6 +603,14 @@ int main() {
     if (!texture) {
         printf("%s\n", SDL_GetError());
     }
+    //Initialize SDL2_mixer
+    if(Mix_OpenAudio(PSG_CLOCK, MIX_DEFAULT_FORMAT, 2, 4096) == -1)
+    {
+        printf("SDL2_mixer could not be initialized!\n"
+               "SDL_Error: %s\n", SDL_GetError());
+        return 0;
+    }
+    Mix_AllocateChannels(1);
     // SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
     // // Sets a specific screen resolution
     // // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
@@ -596,16 +628,17 @@ int main() {
 
     pinMode(16, OUTPUT);
     // register_timer(&tw, 250000);
-    unsigned ptime = SDL_GetTicks();
-    unsigned ctime;
+    ptime = SDL_GetTicks();
+    // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
     do {
-        ctime = SDL_GetTicks();
-        int step = (ctime - ptime) * CPU_FREQ/1000;
-        if (!step)
-            continue;
-        ptime = ctime;
-        // printf("pc=%04x %d\n", cpu.r->pc, step);
-        cpu.step_n(step);
+        SDL_Delay(16);
+        execute(16, NULL);
+        // int step = (ctime - ptime) * CPU_FREQ/1000;
+        // if (!step)
+        //     continue;
+        // ptime = ctime;
+        // // printf("pc=%04x %d\n", cpu.r->pc, step);
+        // cpu.step_n(step);
         // printf("pc=%04x %d\n", cpu.r->pc, step);
         // cpu.debug();
         while (SDL_PollEvent(&event)) {
@@ -623,7 +656,6 @@ int main() {
         // for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
         //     p[0] = 0xff00; p[1] = 0x0;
         // }
-        mc6847.Update();
         // uint16_t *pixels = ;
         // SDL_LockTexture(texture);
         int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
@@ -641,6 +673,7 @@ int main() {
         // SDL_RenderConsole(renderer);
 
         SDL_RenderPresent(renderer);
+        // SDL_MixAudio(ay9810.)
     }
     while(event.type != SDL_QUIT);
 }

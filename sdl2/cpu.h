@@ -4,12 +4,12 @@ class CPU {
     public:
         z80 *r;
         CPU() { r = new z80(); }
-        void init() { z80_init(r);}
+        void init() { z80_init(r); r->interrupt_mode = 1;}
         void reset() { z80_reset(r);}
         void set_pc(uint16_t pc) { r->pc = pc;}
         void set_sp(uint16_t sp) { r->sp = sp;}
         void step() { z80_step(r); }
-        void step_n(unsigned cycles) { z80_step_n(r, cycles);}
+        int step_n(unsigned cycles) { return z80_step_n(r, cycles);}
         void debug() { z80_debug_output(r);}
         void assert_nmi() { z80_assert_nmi(r);}
         void pulse_nmi() { z80_pulse_nmi(r);}

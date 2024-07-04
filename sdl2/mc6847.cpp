@@ -56,13 +56,15 @@ CMC6847::~CMC6847 (void)
 #define REPL (SCREEN_WIDTH - VDP_WIDTH)/2
 #define REPR (SCREEN_WIDTH - VDP_WIDTH)/2
 #define REPB (SCREEN_HEIGHT - VDP_HEIGHT)/2 * SCREEN_WIDTH
+#define FBSIZE (SCREEN_HEIGHT * SCREEN_WIDTH)
 typedef unsigned char PIXEL;
 
 bool CMC6847::Initialize ()
 {
 	memset(VRAM, 0, sizeof(VRAM));
 	GMODE = 0;
-	m_pBuffer = new u16[SCREEN_HEIGHT * SCREEN_WIDTH];
+	m_pBuffer = new u16[FBSIZE];
+	m_pBuffer0 = new u16[FBSIZE];
 	assert (m_pBuffer != 0);
 
 	// Color palette definition, uses RGB565 format
@@ -272,10 +274,11 @@ void CMC6847::Update ()
 	    }
       	FILL(data, REPB, border);
     }
+	memcpy(m_pBuffer0, m_pBuffer, FBSIZE*2);
 }
 
 u16 * CMC6847::GetBuffer() {
-	return m_pBuffer;
+	return m_pBuffer0;
 }
 
 /**

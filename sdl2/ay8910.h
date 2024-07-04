@@ -36,7 +36,6 @@ class AY8910
     unsigned int clock;
     unsigned char regMask[16];
     unsigned int levels[32];
-
   public:
     struct Context {
         int bobo;
@@ -56,7 +55,12 @@ class AY8910
         unsigned int random;
         int mix[3];
     } ctx;
-
+    short sound[4096*2];
+    int bidx = 0;
+    void empty() {
+        bidx = 0;
+        memset(sound, 0, 4096*2);
+    }
     void reset(int gain)
     {
         memset(&this->ctx, 0, sizeof(this->ctx));
@@ -117,7 +121,8 @@ class AY8910
         }
     }
 
-    inline void tick(short* left, short* right, unsigned int cycles)
+    // inline void tick(short* left, short* right, unsigned int cycles)
+    inline void tick(unsigned int cycles)
     {
         if (this->ctx.eHolding) {
             this->ctx.eCounter += cycles;
@@ -172,8 +177,9 @@ class AY8910
             mix = 32767;
         else if (mix < -32768)
             mix = -32768;
-        *left = (short)mix;
-        *right = *left;
+        sound[bidx++] = (short)mix;
+        sound[bidx++] = (short)mix;
+        // *right = *left;
     }
 
   private:
