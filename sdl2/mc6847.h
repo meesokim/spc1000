@@ -28,8 +28,9 @@ class CMC6847
 public:
 	CMC6847 (void);
 	~CMC6847 (void);
-
-	bool Initialize (u8 *pVideoMem);
+	u8  VRAM[0x2000];		// MC6847 video memory
+	u8  GMODE;
+	bool Initialize ();
 
 	void Update ();
 
@@ -39,7 +40,6 @@ private:
 	u16	*m_pBuffer;		// Address of frame buffer
 	// u16	m_scrTable[256][256];	// lookup table
     u16 palette[256];
-	u8	*m_pVideoMem;		// MC6847 video memory
 	int currentPage = 0;    // current text page
 	int XWidth = 0;			// stride for Y+1
 	int height = 192, width = 256;

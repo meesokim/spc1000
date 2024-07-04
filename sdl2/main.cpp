@@ -6,7 +6,10 @@
 
 #include "cpu.h"
 #include "mc6847.h"
+#include "ay8910.h"
 #include "keyboard.h"
+#include "cassette.h"
+#include "spcall.h"
 // #include "../kernel/platform.h"
 // #include "../kernel/wiring.h"
 
@@ -367,6 +370,18 @@ void SDL_RenderConsole(SDL_Renderer *renderer) {
 #define OUTPUT 1
 #define INPUT 0
 
+typedef struct _reg {
+    char IPLK;
+    char motor;
+    char pulse;
+    char button;
+    _reg() { 
+        IPLK = 1;
+    }
+} Registers;
+
+Registers reg;
+
 void pinMode(int pin, int mode)
 {
     
@@ -384,38 +399,175 @@ SDL_Palette *create_palette()
     return p;
 }
 
+enum casmode {CASSETTE_STOP, CASSETTE_PLAY, CASSETTE_REC};
+
+CMC6847 mc6847;
+CKeyboard kbd;
+CPU cpu;
+AY8910 ay8910;
+CASSETTE cassette;
+
 uint8_t memory[0x10000];
 
 static uint8_t rb(void *userdata, uint16_t addr) {
-  return memory[addr];
+    uint8_t data;
+    data = (reg.IPLK ? ROM[addr & 0x7fff] : memory[addr&0xffff]);
+    return data;
 }
 
 static void wb(void *userdata, uint16_t addr, uint8_t val) {
-  memory[addr] = val;
+    memory[addr&0xffff] = val;
 }
 
-static uint8_t in(z80 *, uint16_t port) {
-  return 0xFF;
+static uint8_t in(z80* const z, uint16_t port) {
+    uint8_t retval = 0xff;
+	if (port >= 0x8000 && port <= 0x8009) // Keyboard Matrix
+	{
+		return kbd.matrix(port);
+	}
+	else if ((port & 0xE000) == 0xA000) // IPLK
+	{
+		reg.IPLK = !reg.IPLK;
+	} else if ((port & 0xE000) == 0x2000) // GMODE
+	{
+		return mc6847.GMODE;
+	} else if ((port & 0xE000) == 0x0000) // VRAM reading
+	{
+		return mc6847.VRAM[port];
+	}	
+    else if ((port & 0xFFFE) == 0x4000) // PSG
+	{
+		if (port & 0x01) // Data
+		{
+			if (ay8910.ctx.latch == 14)
+			{
+				// 0x80 - cassette data input
+				// 0x40 - motor status
+				// 0x20 - print status
+//				if (spcsys.prt.poweron)
+//                {
+//                    printf("Print Ready Check.\n");
+//                    retval &= 0xcf;
+//                }
+//                else
+//                {
+//                    retval |= 0x20;
+//                }
+				if (1) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
+				{
+					if (cassette.read() == 1)
+							retval |= 0x80; // high
+						else
+							retval &= 0x7f; // low
+				}
+				if (cassette.motor)
+					retval &= (~(0x40)); // 0 indicates Motor On
+				else
+					retval |= 0x40;
+
+			}
+			else 
+			{
+				int data = ay8910.read();
+				//printf("r(%d,%d)\n", spcsys.psgRegNum, data);
+				return data;
+			}
+		} else if (port & 0x02)
+		{
+            retval = (cassette.read1() == 1 ? retval | 0x80 : retval & 0x7f);
+		}
+	}
+    // printf("port:%04x, val:%02x\n", port, val);
+    return retval;
 }
 
-static void out(z80 *, uint16_t port, uint8_t val) {
+static void out(z80* const z, uint16_t port, uint8_t val) {
+	if ((port & 0xE000) == 0x0000) // VRAM area
+	{
+		mc6847.VRAM[port&0x1fff] = val;
+        // printf("port: %04X, val: %02X\n", port, val);
+	}
+	else if ((port & 0xE000) == 0xA000) // IPLK area
+	{
+		reg.IPLK = !reg.IPLK;	// flip IPLK switch
+	}
+	else if ((port & 0xE000) == 0x2000)	// GMODE setting
+	{
+		mc6847.GMODE = val;
+	}
+	else if ((port & 0xE000) == 0x6000) // SMODE
+	{
+		if (reg.button != CASSETTE_STOP)
+		{
+
+			if ((val & 0x02)) // Motor
+			{
+				if (reg.pulse == 0)
+				{
+					reg.pulse = 1;
+
+				}
+			}
+			else
+			{
+				if (reg.pulse)
+				{
+					reg.pulse = 0;
+					if (reg.motor)
+					{
+						reg.motor = 0;
+					}
+					else
+					{
+						reg.motor = 1;
+					}
+				}
+			}
+		}
+
+//		if (reg.button == CAS_REC && reg.motor)
+//		{
+//			CasWrite(&reg, Value & 0x01);
+//		}
+	}
+	else if ((port & 0xFFFE) == 0x4000) // PSG
+	{
+
+		if (port & 0x01) // Data
+		{
+		    if (ay8910.ctx.latch == 15) // Line Printer
+			{
+				if (val != 0)
+				{
+			    //spcsys.prt.bufs[spcsys.prt.length++] = Value;
+				//                    printf("PRT <- %c (%d)\n", Value, Value);
+				//                    printf("%s(%d)\n", spcsys.prt.bufs, spcsys.prt.length);
+				}
+			}
+			ay8910.write(val);
+		}
+		else // Reg Num
+		{
+			ay8910.latch(val);
+		}
+	}
 }
+
+#define CPU_FREQ 4000000
 
 int main() {
     int w, h;
     SDL_Window *screen;
     SDL_Renderer *renderer;
     SDL_Event event;
-    CPU cpu;
     // struct timer_wait tw;
     int led_status = LOW;
-    CMC6847 mc6847;
-    CKeyboard kbd;
-    uint8_t vram[0x2000];
-    memset(vram, 0xff, 0x2000);
-    mc6847.Initialize(vram);
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+    cpu.init();
+    cpu.set_read_write(rb, wb);
+    cpu.set_in_out(in, out);
+    mc6847.Initialize();
 
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
     // Default screen resolution (set in config.txt or auto-detected)
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
@@ -444,70 +596,25 @@ int main() {
 
     pinMode(16, OUTPUT);
     // register_timer(&tw, 250000);
-
-    // SDL_DrawString("\r\nREADY\r\n");
-
-    while(event.type != SDL_QUIT) {
+    unsigned ptime = SDL_GetTicks();
+    unsigned ctime;
+    do {
+        ctime = SDL_GetTicks();
+        int step = (ctime - ptime) * CPU_FREQ/1000;
+        if (!step)
+            continue;
+        ptime = ctime;
+        // printf("pc=%04x %d\n", cpu.r->pc, step);
+        cpu.step_n(step);
+        // printf("pc=%04x %d\n", cpu.r->pc, step);
+        // cpu.debug();
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 break;
-            }
-            else if (event.type == SDL_KEYDOWN) {
-                kbd.ProcessKeyDown(event.key.keysym.sym);
-                // switch(event.key.keysym.scancode) {
-                //     case SDL_SCANCODE_UP:
-                //         if (cur_y > 0)
-                //             cur_y--;
-                //         break;
-                //     case SDL_SCANCODE_DOWN:
-                //         if (cur_y < txt_height - 1)
-                //             cur_y++;
-                //         break;
-                //     case SDL_SCANCODE_LEFT:
-                //         if (cur_x > 0)
-                //             cur_x--;
-                //         else if (cur_y > 0) {
-                //             cur_y--;
-                //             cur_x = txt_width - 1;
-                //         }
-                //         break;
-                //     case SDL_SCANCODE_RIGHT:
-                //         if (cur_x < txt_width - 1)
-                //             cur_x++;
-                //         else if (cur_y < txt_height - 1) {
-                //             cur_y++;
-                //             cur_x = 0;
-                //         }
-                //         break;
-                //     case SDL_SCANCODE_HOME:
-                //         cur_x = 0;
-                //         break;
-                //     case SDL_SCANCODE_END:
-                //         cur_x = txt_width - 1;
-                //         break;
-                //     case SDL_SCANCODE_RETURN:
-                //         SDL_DrawString("\r\n");
-                //         break;
-                //     default: {
-                //         SDL_Keymod mod = SDL_GetModState();
-                //         if ((mod & (KMOD_LSHIFT | KMOD_RSHIFT)) != 0) {
-                //             char c = keyShift_it[event.key.keysym.scancode];
-                //             if (c >= ' ')
-                //                 SDL_DrawChar(c);
-                //         }
-                //         else {
-                //             char c = keyNormal_it[event.key.keysym.scancode];
-                //             if (c >= ' ')
-                //                 SDL_DrawChar(c);
-                //         }
-                //     }
-                // }
-            } 
-            else if (event.type == SDL_KEYUP) {
-                kbd.ProcessKeyUp(event.key.keysym.sym);
+            } else {
+                kbd.handle_event(event);
             }
         }
-
         // if (compare_timer(&tw)) {
         //     led_status = led_status == LOW ? HIGH : LOW;
         //     digitalWrite(16, led_status);
@@ -517,13 +624,14 @@ int main() {
         //     p[0] = 0xff00; p[1] = 0x0;
         // }
         mc6847.Update();
-        uint16_t *pixels = mc6847.GetBuffer();
-        int ret = SDL_UpdateTexture(texture, NULL, pixels, w);
-        if (ret < 0) 
-        {
-            printf("%s\n", SDL_GetError());
-            exit(0);
-        }
+        // uint16_t *pixels = ;
+        // SDL_LockTexture(texture);
+        int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
+        // if (ret < 0) 
+        // {
+        //     printf("%s\n", SDL_GetError());
+        //     exit(0);
+        // }
         // SDL_UnlockTexture(texture);
         // SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
         // SDL_RenderClear(renderer);
@@ -534,4 +642,5 @@ int main() {
 
         SDL_RenderPresent(renderer);
     }
+    while(event.type != SDL_QUIT);
 }

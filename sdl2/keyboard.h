@@ -1,4 +1,5 @@
 // #include "common.h"
+#include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_keycode.h>
 
@@ -115,6 +116,11 @@ class CKeyboard {
         void BuildKeyHashTab(void);
     public:
         CKeyboard();
+        unsigned char matrix(char reg) {
+            // printf("%02x", keyMatrix[(reg&0xf)]);
+            return keyMatrix[(reg&0xf)];
+        }
+        void handle_event(SDL_Event);
         void ProcessSpecialKey(SDL_Keysym ksym);
         void ProcessKeyDown(SDL_Keycode sym);
         void ProcessKeyUp(SDL_Keycode sym);

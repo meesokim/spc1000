@@ -8,9 +8,16 @@ extern Uint32 SDL_GetTicks(void);
 CKeyboard::CKeyboard()
 {
 	BuildKeyHashTab();
+	for (int i = 0; i < sizeof(keyMatrix); i++)
+		keyMatrix[i] = 0xff;
 }
 
-
+void CKeyboard::handle_event(SDL_Event event)
+{
+	SDL_Keycode sym = event.key.keysym.sym;
+	if (event.type == SDL_KEYDOWN) ProcessKeyDown(sym);
+	else if (event.type == SDL_KEYUP) ProcessKeyUp(sym);
+}
 /**
  * Build Keyboard Hashing Table
  * Call this once at the initialization phase.

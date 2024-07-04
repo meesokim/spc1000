@@ -19,25 +19,24 @@
 #include "mc6847.h"
 #include <assert.h>
 #include <string.h>
-
+#include <stdio.h>
 
 
 CMC6847::CMC6847 (void)
-:	m_pBuffer (0),
-	m_pVideoMem (0)
+:	m_pBuffer (0)
 {
+	GMODE = 0;
 }
 
 CMC6847::~CMC6847 (void)
 {
-	m_pVideoMem = 0;
-	m_pBuffer = 0;
+	delete m_pBuffer;
 }
 
 // really ((green) & 0x3F) << 5, but to have a 0-31 range for all colors
-#define COLOR16(red, green, blue)	  (((red) & 0x1F) << 11 \
-					| ((green) & 0x3F) << 6 \
-					| ((blue) & 0x1F))
+#define COLOR16(red, green, blue)	  (((red>>3) & 0x1F) << 11 \
+					| ((green>>2) & 0x3F) << 6 \
+					| ((blue>>3) & 0x1F))
 
 // BGRA (was RGBA with older firmware)
 #define COLOR32(red, green, blue, alpha)  (((red) & 0xFF)       \
@@ -45,7 +44,6 @@ CMC6847::~CMC6847 (void)
 					| ((blue) & 0xFF)   << 16 \
 					| ((alpha) & 0xFF) << 24)
 
-#define GMODE 0
 #define SCREEN_HEIGHT 240
 #define SCREEN_WIDTH 320
 #define VDP_HEIGHT 192
@@ -60,11 +58,10 @@ CMC6847::~CMC6847 (void)
 #define REPB (SCREEN_HEIGHT - VDP_HEIGHT)/2 * SCREEN_WIDTH
 typedef unsigned char PIXEL;
 
-bool CMC6847::Initialize (u8 *pVideoMem)
+bool CMC6847::Initialize ()
 {
-	m_pVideoMem = pVideoMem;
-	assert (m_pVideoMem != 0);
-
+	memset(VRAM, 0, sizeof(VRAM));
+	GMODE = 0;
 	m_pBuffer = new u16[SCREEN_HEIGHT * SCREEN_WIDTH];
 	assert (m_pBuffer != 0);
 
@@ -76,12 +73,15 @@ bool CMC6847::Initialize (u8 *pVideoMem)
 	palette[2]    = COLOR16(0xff, 0xff, 0x00);  // yellow
 	palette[3]    = COLOR16(0x3b, 0x08, 0xff);  // blue
 	palette[4]    = COLOR16(0xcc, 0x00, 0x3b);  // red
+
 	palette[5]    = COLOR16(0xff, 0xff, 0xff);  // buff
 	palette[6]    = COLOR16(0x07, 0xe3, 0x99);  // cyan
 	palette[7]    = COLOR16(0xff, 0x1c, 0xff);  // magenta
 	palette[8]    = COLOR16(0xff, 0x81, 0x00);  // orange
 	palette[9]    = COLOR16(0x07, 0xff, 0x00);  // green
+
 	palette[10]   = COLOR16(0xff, 0xff, 0xff); // buff
+
 	palette[11]   = COLOR16(0x00, 0x3f, 0x00); // dark green
 	palette[12]   = COLOR16(0x07, 0xff, 0x00); // bright green
 	palette[13]   = COLOR16(0x91, 0x00, 0x00); // dark orange
@@ -141,12 +141,10 @@ bool CMC6847::Initialize (u8 *pVideoMem)
 void CMC6847::Update ()
 {
 	assert (m_pBuffer != 0);
-	assert (m_pVideoMem != 0);
 
 	int pos = 0;
 	u8 gmode = GMODE;
 	u16 *data = (u16 *)m_pBuffer;
-	u8 *VRAM = m_pVideoMem;
 	u8 _gm0, _gm1, _ag, _css;
 	u16 _page, y, h, x, mask;
 	u8 attr, ch, b, cix, c;
