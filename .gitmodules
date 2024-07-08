@@ -1,0 +1,3 @@
+[submodule "emu2149"]
+	path = emu2149
+	url = https://github.com/visrealm/emu2149

@@ -549,6 +549,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 		else // Reg Num
 		{
 			ay8910.latch(val);
+            // printf("reg:%d,", val);
 		}
 	}
 }
@@ -575,6 +576,7 @@ unsigned int execute(Uint32 interval, void* name)
         ay8910.tick(81);
     }
     SDL_MixAudio((uint8_t *)ay8910.sound, 0, ay8910.bidx, SDL_MIX_MAXVOLUME);
+    ay8910.empty();
     ptime = ctime;
     return 0;
 }
@@ -595,7 +597,7 @@ int main() {
     // Default screen resolution (set in config.txt or auto-detected)
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
-    SDL_CreateWindowAndRenderer(w * 3, h * 3, SDL_WINDOW_BORDERLESS, &screen, &renderer);
+    SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
     // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
     SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
     SDL_Palette *palette = create_palette();
