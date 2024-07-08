@@ -1,12 +1,15 @@
 #ifndef AY8910_H
 #define AY8910_H
-#include "emu2419.h"
+
+extern "C" {
+#include "emu2149.h"
+};
 
 class AY8910
 {
     PSG *psg;
-    uint8_t reg;
 public:
+    uint8_t reg;
     AY8910(uint32_t clk = 4000000, uint32_t rate = 44100) 
     {
         psg = PSG_new(clk, rate);

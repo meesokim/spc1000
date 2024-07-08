@@ -439,7 +439,7 @@ static uint8_t in(z80* const z, uint16_t port) {
 	{
 		if (port & 0x01) // Data
 		{
-			if (ay8910.ctx.latch == 14)
+			if (ay8910.reg == 14)
 			{
 				// 0x80 - cassette data input
 				// 0x40 - motor status
@@ -535,7 +535,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 
 		if (port & 0x01) // Data
 		{
-		    if (ay8910.ctx.latch == 15) // Line Printer
+		    if (ay8910.reg == 15) // Line Printer
 			{
 				if (val != 0)
 				{
@@ -570,13 +570,6 @@ unsigned int execute(Uint32 interval, void* name)
     cpu.clr_irq();
     if (frame++%2)
         mc6847.Update();
-    ay8910.ctx.bobo = steps * PSG_CLOCK;
-    while (0 < ay8910.ctx.bobo) {
-        ay8910.ctx.bobo -= CPU_FREQ;
-        ay8910.tick(81);
-    }
-    SDL_MixAudio((uint8_t *)ay8910.sound, 0, ay8910.bidx, SDL_MIX_MAXVOLUME);
-    ay8910.empty();
     ptime = ctime;
     return 0;
 }
