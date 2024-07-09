@@ -1,15 +1,21 @@
 #include "z80.h"
 
+#define CPU_FREQ 4000000
 class CPU {
+        uint32_t cycles = 0;
+        uint32_t prev = 0;
     public:
         z80 *r;
         CPU() { r = new z80(); }
+        void initTick(uint32_t clk) { prev = clk; }
+        uint32_t getCycles() { return cycles; }
         void init() { z80_init(r); r->interrupt_mode = 1;}
-        void reset() { z80_reset(r);}
+        void reset() { z80_reset(r); cycles = 0; }
         void set_pc(uint16_t pc) { r->pc = pc;}
         void set_sp(uint16_t sp) { r->sp = sp;}
-        void step() { z80_step(r); }
-        int step_n(unsigned cycles) { return z80_step_n(r, cycles);}
+        void step() { cycles += z80_step(r); }
+        int  exec(int ms) { int steps = step_n((ms - prev) * CPU_FREQ / 1000); prev = ms; return steps; }
+        int  step_n(unsigned ncycles) { return z80_step_n(r, ncycles); cycles += ncycles; }
         void debug() { z80_debug_output(r);}
         void assert_nmi() { z80_assert_nmi(r);}
         void pulse_nmi() { z80_pulse_nmi(r);}

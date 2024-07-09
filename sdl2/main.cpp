@@ -399,13 +399,13 @@ SDL_Palette *create_palette()
     return p;
 }
 
-enum casmode {CASSETTE_STOP, CASSETTE_PLAY, CASSETTE_REC};
+
 
 CMC6847 mc6847;
 CKeyboard kbd;
 CPU cpu;
 AY8910 ay8910;
-CASSETTE cassette;
+Cassette cassette;
 
 uint8_t memory[0x10000];
 
@@ -455,7 +455,7 @@ static uint8_t in(z80* const z, uint16_t port) {
 //                }
 				if (1) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
 				{
-					if (cassette.read() == 1)
+					if (cassette.read(cpu.getCycles()) == 1)
 							retval |= 0x80; // high
 						else
 							retval &= 0x7f; // low
@@ -485,7 +485,6 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 	if ((port & 0xE000) == 0x0000) // VRAM area
 	{
 		mc6847.VRAM[port&0x1fff] = val;
-        // printf("port: %04X, val: %02X\n", port, val);
 	}
 	else if ((port & 0xE000) == 0xA000) // IPLK area
 	{
@@ -585,9 +584,9 @@ unsigned int execute(Uint32 interval, void* name)
 {
     static int frame = 0;
     etime = SDL_GetTicks();
-    int steps = (etime - ptime) * CPU_FREQ/1000;
+    // int steps = (etime - ptime) * CPU_FREQ/1000;
     cpu.pulse_irq(0);
-    steps = cpu.step_n(steps);
+    int steps = cpu.exec(etime);
     cpu.clr_irq();
     if (frame++%2)
         mc6847.Update();
@@ -656,6 +655,7 @@ int main() {
     // register_timer(&tw, 250000);
     ptime = SDL_GetTicks();
     ay8910.initTick(ptime);
+    cpu.initTick(ptime);
     // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
     do {
         SDL_Delay(16);
