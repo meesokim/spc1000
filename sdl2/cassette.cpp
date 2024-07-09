@@ -53,6 +53,11 @@ char Cassette::read(uint32_t ms) {
     return val;
 }
 
+void Cassette::write(char ch)
+{
+    printf("%d", ch);
+}
+
 void Cassette::load(const char *name) 
 {
     FILE *f = fopen(name, "rb");

@@ -21,7 +21,7 @@ public:
     void save(const char *name);
     char read(uint32_t);
     char read1() { return 0;}
-    void write(uint32_t);
+    void write(char);
 };
 
 #endif

@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <SDL.h>
-#include <SDL_mixer.h>
+//#include <SDL_mixer.h>
 #include "cpu.h"
 #include "mc6847.h"
 #include "ay8910.h"
@@ -453,15 +455,14 @@ static uint8_t in(z80* const z, uint16_t port) {
 //                {
 //                    retval |= 0x20;
 //                }
-				if (1) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
+				if (cassette.motor) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
 				{
+					retval &= (~(0x40)); // 0 indicates Motor On
 					if (cassette.read(cpu.getCycles()) == 1)
 							retval |= 0x80; // high
 						else
 							retval &= 0x7f; // low
 				}
-				if (cassette.motor)
-					retval &= (~(0x40)); // 0 indicates Motor On
 				else
 					retval |= 0x40;
 
@@ -496,7 +497,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 	}
 	else if ((port & 0xE000) == 0x6000) // SMODE
 	{
-		if (reg.button != CASSETTE_STOP)
+		// if (reg.button != CASSETTE_STOP)
 		{
 
 			if ((val & 0x02)) // Motor
@@ -512,18 +513,22 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 				if (reg.pulse)
 				{
 					reg.pulse = 0;
-					if (reg.motor)
-					{
-						reg.motor = 0;
-					}
-					else
-					{
-						reg.motor = 1;
-					}
+                    cassette.motor = !cassette.motor;
+					// if (cassette.motor)
+					// {
+					// 	reg.motor = 0;
+					// }
+					// else
+					// {
+					// 	reg.motor = 1;
+					// }
 				}
 			}
 		}
-
+        if (cassette.motor)
+        {
+            cassette.write(val&1);            
+        }
 //		if (reg.button == CAS_REC && reg.motor)
 //		{
 //			CasWrite(&reg, Value & 0x01);
@@ -597,11 +602,63 @@ unsigned int execute(Uint32 interval, void* name)
 
 #include <iostream>
 
+SDL_Renderer *renderer;
+SDL_Texture *texture;
+SDL_Event event;
+int w, h;
+
+void  main_loop()
+{
+    SDL_Delay(16);
+    execute(16, NULL);
+    // int step = (ctime - ptime) * CPU_FREQ/1000;
+    // if (!step)
+    //     continue;
+    // ptime = ctime;
+    // // printf("pc=%04x %d\n", cpu.r->pc, step);
+    // cpu.step_n(step);
+    // printf("pc=%04x %d\n", cpu.r->pc, step);
+    // cpu.debug();
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            break;
+        } else {
+            kbd.handle_event(event);
+        }
+    }
+    // if (compare_timer(&tw)) {
+    //     led_status = led_status == LOW ? HIGH : LOW;
+    //     digitalWrite(16, led_status);
+    //     cursor_visible = cursor_visible ? 0 : 1;
+    // }
+    // for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
+    //     p[0] = 0xff00; p[1] = 0x0;
+    // }
+    // uint16_t *pixels = ;
+    // SDL_LockTexture(texture);
+    int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
+    // if (ret < 0) 
+    // {
+    //     printf("%s\n", SDL_GetError());
+    //     exit(0);
+    // }
+    // SDL_UnlockTexture(texture);
+    // SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
+    // SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    // SDL_BlitScaled(surface, NULL, fb, NULL);
+    // SDL_UpdateWindowSurface(screen);
+    // SDL_RenderConsole(renderer);
+
+    SDL_RenderPresent(renderer);
+    // SDL_MixAudio(ay9810.)
+}
+
+
 int main() {
-    int w, h;
     SDL_Window *screen;
-    SDL_Renderer *renderer;
-    SDL_Event event;
+    SDL_Surface *surface;
+    SDL_Palette *palette;
     // struct timer_wait tw;
     int led_status = LOW;
     cpu.init();
@@ -615,9 +672,9 @@ int main() {
     w = 320; h = 240;
     SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
     // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
-    SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
-    SDL_Palette *palette = create_palette();
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
+    // surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
+    palette = create_palette();
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
     if (!texture) {
         printf("%s\n", SDL_GetError());
     }
@@ -657,6 +714,9 @@ int main() {
     ay8910.initTick(ptime);
     cpu.initTick(ptime);
     // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
+#ifdef EMSCRIPTEN    
+    emscripten_set_main_loop(main_loop, -1, 1);
+#else
     do {
         SDL_Delay(16);
         execute(16, NULL);
@@ -703,4 +763,5 @@ int main() {
         // SDL_MixAudio(ay9810.)
     }
     while(event.type != SDL_QUIT);
+#endif
 }
