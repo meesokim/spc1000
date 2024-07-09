@@ -545,6 +545,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 				}
 			}
 			ay8910.write(val);
+            // printf("reg:%d, val:%d\n", ay8910.reg, val);
 		}
 		else // Reg Num
 		{
@@ -556,23 +557,46 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 
 #define CPU_FREQ 4000000
 #define PSG_CLOCK 44100
+#define SPC1000_AUDIO_FREQ 44100
+#define SPC1000_AUDIO_BUFFER_SIZE 1024
 
 static unsigned ptime;
-static unsigned ctime;
+static unsigned etime;
+SDL_AudioSpec audioSpec;
+int audid;
+
+void callback(
+  void* userdata,
+  Uint8* stream,
+  int    len)
+{
+    int samples = len / (sizeof(int16_t) * audioSpec.channels);
+    ay8910.pushbuf((int16_t*)stream, samples);
+    // for(int i = 0; i < samples; i++)
+    // {
+    //     printf("%02x", stream[i]);
+    // }
+    // SDL_memset(stream, 0, len);
+    // printf("samples:%d\n", len);
+    // renderAudioDevice(hbc56Device(i), str, samples);
+}
 
 unsigned int execute(Uint32 interval, void* name)
 {
     static int frame = 0;
-    ctime = SDL_GetTicks();
-    int steps = (ctime - ptime) * CPU_FREQ/1000;
+    etime = SDL_GetTicks();
+    int steps = (etime - ptime) * CPU_FREQ/1000;
     cpu.pulse_irq(0);
     steps = cpu.step_n(steps);
     cpu.clr_irq();
     if (frame++%2)
         mc6847.Update();
-    ptime = ctime;
+    ay8910.update(etime);
+    ptime = etime;
     return 0;
 }
+
+#include <iostream>
 
 int main() {
     int w, h;
@@ -598,14 +622,21 @@ int main() {
     if (!texture) {
         printf("%s\n", SDL_GetError());
     }
-    //Initialize SDL2_mixer
-    if(Mix_OpenAudio(PSG_CLOCK, MIX_DEFAULT_FORMAT, 2, 4096) == -1)
+    //Initialize SDL2 Audio
+    SDL_AudioSpec specs = {};
+    specs.freq = SPC1000_AUDIO_FREQ;
+    specs.format = AUDIO_S16SYS;
+    specs.channels = 1;
+    specs.samples = 2048;
+    specs.callback = callback;
+    constexpr int PLAYBACK_DEV = 0;
+    audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, SDL_AUDIO_ALLOW_CHANNELS_CHANGE );
+    if( audid == 0 )
     {
-        printf("SDL2_mixer could not be initialized!\n"
-               "SDL_Error: %s\n", SDL_GetError());
-        return 0;
+        std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;
+        return 1;
     }
-    Mix_AllocateChannels(1);
+    SDL_PauseAudioDevice(audid, 0);
     // SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
     // // Sets a specific screen resolution
     // // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
@@ -624,6 +655,7 @@ int main() {
     pinMode(16, OUTPUT);
     // register_timer(&tw, 250000);
     ptime = SDL_GetTicks();
+    ay8910.initTick(ptime);
     // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
     do {
         SDL_Delay(16);
