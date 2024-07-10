@@ -28,7 +28,7 @@ wasm: $(OBJECTS)
 	-o index.html
 
 bin: $(SOURCES)
-	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lSDL2_image -lstdc++
+	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++
 	
 clean:
 	rm -f *.js *.wasm *.data main *.html

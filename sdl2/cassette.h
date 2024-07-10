@@ -8,11 +8,13 @@ enum castype {TYPE_CHARBIN, TYPE_BINARY};
 class Cassette {
     uint32_t prev;
     char *tape;
-    int pos = 0;
-    int len = TAPE_SIZE;
+    int len = 0;
     char type = TYPE_CHARBIN;
+    char mark = -1;
+    uint32_t inv_time, end_time;
 public:
     char motor;
+    int pos = 0;
     Cassette() {
         tape = new char[TAPE_SIZE];
     }

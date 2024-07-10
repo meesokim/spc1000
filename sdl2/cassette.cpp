@@ -4,58 +4,46 @@ typedef unsigned int uint32_t;
 #include <stdio.h>
 #include <stdlib.h>
 
-#define PULSE 4000 >> 5
-char Cassette::read(uint32_t ms) {
+#define PULSE (125)
+char Cassette::read(uint32_t cycles) {
     char val = 0;
-    do {
-        char mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
-        if (mark) 
-        {
-            if (ms - prev > 4 * PULSE) 
-            {
-                prev += 4 * PULSE;
-                pos ++;
-            }
-            else if (ms - prev > 2 * PULSE)
-            {
-                prev += 2 * PULSE;
-                val = 0;
-                break;
-            }
-            else 
-            {
-                prev = ms;
-                val = 1;                
-                break;
-            }
-        }
-        else 
-        {
-            if (ms - prev > 2 * PULSE)
-            {
-                prev += 2 * PULSE;
-                pos ++;
-            }
-            else if (ms - prev > PULSE)
-            {
-                prev += PULSE;
-                val = 0; 
-                break;
-            }
-            else 
-            {
-                prev = ms;
-                val = 1;
-                break;
-            }
-        }
-    } while(1);
+    int diff = cycles - prev;
+    if (diff > 4 * PULSE)
+    {
+        mark = -4;
+    } else if (mark < -2)
+    {
+        mark++;
+    } else if (len && mark < 0)
+    {
+        // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
+        mark = (tape[pos] == '1' ? 1:0);
+        inv_time = cycles + PULSE * (mark+1);
+        end_time = inv_time + PULSE * (mark+1);
+        // if (pos < 10)
+        //     printf("%d(%d)", mark, pos);
+            // printf("%d\n", mark);
+        if (++pos >= len)
+            pos = 0;
+    }
+    if (mark > -1)
+    {
+        if (cycles < inv_time)
+            val = 0;
+        else if (cycles < end_time)
+            val = 1;
+        else
+            mark = -1;            
+    }
+    if (pos < 10)
+        printf("%d(%d)\n", val, diff);
+    prev = cycles;
     return val;
 }
 
 void Cassette::write(char ch)
 {
-    printf("%d", ch);
+    // printf("%d", ch);
 }
 
 void Cassette::load(const char *name) 
@@ -64,14 +52,27 @@ void Cassette::load(const char *name)
     if (f != NULL) {
         len = pos = 0;
         int char_count = 0;
+        tape[pos++] = '0';
+        tape[pos++] = '0';
         while(!feof(f)) 
         {
+            if(pos==2) 
+            {
+                while(fgetc(f)=='0') len=-1;
+                if (len < 0)
+                {
+                    tape[pos++]='1';
+                    len = pos;
+                }
+            }
             char ch = fgetc(f);
             if (ch != '1' && ch != '0' && ch == ' ')
                 char_count++;
             len++;
-            tape[pos++] = ch;
-            pos = (pos == TAPE_SIZE ? 0 : pos);
+            tape[pos] = ch == '1' ? '1' : '0';
+            if (pos < 10)
+                printf("%c", tape[pos]);
+            pos = (pos++ == TAPE_SIZE ? 0 : pos);
         }
         if (len > pos)
             len = pos;
@@ -81,5 +82,6 @@ void Cassette::load(const char *name)
             type = TYPE_BINARY;
         fclose(f);
         pos = 0;
+        printf("filename:%s(%d)\n", name, len);
     }   
 }

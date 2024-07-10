@@ -15,7 +15,17 @@ class CPU {
         void set_sp(uint16_t sp) { r->sp = sp;}
         void step() { cycles += z80_step(r); }
         int  exec(int ms) { int steps = step_n((ms - prev) * CPU_FREQ / 1000); prev = ms; return steps; }
-        int  step_n(unsigned ncycles) { return z80_step_n(r, ncycles); cycles += ncycles; }
+        int  step_n(unsigned ncycles) { 
+            unsigned cyc = 0;
+            int c = 0;
+            while (cyc < ncycles) {
+                c = z80_step(r);
+                cycles += c;
+                cyc += c;
+            }
+            return cyc;
+        }
+        // { int steps = z80_step_n(r, ncycles); cycles += steps; return steps; }
         void debug() { z80_debug_output(r);}
         void assert_nmi() { z80_assert_nmi(r);}
         void pulse_nmi() { z80_pulse_nmi(r);}
