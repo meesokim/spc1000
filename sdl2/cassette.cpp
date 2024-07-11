@@ -1,16 +1,17 @@
 typedef unsigned int uint32_t;
+typedef unsigned char uint8_t;
 
 #include "cassette.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-#define PULSE (125)
-char Cassette::read(uint32_t cycles) {
+#define PULSE ((1349-90)/2)
+char Cassette::read(uint32_t cycles, uint8_t wait) {
     char val = 0;
-    int diff = cycles - prev;
+    int diff = cycles - old_cycles;
     if (diff > 4 * PULSE)
     {
-        mark = -4;
+        mark = -3;
     } else if (mark < -2)
     {
         mark++;
@@ -18,8 +19,8 @@ char Cassette::read(uint32_t cycles) {
     {
         // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
         mark = (tape[pos] == '1' ? 1:0);
-        inv_time = cycles + PULSE * (mark+1);
-        end_time = inv_time + PULSE * (mark+1);
+        inv_time = cycles + 30 * (mark+1);
+        end_time = inv_time + 103 + (PULSE/90*wait) * (mark+1);
         // if (pos < 10)
         //     printf("%d(%d)", mark, pos);
             // printf("%d\n", mark);
@@ -35,9 +36,9 @@ char Cassette::read(uint32_t cycles) {
         else
             mark = -1;            
     }
-    if (pos < 10)
-        printf("%d(%d)\n", val, diff);
-    prev = cycles;
+    // if (pos < 10)
+    //     printf("%d(%d)\n", val, diff);
+    old_cycles = cycles;
     return val;
 }
 
@@ -70,8 +71,8 @@ void Cassette::load(const char *name)
                 char_count++;
             len++;
             tape[pos] = ch == '1' ? '1' : '0';
-            if (pos < 10)
-                printf("%c", tape[pos]);
+            // if (pos < 10)
+            //     printf("%c", tape[pos]);
             pos = (pos++ == TAPE_SIZE ? 0 : pos);
         }
         if (len > pos)
@@ -84,4 +85,10 @@ void Cassette::load(const char *name)
         pos = 0;
         printf("filename:%s(%d)\n", name, len);
     }   
+}
+
+void Cassette::loaddir(const char *dirname)
+{
+    for (const auto & entry : fs::directory_iterator(dirname))
+        files.push_back(entry.path());
 }

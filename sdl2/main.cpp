@@ -458,12 +458,15 @@ static uint8_t in(z80* const z, uint16_t port) {
 				if (cassette.motor) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
 				{
 					retval &= (~(0x40)); // 0 indicates Motor On
-					if (cassette.read(cpu.getCycles()) == 1)
+					if (cassette.read(cpu.getCycles(), rb(0, 0x3c5)) == 1)
 							retval |= 0x80; // high
 						else
 							retval &= 0x7f; // low
                     // if (cassette.pos < 10)
+                    // {
                     //     printf("pc:0x%04x\n", cpu.r->pc);
+                    //     // cpu.debug();                        
+                    // }
 				}
 				else
 					retval |= 0x40;
@@ -515,7 +518,9 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 				{
 					reg.pulse = 0;
                     cassette.motor = !cassette.motor;
-                    printf("montor:%d\n", cassette.motor);
+                    cpu.set_turbo(cassette.motor);
+                    wb(NULL, 0x3c5, cassette.motor ? 1 : 90);
+                    // printf("montor:%d(%d)\n", cassette.motor, rb(0, 0x3c5));
 				}
 			}
 		}
@@ -597,6 +602,7 @@ unsigned int execute(Uint32 interval, void* name)
 #include <iostream>
 
 SDL_Renderer *renderer;
+SDL_Surface *surface;
 SDL_Texture *texture;
 SDL_Event event;
 int w, h;
@@ -640,6 +646,7 @@ void  main_loop()
     // SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
     // SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderCopy(renderer, SDL_CreateTextureFromSurface(renderer, surface), NULL, NULL);
     // SDL_BlitScaled(surface, NULL, fb, NULL);
     // SDL_UpdateWindowSurface(screen);
     // SDL_RenderConsole(renderer);
@@ -651,8 +658,6 @@ void  main_loop()
 
 int main() {
     SDL_Window *screen;
-    SDL_Surface *surface;
-    SDL_Palette *palette;
     // struct timer_wait tw;
     int led_status = LOW;
     cpu.init();
@@ -665,9 +670,14 @@ int main() {
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     w = 320; h = 240;
     SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
-    // SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 8, 0, 0, 0, 0);
+    surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
+    SDL_SetColorKey(surface, SDL_TRUE, 0x0);
+    SDL_LockSurface(surface);
+    // for(int i = 0; i < w * 2 * 20 * 2; i++)
+    //     ((char *)surface->pixels)[i*4] = 0xff;
+    SDL_UnlockSurface(surface);
     // surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
-    palette = create_palette();
+    // palette = create_palette();
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
     if (!texture) {
         printf("%s\n", SDL_GetError());
@@ -707,6 +717,7 @@ int main() {
     ptime = SDL_GetTicks();
     ay8910.initTick(ptime);
     cpu.initTick(ptime);
+    cassette.loaddir("../tape");
     cassette.load("../tape/demo.tap");
     // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
 #ifdef EMSCRIPTEN    

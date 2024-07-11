@@ -1,29 +1,42 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
+#include <string.h>
+#include <iostream>
+#include <filesystem>
+#include <vector>
+using namespace std;
+namespace fs = std::filesystem;
+
 enum casmode {CASSETTE_STOP, CASSETTE_PLAY, CASSETTE_REC};
 enum castype {TYPE_CHARBIN, TYPE_BINARY};
 
 #define TAPE_SIZE (1024 * 1024 * 4)
 class Cassette {
-    uint32_t prev;
+    uint32_t old_cycles;
     char *tape;
     int len = 0;
     char type = TYPE_CHARBIN;
     char mark = -1;
     uint32_t inv_time, end_time;
+    vector<filesystem::path> files;
+    int file_index = 0;
 public:
     char motor;
     int pos = 0;
     Cassette() {
         tape = new char[TAPE_SIZE];
     }
-    void initTick(uint32_t tick) { prev = tick; }
+    void initTick(uint32_t tick) { old_cycles = tick; }
     void load(const char *name);
     void save(const char *name);
-    char read(uint32_t);
+    char read(uint32_t, uint8_t);
     char read1() { return 0;}
     void write(char);
+    void next() { if (++file_index >= files.size()) file_index = 0; }
+    char* get_title() { return (char *)files[file_index].filename().c_str();};
+    void prev() { if (--file_index < 0) file_index >= files.size() - 1; }
+    void loaddir(const char *dir);
 };
 
 #endif
