@@ -559,8 +559,8 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 }
 
 #define CPU_FREQ 4000000
-#define PSG_CLOCK 44100
-#define SPC1000_AUDIO_FREQ 44100
+#define PSG_CLOCK PSG_CLOCK_RATE
+#define SPC1000_AUDIO_FREQ PSG_CLOCK_RATE
 #define SPC1000_AUDIO_BUFFER_SIZE 1024
 
 static unsigned ptime;
@@ -687,7 +687,7 @@ int main() {
     specs.freq = SPC1000_AUDIO_FREQ;
     specs.format = AUDIO_S16SYS;
     specs.channels = 1;
-    specs.samples = 2048;
+    specs.samples = SPC1000_AUDIO_BUFFER_SIZE;
     specs.callback = callback;
     constexpr int PLAYBACK_DEV = 0;
     audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, SDL_AUDIO_ALLOW_CHANNELS_CHANGE );
