@@ -1,6 +1,6 @@
 all: wasm bin
 CXXSOURCES = main.cpp mc6847.cpp keyboard.cpp cpu.cpp cassette.cpp
-CSOURCES = spcall.c emu2149.c 
+CSOURCES = spcall.c emu2149.c ugui.c
 SOURCES = $(CXXSOURCES) $(CSOURCES)
 OBJECTS=$(CXXSOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 EMCC_DEBUG=1

@@ -22,6 +22,7 @@ public:
     {
         psg = PSG_new(clk, rate);
         setVolumeMode(1);
+        PSG_setClockDivider(psg, 1);
         // set_quality(PSG_QUALITY_HIGH);
     }
     ~AY8910() { PSG_delete (psg); }
@@ -33,7 +34,7 @@ public:
         for (int i = 0; i < (tick - prev) * PSG_CLOCK_RATE / 1000; i++)
         {
             buf[pos++] = calc();
-            pos = pos & BUFFMASK;
+            if (pos > BUFFMASK) pos = 0;
         }
         prev = tick;
     }
@@ -42,7 +43,7 @@ public:
         for(int i = 0; i < len; i++)
         {
             buff[i] = buf[cpos++];
-            cpos = cpos & BUFFMASK;
+            if (cpos > BUFFMASK) cpos = 0;
         }
     }
     void set_quality (uint32_t q) { PSG_set_quality(psg, q); }

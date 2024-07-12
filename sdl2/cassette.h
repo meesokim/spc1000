@@ -28,14 +28,14 @@ public:
         tape = new char[TAPE_SIZE];
     }
     void initTick(uint32_t tick) { old_cycles = tick; }
-    void load(const char *name);
+    void load(const char *name = NULL);
     void save(const char *name);
     char read(uint32_t, uint8_t);
     char read1() { return 0;}
     void write(char);
-    void next() { if (++file_index >= files.size()) file_index = 0; }
-    char* get_title() { return (char *)files[file_index].filename().c_str();};
-    void prev() { if (--file_index < 0) file_index >= files.size() - 1; }
+    void next() { if (++file_index >= files.size()) file_index = 0; load(); }
+    void get_title(char *buf) { strcpy(buf, files[file_index].filename().c_str()); };
+    void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
     void loaddir(const char *dir);
 };
 

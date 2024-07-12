@@ -49,6 +49,11 @@ void Cassette::write(char ch)
 
 void Cassette::load(const char *name) 
 {
+    if (!name)
+    {
+        name = files[file_index].c_str();
+        printf("%s\n", name);
+    } 
     FILE *f = fopen(name, "rb");
     if (f != NULL) {
         len = pos = 0;
@@ -90,5 +95,8 @@ void Cassette::load(const char *name)
 void Cassette::loaddir(const char *dirname)
 {
     for (const auto & entry : fs::directory_iterator(dirname))
-        files.push_back(entry.path());
+        if (!entry.path().extension().compare(".tap"))
+            files.push_back(entry.path());
+        // else
+        //     printf("%s\n", entry.path().extension().c_str());
 }
