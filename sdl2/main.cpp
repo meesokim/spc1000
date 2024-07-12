@@ -112,6 +112,14 @@ static uint8_t in(z80* const z, uint16_t port) {
 							retval |= 0x80; // high
 						else
 							retval &= 0x7f; // low
+                    // if (cpu.r->pc == 0x2ba && retval & 0x80)
+                    // {
+                    //     printf("%d(%d)", retval&0x80 ? 1:0, cpu.r->h);
+                    // }
+                    // else
+                    // {
+                    //     printf("0x%04x:%d\n", cpu.r->pc, retval&0x80 ? 1 : 0);
+                    // }
                     // if (cassette.pos < 10)
                     // {
                     //     printf("pc:0x%04x\n", cpu.r->pc);
@@ -254,6 +262,7 @@ unsigned int execute(Uint32 interval, void* name)
 
 SDL_Renderer *renderer;
 SDL_Surface *surface;
+SDL_Window *screen;
 SDL_Texture *texture;
 SDL_Texture *texture_title;
 UG_COLOR *pixels;
@@ -274,8 +283,8 @@ void setText(const char *s, int keep_time = 2000)
 {
     textout_time = SDL_GetTicks() + keep_time;
     UG_SetForecolor(C_WHITE);
-    UG_FillFrame(10, 10, 640, 40, C_BLACK);
-    printf("%s\n", s);
+    UG_FillFrame(10, 10, 639, 50, C_BLACK);
+    // printf("%s\n", s);
     UG_PutString(10, 10, (char *)s);
 }
 
@@ -290,8 +299,55 @@ void reset()
     cpu.set_read_write(rb, wb);
     cpu.set_in_out(in, out);
     mc6847.Initialize();
+    ay8910.reset();
     memset(memory, 0, 0x10000);
     reg.IPLK = true;
+}
+
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
+
+SDL_Rect dstrect;
+
+void ToggleFullscreen(SDL_Window* window) {
+    Uint32 flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    static int lastWindowX, lastWindowY;
+    bool isFullscreen = SDL_GetWindowFlags(window) & flag;
+    if(!isFullscreen){
+        SDL_GetWindowPosition(window, &lastWindowX, &lastWindowY);
+    }
+
+    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
+
+    if(isFullscreen){
+        int w, h;
+        SDL_Rect viewport;
+        SDL_RenderGetViewport(renderer, &viewport);
+        SDL_GetWindowSize(window, &w, &h);
+        if (w * 3 > h * 4) {
+            viewport.w = h * 4 / 3;
+            viewport.h = h;
+        } else {
+            viewport.w = w;
+            viewport.h = w * 3 / 4;
+        }
+        viewport.x = (w - viewport.w) / 2;
+        viewport.y = (h - viewport.h) / 2;
+        SDL_RenderSetViewport(renderer, &viewport);
+        cout << "set window to: " << lastWindowX << " " << lastWindowY << endl;
+        SDL_SetWindowPosition(window, lastWindowX, lastWindowY);
+        dstrect.x = 0;
+        dstrect.y = 0;
+        dstrect.w = SCREEN_WIDTH;
+        dstrect.h = SCREEN_HEIGHT;         
+    }
+    else
+    {
+        dstrect.x = (1920-1080*4/3)/2;
+        dstrect.y = 0;
+        dstrect.w = 1080*4/3;
+        dstrect.h = 1080; 
+    }
 }
 
 void ProcessSpecialKey(SDL_Keysym ksym)
@@ -310,6 +366,9 @@ void ProcessSpecialKey(SDL_Keysym ksym)
                 cassette.next();
                 cassette.get_title(text);
                 setText(text);
+                break;
+            case SDLK_RETURN:
+                ToggleFullscreen(screen);
                 break;
         }
     }
@@ -336,28 +395,26 @@ void  main_loop()
         kbd.handle_event(event);
     }
     int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
     // SDL_LockSurface(surface);
     if (SDL_GetTicks() < textout_time)
     {
         SDL_UpdateTexture(texture_title, NULL, surface->pixels, w*2*4);
-        SDL_RenderCopy(renderer, texture_title, NULL, NULL);
+        SDL_RenderCopy(renderer, texture_title, NULL, &dstrect);
     }
     SDL_RenderPresent(renderer);
 }
 
 #include <sys/stat.h>
-
 int main(int argc, char *argv[]) {
 
-    char *tapdir = "../tape/taps";
+    char *tapdir = (char *)"../tape/taps";
     if (argc > 1)
     {
         struct stat sb;
         if (!stat(argv[1], &sb))
             tapdir = argv[1];
     }
-    SDL_Window *screen;
     // struct timer_wait tw;
     int led_status = LOW;
     reset();
@@ -365,6 +422,28 @@ int main(int argc, char *argv[]) {
     UG_Init(&ug, SetPixel, w * 2, h * 2);
     UG_FontSelect(&FONT_12X20);
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
+    // int modeCount = SDL_GetNumDisplayModes(0);
+	// SDL_Log("Mode count: %d", modeCount);
+	// SDL_DisplayMode mode;
+	// A list of the display sizes available on your device, 
+	// these can often be determined by your OS and Window Manager instead of
+	// your actual hardware
+	// for(int i = 0; i < modeCount; i ++)
+	// {
+	// 	SDL_GetDisplayMode(0, i, &mode);
+	// 	SDL_Log("Mode %d: (w, h) = (%d, %d)", i, mode.w, mode.h);
+	// }
+	// // Fetching the closest mode to your requested size
+	// mode.w = SCREEN_WIDTH;
+	// mode.h = SCREEN_HEIGHT;
+	// SDL_DisplayMode modeRecieved;
+    dstrect.w = SCREEN_WIDTH;
+    dstrect.h = SCREEN_HEIGHT;
+    dstrect.x = dstrect.y = 0;
+	// SDL_GetClosestDisplayMode(0, &mode, &modeRecieved);
+    // printf("wxh:%dx%d\n", modeRecieved.w, modeRecieved.h);
+	// SCREEN_WIDTH = modeRecieved.w;
+	// SCREEN_HEIGHT = modeRecieved.h;
     // Default screen resolution (set in config.txt or auto-detected)
     // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
     SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
@@ -398,77 +477,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     SDL_PauseAudioDevice(audid, 0);
-    // SDL_Surface *fb = SDL_CreateRGBSurfaceWithFormat(0, w, h, 8, SDL_PIXELFORMAT_INDEX8);
-    // // Sets a specific screen resolution
-    // // SDL_CreateWindowAndRenderer(32 + 320 + 32, 32 + 200 + 32, SDL_WINDOW_FULLSCREEN, &screen, &renderer);
-    // SDL_Color colors[2] = {{255,0,0,255}, {0,255,0,255}};
-    // SDL_SetPaletteColors(surface->format->palette, colors, 0, 2);
-    // SDL_SetSurfacePalette(fb, palette);
-    // SDL_SetSurfacePalette(surface, palette);
-    // SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
-    // SDL_SetSurfaceBlendMode(fb, SDL_BLENDMODE_NONE);
-    // SDL_GetWindowSize(screen, &w, &h);
-    // SDL_InitConsole(w, h);
-
-    // SDL_DrawStringAt(1, (txt_width - 22) / 2, "**** RASPBERRY-PI ****");
-    // SDL_DrawStringAt(3, (txt_width - 30) / 2, "BARE-METAL SDL SYSTEM TEMPLATE\r\n");
-
-    pinMode(16, OUTPUT);
+    // pinMode(16, OUTPUT);
     // register_timer(&tw, 250000);
     ptime = SDL_GetTicks();
     ay8910.initTick(ptime);
     cpu.initTick(ptime);
     cassette.loaddir(tapdir);
-    // cassette.load("../tape/demo.tap");
-    // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
 #ifdef EMSCRIPTEN    
     emscripten_set_main_loop(main_loop, -1, 1);
 #else
     do {
-    main_loop();
-    //     SDL_Delay(16);
-    //     execute(16, NULL);
-    //     // int step = (ctime - ptime) * CPU_FREQ/1000;
-    //     // if (!step)
-    //     //     continue;
-    //     // ptime = ctime;
-    //     // // printf("pc=%04x %d\n", cpu.r->pc, step);
-    //     // cpu.step_n(step);
-    //     // printf("pc=%04x %d\n", cpu.r->pc, step);
-    //     // cpu.debug();
-    //     while (SDL_PollEvent(&event)) {
-    //         if (event.type == SDL_QUIT) {
-    //             break;
-    //         } else {
-    //             kbd.handle_event(event);
-    //         }
-    //     }
-    //     // if (compare_timer(&tw)) {
-    //     //     led_status = led_status == LOW ? HIGH : LOW;
-    //     //     digitalWrite(16, led_status);
-    //     //     cursor_visible = cursor_visible ? 0 : 1;
-    //     // }
-    //     // for(uint16_t* p = pixels; p != &pixels[w * h] ; p+=2) {
-    //     //     p[0] = 0xff00; p[1] = 0x0;
-    //     // }
-    //     // uint16_t *pixels = ;
-    //     // SDL_LockTexture(texture);
-    //     int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
-    //     // if (ret < 0) 
-    //     // {
-    //     //     printf("%s\n", SDL_GetError());
-    //     //     exit(0);
-    //     // }
-    //     // SDL_UnlockTexture(texture);
-    //     // SDL_SetRenderDrawColor(renderer, 213, 41, 82, 255);
-    //     // SDL_RenderClear(renderer);
-    //     SDL_RenderCopy(renderer, texture, NULL, NULL);
-    //     // SDL_BlitScaled(surface, NULL, fb, NULL);
-    //     // SDL_UpdateWindowSurface(screen);
-    //     // SDL_RenderConsole(renderer);
-
-    //     SDL_RenderPresent(renderer);
-    //     // SDL_MixAudio(ay9810.)
+        main_loop();
     }
     while(event.type != SDL_QUIT);
 #endif

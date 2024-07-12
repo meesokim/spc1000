@@ -5,7 +5,7 @@ extern "C" {
 #include "emu2149.h"
 };
 
-#define PSG_CLOCK_RATE 22050
+#define PSG_CLOCK_RATE 44100
 #define PSG_QUALITY_HIGH 0
 
 class AY8910
@@ -23,7 +23,7 @@ public:
         psg = PSG_new(clk, rate);
         setVolumeMode(1);
         PSG_setClockDivider(psg, 1);
-        // set_quality(PSG_QUALITY_HIGH);
+        set_quality(PSG_QUALITY_HIGH);
     }
     ~AY8910() { PSG_delete (psg); }
     void initTick(int tick)

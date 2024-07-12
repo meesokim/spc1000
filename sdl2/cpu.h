@@ -10,7 +10,7 @@ class CPU {
         CPU() { r = new z80(); }
         void initTick(uint32_t clk) { prev = clk; }
         uint32_t getCycles() { return cycles; }
-        void init() { z80_init(r); r->interrupt_mode = 1;}
+        void init() { z80_init(r); r->interrupt_mode = 1; turbo = false;}
         void reset() { z80_reset(r); cycles = 0; }
         void set_turbo(int b) { turbo = b;}
         void set_pc(uint16_t pc) { r->pc = pc;}
