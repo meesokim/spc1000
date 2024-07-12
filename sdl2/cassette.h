@@ -18,7 +18,7 @@ class Cassette {
     int len = 0;
     char type = TYPE_CHARBIN;
     char mark = -1;
-    uint32_t inv_time, end_time;
+    uint32_t inv_time, end_time, old_time;
     vector<filesystem::path> files;
     int file_index = 0;
 public:

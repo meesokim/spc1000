@@ -171,17 +171,31 @@ int main(int argc, char **argv) {
         }
 	} 
 	strict = 1;
+	printf("argc:%d\n", argc);
 	if (argc > 1)
 	{
-		if (IN == 0)
-			IN = fopen(argv[1], "rb");
-		if((point = strrchr(argv[1],'.')) != NULL ) {
-			if(strcmp(point,".cas") == 0) {
-				cas = 1;
-				printf("cas = 1\n");
+		for (int i = 1; i < argc; i++)
+		{
+			strcpy(binfilename, argv[i]);
+			printf("FILE:%d.%s\n", i, binfilename);
+			IN = fopen(argv[i], "rb");
+			if((point = strrchr(argv[i],'.')) != NULL ) {
+				if(strcmp(point,".cas") == 0) {
+					cas = 1;
+					printf("cas = 1\n");
+				}
 			}
+			length = 0;
+			while (length > -1)
+			{
+				length = dump(length);
+				//printf("length=%d\n", length);
+				// if (length < 0)
+				// 	break;
+			}
+			fclose(IN);
 		}
-		strcpy(binfilename, argv[1]);
+		exit(0);
 	}
     else
     {
@@ -194,71 +208,6 @@ int main(int argc, char **argv) {
 	    printf("Could not open file %s for reading.\n", argv[1]);
 		return 2;
 	}//if
-#if 0    
-	char c, prev;
-	int zero = 0, ones = 0, header = 0, body = 0;
-	int headerpos[100];
-	int tailpos[100];
-	char fname[16], filename[256];
-	prev = 0;
-	if (split)
-	{
-		printf("split\n");
-		split = 0;
-		int no = 0;
-		while(!feof(IN))
-		{
-			c = fgetc(IN);
-			zero = (c == '0' ? (prev == '1' ? 1 : zero + 1) : zero);
-			if (c == '1' && zero == 40 && ones == 40)
-			{
-				headerpos[no] = ftell(IN)-81;
-				printf("%c %02d %02d\n", c, zero, ones);
-				printf("header found:%d\n", headerpos[no]);
-				header = 1;
-			}
-			if (header && zero == 20 && ones == 20)
-			{
-				printf("body found:%d\n", ftell(IN)-40);
-				body = 1;
-				header = 0;
-			}
-			if (body && zero > 20)
-			{
-				tailpos[no] = ftell(IN);
-				printf("tail found:%d\n", tailpos[no]);
-				body = 0;
-				no++;
-			}
-			ones = (c == '1' ? (prev == '0' ? 1 : ones + 1) : ones);
-			prev = c;
-		}
-		FILE *f;
-		char *tapbin = malloc(1024 * 1024 * 5);
-		for(int p = 0; p < no; p++)
-		{
-			fseek(IN, headerpos[p], SEEK_SET);
-			dump(128);
-			fseek(IN, headerpos[p], SEEK_SET);
-            fname[0] = 0;
-			getfilename(fname, head->name);
-			sprintf(filename, "%d_%s.tap", p+1, fname);
-			length = tailpos[p] - headerpos[p];
-			f = fopen(filename, "wb");
-			if (f)
-			{
-				printf("write binary file:%s(%d),strlen=%d\n", filename, length, strlen(filename));
-			#if 0
-				fread(tapbin, 1, length, IN);
-				fwrite(tapbin, 1, length, f);
-                #endif
-				fclose(f);
-			}
-		}
-		free(tapbin);
-		exit(0);
-    }
-#endif    
 	fseek(IN, 0, SEEK_SET);
 	while (1)
 	{
@@ -433,7 +382,7 @@ int dump(int len) {
 	{
 		printf("\n\nBody Summary\n");
 		printf("Length: %d\n", d-1);
-		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));		
+		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 //		printf("bin: %d\n", bin);
 		if (split && TAP)
 			writefile(TAP, b, d, csum);

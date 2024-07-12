@@ -346,8 +346,17 @@ void  main_loop()
     SDL_RenderPresent(renderer);
 }
 
+#include <sys/stat.h>
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    char *tapdir = "../tape/taps";
+    if (argc > 1)
+    {
+        struct stat sb;
+        if (!stat(argv[1], &sb))
+            tapdir = argv[1];
+    }
     SDL_Window *screen;
     // struct timer_wait tw;
     int led_status = LOW;
@@ -409,8 +418,8 @@ int main() {
     ptime = SDL_GetTicks();
     ay8910.initTick(ptime);
     cpu.initTick(ptime);
-    cassette.loaddir("../tape");
-    cassette.load("../tape/demo.tap");
+    cassette.loaddir(tapdir);
+    // cassette.load("../tape/demo.tap");
     // SDL_TimerID timerID = SDL_AddTimer(16, execute, (void *)"SDL");
 #ifdef EMSCRIPTEN    
     emscripten_set_main_loop(main_loop, -1, 1);
