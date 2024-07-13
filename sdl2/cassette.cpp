@@ -21,6 +21,7 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
     {
         // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
         mark = (tape[pos] == '1' ? 1:0);
+        // printf("%d", mark);
         old_time = cycles;
         inv_time = cycles + 60;
         end_time = cycles + 170 + PULSE * wait * mark;
@@ -87,11 +88,12 @@ void Cassette::load(const char *name)
         printf("%s(%d)\n", name, len);
     }   
 }
-
+#include <algorithm>
 void Cassette::loaddir(const char *dirname)
 {
     for (const auto & entry : fs::directory_iterator(dirname))
         if (!entry.path().extension().compare(".tap"))
             files.push_back(entry.path());
+    sort(files.begin(), files.end());
     load(files[0].c_str());
 }

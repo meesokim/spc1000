@@ -317,8 +317,6 @@ void ToggleFullscreen(SDL_Window* window) {
         SDL_GetWindowPosition(window, &lastWindowX, &lastWindowY);
     }
 
-    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
-
     if(isFullscreen){
         int w, h;
         SDL_Rect viewport;
@@ -334,7 +332,7 @@ void ToggleFullscreen(SDL_Window* window) {
         viewport.x = (w - viewport.w) / 2;
         viewport.y = (h - viewport.h) / 2;
         SDL_RenderSetViewport(renderer, &viewport);
-        cout << "set window to: " << lastWindowX << " " << lastWindowY << endl;
+        // cout << "set window to: " << lastWindowX << " " << lastWindowY << endl;
         SDL_SetWindowPosition(window, lastWindowX, lastWindowY);
         dstrect.x = 0;
         dstrect.y = 0;
@@ -348,6 +346,7 @@ void ToggleFullscreen(SDL_Window* window) {
         dstrect.w = 1080*4/3;
         dstrect.h = 1080; 
     }
+    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
 }
 
 void ProcessSpecialKey(SDL_Keysym ksym)

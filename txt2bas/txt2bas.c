@@ -26,8 +26,8 @@ typedef struct  {
 	word size;
 	word load;
 	word jump;
-	byte protct;
-	char dummy[126-25];
+	word protct;
+	char dummy[126-26];
 	word checksum;
 } HEADER;
 

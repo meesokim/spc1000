@@ -18,6 +18,7 @@ typedef struct  {
 	word size;
 	word load;
 	word jump;
+	word protct;
 } HEADER;
 
 char strict;
@@ -106,19 +107,19 @@ int getByte(FILE *in)
 
 	}
 	c = fgetc2(in);
-	if (c != '1' && c != '#')
+	if (c == '1')
+		error = 0;
+	else
 	{
 		if (c == '#')
 			error = 2;
 		else 
 			error = 1;
-		if (strict) {
-			printf("%02x=>check bit error(%d)!\n", v, fpos);
-//	    	exit(0);
-		}
 	}
-	else
-		error = 0;
+		// if (strict) {
+			// printf("\x1b[31m%02x\x1b[0m=>check bit error(%d)!\n", v, fpos);
+	    	// exit(0);
+		// }
 	if (feof(in))
 		exit(0);
 	return v;
@@ -151,6 +152,8 @@ int main(int argc, char **argv) {
 		pos = atoi(argv[2]);
         for(int i = 2; i < argc; i++)
         {
+			if (strlen(argv[i]) > 2)
+				continue;
             switch (*argv[i])
             {
                 case '-':
@@ -177,8 +180,10 @@ int main(int argc, char **argv) {
 		for (int i = 1; i < argc; i++)
 		{
 			strcpy(binfilename, argv[i]);
-			printf("FILE:%d.%s\n", i, binfilename);
 			IN = fopen(argv[i], "rb");
+			if (!IN)
+				continue;
+			printf("FILE:%d.%s\n", i, binfilename);
 			if((point = strrchr(argv[i],'.')) != NULL ) {
 				if(strcmp(point,".cas") == 0) {
 					cas = 1;
@@ -288,6 +293,7 @@ char* replace_char(char* str, char find, char replace){
 int dump(int len) {
 	char filename[1024];
 	char name[16];
+	char *escapes[3] = {"%02x ", "\x1b[31m%02x\x1b[0m*",  "\x1b[1;31m%02x\xb[0m#"};
 	int d = 0, v = 0;
 	int csum = 0;
 	int csum1 = 0;
@@ -312,15 +318,16 @@ int dump(int len) {
 		if (length % 16 == 0)
 			printf("\n%04x:", length);
 		length++;
-		if (error == 1 && unknown == 1)
-		{
-            fseek(IN, -18, SEEK_CUR);
-            csum -= getChecksum(b[d-3])+getChecksum(b[d-2]);
-            length -= 3;
-            csum1 = (b[d-3] << 8) + b[d-2];
-            break;
-		}
-		printf("%02x%c", v, error == 0 ? ' ' : error == 1 ? '*' : '#' );
+		// if (error == 1 && unknown == 1)
+		// {
+        //     fseek(IN, -18, SEEK_CUR);
+        //     csum -= getChecksum(b[d-3])+getChecksum(b[d-2]);
+        //     length -= 3;
+        //     csum1 = (b[d-3] << 8) + b[d-2];
+        //     break;
+		// }
+		// printf(escapes[error%3], v);
+		printf(escapes[error], v);
 #endif		
 	}
     if (!error)
@@ -356,9 +363,10 @@ int dump(int len) {
 		printf("Loading address: %04xh\n", head->load);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 		printf("Header Size: %d\n", d);
-		printf("File Position: %d\n\n", pos);
 		if (head->type == 1)
 			printf("Jump address: %04xh\n", head->jump);
+		printf("Protect: %04x\n", head->protct);
+		printf("File Position: %d\n\n", pos);
 		getfilename(name, head->name); 
 		if (split)
 		{
@@ -380,7 +388,7 @@ int dump(int len) {
 	}
 	else
 	{
-		printf("\n\nBody Summary\n");
+		printf("\nBody Summary\n");
 		printf("Length: %d\n", d-1);
 		printf("Checksum: %04xh (%04xh calculated, %s)\n", csum1, csum, (csum1 == csum ? "matched" : "mismatched"));
 //		printf("bin: %d\n", bin);
