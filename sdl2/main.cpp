@@ -226,20 +226,16 @@ static unsigned etime;
 SDL_AudioSpec audioSpec;
 int audid;
 
-void callback(
+void audiocallback(
   void* userdata,
   Uint8* stream,
   int    len)
 {
-    int samples = len / (sizeof(int16_t) * audioSpec.channels);
-    ay8910.pushbuf((int16_t*)stream, samples);
-    // for(int i = 0; i < samples; i++)
-    // {
-    //     printf("%02x", stream[i]);
-    // }
-    // SDL_memset(stream, 0, len);
-    // printf("samples:%d\n", len);
-    // renderAudioDevice(hbc56Device(i), str, samples);
+    // int samples = len / (sizeof(int16_t) * audioSpec.channels);
+    Uint16* stream0 = (Uint16 *)stream;
+    for(int i = 0; i < len/2; i++)
+        stream0[i] = ay8910.calc();
+    // ay8910.pushbuf((int16_t*)stream, samples);
 }
 
 unsigned int execute(Uint32 interval, void* name)
@@ -386,6 +382,7 @@ void  main_loop()
     static int i = 1000;
     SDL_Delay(16);
     execute(16, NULL);
+    // SDL_QueueAudio(audid, ay8910.copybuf)
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_KEYDOWN)
         {
@@ -466,10 +463,10 @@ int main(int argc, char *argv[]) {
     specs.freq = SPC1000_AUDIO_FREQ;
     specs.format = AUDIO_S16SYS;
     specs.channels = 1;
-    specs.samples = SPC1000_AUDIO_BUFFER_SIZE;
-    specs.callback = callback;
+    specs.samples = 2048;
+    specs.callback = audiocallback;
     constexpr int PLAYBACK_DEV = 0;
-    audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, SDL_AUDIO_ALLOW_CHANNELS_CHANGE );
+    audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, 0 );
     if( audid == 0 )
     {
         std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;

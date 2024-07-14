@@ -368,7 +368,7 @@ def bas2txt(body, start_addr=0x7c9d):
                 pos += 2
             elif token == 0xc:
                 line_address = short(body[pos:pos+2]) - start_addr
-                code.append(f'ADDR:{line_address}')
+                # code.append(f'ADDR:{line_address}')
                 pos += 2
             elif token == 0x10:
                 code.append(oct(short(body[pos:pos+2])).replace('0o','&O'))
@@ -390,7 +390,8 @@ def bas2txt(body, start_addr=0x7c9d):
                 if token == 0x27 or chr(token) == '"': 
                     quote = not quote
             elif quote:
-                code.append(chr(0x2700 + token))
+                # code.append(chr(0x2700 + token))
+                code.append(chr(token))
             elif token >= 0x81 and token < 0xff:
                 code.append(STATEMENT[token-0x81])
             elif token == 0xff:
@@ -399,7 +400,12 @@ def bas2txt(body, start_addr=0x7c9d):
                 pos += 1
                 # print(body[pos:pos+3])
         codes.append(''.join([str(a) if type(a) != str else a for a in code]))
-    print('\n'.join(codes))
+    f = open('source.txt', 'wb')
+    for code in codes:
+        f.write(bytes([ord(c) for c in code]))
+        f.write(b'\n')
+    # print('\n'.join(codes).encode('utf-8'))
+    # print('\n'.join(codes))
     
 if __name__=='__main__':
     args = sys.argv[1:]

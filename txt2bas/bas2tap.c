@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
         fprintf(stdout,"Can't open input file\n");
 		exit(1);
 	}
-	if (stricmp(argv[1] + strlen(argv[1]) - 3, "ihx") == 0 || stricmp(argv[1] + strlen(argv[1]) - 4, "ihex") == 0)
+	if (strncasecmp(argv[1] + strlen(argv[1]) - 3, "ihx", 3) == 0 || strncasecmp(argv[1] + strlen(argv[1]) - 4, "ihex", 4) == 0)
 	{
 		printf("tetstset\n");
 		parseIHEX(fpin);

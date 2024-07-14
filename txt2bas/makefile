@@ -27,7 +27,7 @@ wav2tap:
 	$(CC) -o $@ $@.c
 	
 %.o: %.c
-	$(CC) -c $< -o $@	
+	$(CC) -c $< -lc -o $@	
 
 clean:
 	rm -rf txt2bas *.o *.exe

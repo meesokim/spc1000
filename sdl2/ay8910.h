@@ -13,16 +13,19 @@ class AY8910
     PSG *psg;
     static const int BUFFMASK = 0x1fff;
     int16_t buf[BUFFMASK];
+    int16_t bbuf1[BUFFMASK];
+    int16_t bbuf2[BUFFMASK];
     int pos = 0;
     int cpos = 0;
     int prev = 0;
+    int16_t *BUF[2]={bbuf1, bbuf2};
 public:
     uint8_t reg;
     AY8910(uint32_t clk = 4000000, uint32_t rate = PSG_CLOCK_RATE) 
     {
         psg = PSG_new(clk, rate);
-        setVolumeMode(1);
-        PSG_setClockDivider(psg, 1);
+        // setVolumeMode(1);
+        // PSG_setClockDivider(psg, 1);
         set_quality(PSG_QUALITY_HIGH);
     }
     ~AY8910() { PSG_delete (psg); }
@@ -45,6 +48,17 @@ public:
             buff[i] = buf[cpos++];
             if (cpos > BUFFMASK) cpos = 0;
         }
+    }
+    int16_t* copybuf(int len)
+    {
+        static bool bufs = false;
+        bufs = !bufs;
+        for(int i = 0; i < len; i++)
+        {
+            BUF[bufs][i] = buf[cpos++];
+            if (cpos > BUFFMASK) cpos = 0;
+        }
+        return BUF[bufs];
     }
     void set_quality (uint32_t q) { PSG_set_quality(psg, q); }
     void set_rate (uint32_t r) { PSG_set_rate(psg, r); }

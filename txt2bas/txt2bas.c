@@ -44,7 +44,7 @@ void mk_tail(void);
 void setlinenumber(void);
 
 int srmode = 0;
-fpos_t pos = 0;
+fpos_t pos;
 // ------------------------------------------------------------
 // function definition
 // ------------------------------------------------------------
@@ -151,11 +151,11 @@ void getlinenumber(void)
 
 void setlinenumber(void)
 {
-	fpos_t cpos = 0;
+	fpos_t cpos;
 	int len = 0;
 	fgetpos(outfp, &cpos);
 	fsetpos(outfp, &pos);
-	len = cpos - pos;
+	len = cpos.__pos - pos.__pos;
 	fputc(len & 0xff, outfp);
 	fputc((len >> 8) & 0xff, outfp);
 	fsetpos(outfp, &cpos);
