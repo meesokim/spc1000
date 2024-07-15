@@ -5,6 +5,7 @@ class CPU {
         uint32_t cycles = 0;
         uint32_t prev = 0;
         bool turbo = false;
+        uint32_t turbo_off_time = -1;
     public:
         z80 *r;
         CPU() { r = new z80(); }
@@ -12,11 +13,29 @@ class CPU {
         uint32_t getCycles() { return cycles; }
         void init() { z80_init(r); r->interrupt_mode = 1; turbo = false;}
         void reset() { z80_reset(r); cycles = 0; }
-        void set_turbo(int b) { turbo = b;}
+        void set_turbo(int b, int ms = 1000) { 
+            if (!turbo)
+            {
+                turbo = b; 
+                turbo_off_time = prev + ms;
+                // printf("turbo on: %d\n", turbo_off_time);
+            }
+        }
         void set_pc(uint16_t pc) { r->pc = pc;}
         void set_sp(uint16_t sp) { r->sp = sp;}
         void step() { cycles += z80_step(r); }
-        int  exec(int ms) { int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 100 : 1000)); prev = ms; return steps; }
+        int  exec(int ms) 
+        { 
+            int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 100 : 1000)); 
+            if (turbo && turbo_off_time < prev) 
+            { 
+                turbo = 0; 
+                turbo_off_time = -1; 
+                // printf("turbo off\n");  
+            } 
+            prev = ms;
+            return steps; 
+        }
         int  step_n(unsigned ncycles) { 
             unsigned cyc = 0;
             int c = 0;

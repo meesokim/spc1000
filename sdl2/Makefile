@@ -4,7 +4,7 @@ CSOURCES = spcall.c emu2149.c ugui.c
 SOURCES = $(CXXSOURCES) $(CSOURCES)
 OBJECTS=$(CXXSOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 EMCC_DEBUG=1
-CFLAGS = -sUSE_SDL=2
+CFLAGS = -sUSE_SDL=2 -sUSE_BZIP2
 CC=emcc
 CXX=em++
 %.o: %.c
@@ -14,19 +14,18 @@ CXX=em++
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 wasm: $(OBJECTS)
-	echo $(OBJECTS)
 	emcc $(OBJECTS) \
 	-O2 \
 	-std=c++11 \
 	-DWASM \
 	-s WASM=1 \
-	-s USE_SDL=2 \
+	-sUSE_SDL=2 -sUSE_BZIP2 \
 	--preload-file taps \
-	-s SDL2_IMAGE_FORMATS='["png","bmp"]' \
+	--compression \
 	-o index.js \
 	-flto
 bin: $(SOURCES)
-	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++
+	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++ -lbz2 -lzip
 	
 clean:
-	rm -f *.js *.wasm *.data main *.html
+	rm -f *.js *.o *.wasm *.data main 

@@ -109,6 +109,7 @@ static uint8_t in(z80* const z, uint16_t port) {
 				if (cassette.motor) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
 				{
 					retval &= (~(0x40)); // 0 indicates Motor On
+                    cpu.set_turbo(1);
 					if (cassette.read(cpu.getCycles(), rb(0, 0x3c5)) == 1)
 							retval |= 0x80; // high
 						else
@@ -220,7 +221,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 #define CPU_FREQ 4000000
 #define PSG_CLOCK PSG_CLOCK_RATE
 #define SPC1000_AUDIO_FREQ PSG_CLOCK_RATE
-#define SPC1000_AUDIO_BUFFER_SIZE 1024
+#define SPC1000_AUDIO_BUFFER_SIZE 512
 
 static unsigned ptime;
 static unsigned etime;
@@ -236,14 +237,12 @@ void audiocallback(
     Uint16* stream0 = (Uint16 *)stream;
     for(int i = 0; i < len/sizeof(int16_t); i++)
         stream0[i] = ay8910.calc();
-    // ay8910.pushbuf((int16_t*)stream, samples);
 }
 
 unsigned int execute(Uint32 interval, void* name)
 {
     static int frame = 0;
     etime = SDL_GetTicks();
-    // int steps = (etime - ptime) * CPU_FREQ/1000;
     cpu.pulse_irq(0);
     int steps = cpu.exec(etime);
     cpu.clr_irq();
@@ -314,6 +313,7 @@ void ToggleFullscreen(SDL_Window* window) {
     if(!isFullscreen){
         SDL_GetWindowPosition(window, &lastWindowX, &lastWindowY);
     }
+    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
 
     if(isFullscreen){
         int w, h;
@@ -348,7 +348,6 @@ void ToggleFullscreen(SDL_Window* window) {
         dstrect.w = Height*4/3;
         dstrect.h = Height; 
     }
-    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
 }
 
 bool ProcessSpecialKey(SDL_Keysym ksym)
@@ -381,6 +380,9 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
             case SDLK_F10:
                 reset();
                 break;
+            case SDLK_F9:
+                cpu.set_turbo(0);
+                break;
         }
     }
     return pressed;
@@ -391,19 +393,21 @@ void  main_loop()
     static int i = 1000;
     SDL_Delay(16);
     execute(16, NULL);
-    // ay8910.update(SDL_GetTicks());
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_KEYDOWN)
         {
             if (ProcessSpecialKey(event.key.keysym))
                 return;
-        } else if (event.type == SDL_WINDOWEVENT)
+        }
+#ifdef __EMSCRIPTEN__
+        else if (event.type == SDL_WINDOWEVENT)
         {
             if (event.window.event == SDL_WINDOWEVENT_RESIZED) 
             {
                 ToggleFullscreen(screen);
             }
         }
+#endif
         kbd.handle_event(event);
     }
     int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
@@ -421,13 +425,14 @@ void  main_loop()
 #include <sys/stat.h>
 int main(int argc, char *argv[]) {
 
-    char *tapdir = (char *)"taps";
+    char *tapefile = (char *)"taps";
     if (argc > 1)
     {
         struct stat sb;
         if (!stat(argv[1], &sb))
-            tapdir = argv[1];
+            tapefile = argv[1];
     }
+    printf("tapefile:%s\n", tapefile);
     // struct timer_wait tw;
     int led_status = LOW;
     reset();
@@ -495,7 +500,7 @@ int main(int argc, char *argv[]) {
     ptime = SDL_GetTicks();
     ay8910.initTick(ptime);
     cpu.initTick(ptime);
-    cassette.loaddir(tapdir);
+    cassette.setfile(tapefile);
 #ifdef EMSCRIPTEN    
     emscripten_set_main_loop(main_loop, -1, 1);
 #else
