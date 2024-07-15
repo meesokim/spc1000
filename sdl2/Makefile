@@ -21,10 +21,10 @@ wasm: $(OBJECTS)
 	-DWASM \
 	-s WASM=1 \
 	-s USE_SDL=2 \
-	--preload-file ../tape/taps \
+	--preload-file taps \
 	-s SDL2_IMAGE_FORMATS='["png","bmp"]' \
-	-o index.html
-
+	-o index.js \
+	-flto
 bin: $(SOURCES)
 	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++
 	

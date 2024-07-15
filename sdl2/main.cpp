@@ -3,6 +3,7 @@
 #include <string.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #endif
 #include <SDL.h>
 //#include <SDL_mixer.h>
@@ -231,9 +232,9 @@ void audiocallback(
   Uint8* stream,
   int    len)
 {
-    // int samples = len / (sizeof(int16_t) * audioSpec.channels);
+    int samples = len / (sizeof(int16_t) * audioSpec.channels);
     Uint16* stream0 = (Uint16 *)stream;
-    for(int i = 0; i < len/2; i++)
+    for(int i = 0; i < len/sizeof(int16_t); i++)
         stream0[i] = ay8910.calc();
     // ay8910.pushbuf((int16_t*)stream, samples);
 }
@@ -248,7 +249,7 @@ unsigned int execute(Uint32 interval, void* name)
     cpu.clr_irq();
     if (frame++%2)
         mc6847.Update();
-    ay8910.update(etime);
+    // ay8910.update(etime);
     ptime = etime;
     return 0;
 }
@@ -300,6 +301,7 @@ void reset()
     reg.IPLK = true;
 }
 
+
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
@@ -337,16 +339,21 @@ void ToggleFullscreen(SDL_Window* window) {
     }
     else
     {
-        dstrect.x = (1920-1080*4/3)/2;
+        SDL_DisplayMode DM;
+        SDL_GetCurrentDisplayMode(0, &DM);
+        auto Width = DM.w;
+        auto Height = DM.h;
+        dstrect.x = (Width-Height*4/3)/2;
         dstrect.y = 0;
-        dstrect.w = 1080*4/3;
-        dstrect.h = 1080; 
+        dstrect.w = Height*4/3;
+        dstrect.h = Height; 
     }
     SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
 }
 
-void ProcessSpecialKey(SDL_Keysym ksym)
+bool ProcessSpecialKey(SDL_Keysym ksym)
 {
+    bool pressed = false;
 	int index = ksym.sym % 256;
     if (ksym.mod & KMOD_ALT)
     {
@@ -364,6 +371,7 @@ void ProcessSpecialKey(SDL_Keysym ksym)
                 break;
             case SDLK_RETURN:
                 ToggleFullscreen(screen);
+                pressed = true;
                 break;
         }
     }
@@ -375,6 +383,7 @@ void ProcessSpecialKey(SDL_Keysym ksym)
                 break;
         }
     }
+    return pressed;
 }
 
 void  main_loop()
@@ -382,15 +391,23 @@ void  main_loop()
     static int i = 1000;
     SDL_Delay(16);
     execute(16, NULL);
-    // SDL_QueueAudio(audid, ay8910.copybuf)
+    // ay8910.update(SDL_GetTicks());
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_KEYDOWN)
         {
-            ProcessSpecialKey(event.key.keysym);
+            if (ProcessSpecialKey(event.key.keysym))
+                return;
+        } else if (event.type == SDL_WINDOWEVENT)
+        {
+            if (event.window.event == SDL_WINDOWEVENT_RESIZED) 
+            {
+                ToggleFullscreen(screen);
+            }
         }
         kbd.handle_event(event);
     }
     int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
+    SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, &dstrect);
     // SDL_LockSurface(surface);
     if (SDL_GetTicks() < textout_time)
@@ -404,7 +421,7 @@ void  main_loop()
 #include <sys/stat.h>
 int main(int argc, char *argv[]) {
 
-    char *tapdir = (char *)"../tape/taps";
+    char *tapdir = (char *)"taps";
     if (argc > 1)
     {
         struct stat sb;
