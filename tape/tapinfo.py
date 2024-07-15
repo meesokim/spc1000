@@ -13,7 +13,7 @@ def parity_check(data):
         onebits += sum([int(c) for c in b[:8]])        
     return paribits, onebits
 
-def dump(bin):
+def dump(bin, filename=None):
     global count, uncount
     TYPE = ['Basic(0)','Machine(1)']
     MATCHED = ['not matched','=']
@@ -39,6 +39,8 @@ def dump(bin):
             zeropos += 1
         title = ''.join([chr(c) for c in HEADER[1][:zeropos] if chr(c) >= ' '])
         complete += int(p==len(sdata[:-2])) + int(o==checksum)
+        if filename != None:
+            print('FILE:', filename)
         print('parity: ', p==len(sdata[:-2]), 'checksum:', o==checksum)
         print('Name:', title)
         print('Type:', TYPE[HEADER[0]==1])
@@ -48,12 +50,14 @@ def dump(bin):
         if HEADER[0] == 1:
             print('Jump Address: ', hex(HEADER[4]))
         print('Protect:', HEADER[5])
-        print(len(idata))
         bodies = bin[tag_pos+82+130*9:]
         btag_pos = bodies.find('1'*20+'0'*20+'11')
         if btag_pos > -1:
             errors = 0
             bodies = bodies[btag_pos+42:][:(length+4)*9]
+            next_pos = bodies.find('1'*40+'0'*40+'11')
+            if next_pos > 0:
+                bodies = bodies[:next_pos]
             bin = bin[tag_pos+82+130*9+btag_pos+42+len(bodies):]
             if len(bodies) < (HEADER[2]+2)*9:
                 print('length error', len(bodies), (HEADER[2]+2)*9)
@@ -66,16 +70,18 @@ def dump(bin):
                 idata.append(int(b[:-1],2))
                 if len(b) != 9:
                     print('length', b)
-                if b[-1] != '1' and errors < 10:
-                    print('parity', b, int(i/9))
+                if b[-1] != '1':
+                    if errors < 10:
+                        print('parity', b, int(i/9))
+                    else:
+                        break
                     errors += 1
             p, o = parity_check(bdata)
             checksum = idata[-2]*256+idata[-1]
             complete += int(p==len(bdata[:-2])) + int(o==checksum)
             # print(len(bdata[:-2]), bdata[-2:], idata[-2:], bodies[-9*4:])
             print('parity:', p==len(bdata[:-2]), 'checksum:', o == checksum)
-            print('Length:', length)
-            print(len(idata))
+            print('Length:', length, len(idata))
         else:
             bin = []
     else:
@@ -94,14 +100,14 @@ if __name__=='__main__':
         pcount = count
         while True:
             try:
-                tapbin = dump(tapbin)
+                tapbin = dump(tapbin, f)
             except:
                 import traceback
                 # traceback.print_exc()
                 break
-            if len(tapbin) < 100:
+            if len(tapbin) < 1000:
                 break
-        if pcount < count:
-            print('FILE:', f)
-    print('Total:', count)
+        # if pcount < count:
+        #     print('FILE:', f)
+    print('Normal:', count)
     print('Abnormal:', uncount)
