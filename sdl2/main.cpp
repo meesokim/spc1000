@@ -402,7 +402,7 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
 #ifdef __EMSCRIPTEN__      
 // EMSCRIPTEN_KEEPALIVE
 extern "C" {
-void remote(int i) {
+void remote(int i, int j) {
     printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
@@ -440,6 +440,11 @@ void remote(int i) {
             SDL_PushEvent(&event);
             event.type = SDL_KEYUP;
             SDL_PushEvent(&event);
+            break;
+        case 5:
+            cassette.settape(j);
+            cassette.get_title(text);
+            setText(text);
             break;
     }
 }

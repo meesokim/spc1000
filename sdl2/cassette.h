@@ -55,6 +55,14 @@ public:
     void next() { if (++file_index >= files.size()) file_index = 0; load(); }
     void get_title(char *buf) { strcpy(buf, files[file_index].filename().c_str()); };
     void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
+    void settape(unsigned int i) 
+    {
+        if ( i >= files.size() )
+            file_index = files.size() - 1; 
+        else 
+            file_index = i; 
+        load(); 
+    };
     void setfile(const char *);
     void loaddir(const char *);
     void loadzip(const char *);

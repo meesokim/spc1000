@@ -26,7 +26,7 @@ if __name__=='__main__':
         print(file)
         if '*' in filename:
             break
-        if '.cas' in filename and not '.tap' in filename:
+        if '.cas' == filename[-4:]:
             data = ''.join(['0'*(8-len(bin(d)[2:]))+bin(d)[2:] for d in open(file, 'rb').read()][16*8:])
             fmt = 'CAS'
             # print(data)
