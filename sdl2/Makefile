@@ -4,7 +4,8 @@ CSOURCES = spcall.c emu2149.c ugui.c
 SOURCES = $(CXXSOURCES) $(CSOURCES)
 OBJECTS=$(CXXSOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 EMCC_DEBUG=1
-CFLAGS = -O2 -sUSE_SDL=2 -sUSE_BZIP2
+DIR?=taps
+CFLAGS = -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DDIR=\"$(DIR)\"
 CC=emcc
 CXX=em++
 %.o: %.c
@@ -18,11 +19,12 @@ wasm: $(OBJECTS)
 	-DWASM \
 	-s WASM=1 \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
-	--preload-file taps \
+	--preload-file $(DIR) \
+	-sALLOW_MEMORY_GROWTH \
 	-sEXPORTED_FUNCTIONS=_remote,_main -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
 	-o index.js 
 bin: $(SOURCES)
-	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++ -lbz2 -lzip
+	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++ -lbz2 -lzip -DDIR=\"$(DIR)\"
 	
 clean:
 	rm -f *.js *.o *.wasm *.data main 

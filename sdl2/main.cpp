@@ -455,6 +455,78 @@ void  main_loop()
 {
     static int i = 1000;
     static uint32_t last_time = 0;
+    static auto first_call = true;
+    if(first_call)
+    {
+        int led_status = LOW;
+        reset();
+        w = 320; h = 240;
+        UG_Init(&ug, SetPixel, w * 2, h * 2);
+        UG_FontSelect(&FONT_12X20);
+        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
+        // int modeCount = SDL_GetNumDisplayModes(0);
+        // SDL_Log("Mode count: %d", modeCount);
+        // SDL_DisplayMode mode;
+        // A list of the display sizes available on your device, 
+        // these can often be determined by your OS and Window Manager instead of
+        // your actual hardware
+        // for(int i = 0; i < modeCount; i ++)
+        // {
+        // 	SDL_GetDisplayMode(0, i, &mode);
+        // 	SDL_Log("Mode %d: (w, h) = (%d, %d)", i, mode.w, mode.h);
+        // }
+        // // Fetching the closest mode to your requested size
+        // mode.w = SCREEN_WIDTH;
+        // mode.h = SCREEN_HEIGHT;
+        // SDL_DisplayMode modeRecieved;
+        dstrect.w = SCREEN_WIDTH;
+        dstrect.h = SCREEN_HEIGHT;
+        dstrect.x = dstrect.y = 0;
+        // SDL_GetClosestDisplayMode(0, &mode, &modeRecieved);
+        // printf("wxh:%dx%d\n", modeRecieved.w, modeRecieved.h);
+        // SCREEN_WIDTH = modeRecieved.w;
+        // SCREEN_HEIGHT = modeRecieved.h;
+        // Default screen resolution (set in config.txt or auto-detected)
+        // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
+        SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
+        surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
+        SDL_SetColorKey(surface, SDL_TRUE, 0x0);
+        texture_title = SDL_CreateTextureFromSurface(renderer, surface);
+        // surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
+        // SDL_LockSurface(surface);
+        pixels = (UG_COLOR *)surface->pixels;
+        UG_SetBackcolor(C_BLACK);
+        UG_SetForecolor(C_RED);
+        // UG_PutString(6, 10, "Hello World!");
+        // SDL_UnlockSurface(surface);
+        // palette = create_palette();
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
+        if (!texture) {
+            printf("%s\n", SDL_GetError());
+        }
+        //Initialize SDL2 Audio
+        SDL_AudioSpec specs = {};
+        specs.freq = SPC1000_AUDIO_FREQ;
+        specs.format = AUDIO_S16SYS;
+        specs.channels = 1;
+        specs.samples = 2048;
+        specs.callback = audiocallback;
+        constexpr int PLAYBACK_DEV = 0;
+        audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, 0 );
+        if( audid == 0 )
+        {
+            std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;
+            return;
+        }
+        SDL_PauseAudioDevice(audid, 0);
+        // pinMode(16, OUTPUT);
+        // register_timer(&tw, 250000);
+        ptime = SDL_GetTicks();
+        ay8910.initTick(ptime);
+        cpu.initTick(ptime);
+        cassette.initTick(ptime);
+        first_call = false;
+    }
     SDL_Delay(16);
     execute(16, NULL);
     if (SDL_PollEvent(&event)) {
@@ -489,7 +561,12 @@ void  main_loop()
 #include <sys/stat.h>
 int main(int argc, char *argv[]) {
 
-    char *tapefile = (char *)"taps";
+#ifdef DIR
+    #define TAPE DIR
+#else
+    #define TAPE "taps"
+#endif
+    char *tapefile = (char *)TAPE;
     if (argc > 1)
     {
         struct stat sb;
@@ -497,76 +574,11 @@ int main(int argc, char *argv[]) {
             tapefile = argv[1];
     }
     printf("tapefile:%s\n", tapefile);
-    // struct timer_wait tw;
-    int led_status = LOW;
-    reset();
-    w = 320; h = 240;
-    UG_Init(&ug, SetPixel, w * 2, h * 2);
-    UG_FontSelect(&FONT_12X20);
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
-    // int modeCount = SDL_GetNumDisplayModes(0);
-	// SDL_Log("Mode count: %d", modeCount);
-	// SDL_DisplayMode mode;
-	// A list of the display sizes available on your device, 
-	// these can often be determined by your OS and Window Manager instead of
-	// your actual hardware
-	// for(int i = 0; i < modeCount; i ++)
-	// {
-	// 	SDL_GetDisplayMode(0, i, &mode);
-	// 	SDL_Log("Mode %d: (w, h) = (%d, %d)", i, mode.w, mode.h);
-	// }
-	// // Fetching the closest mode to your requested size
-	// mode.w = SCREEN_WIDTH;
-	// mode.h = SCREEN_HEIGHT;
-	// SDL_DisplayMode modeRecieved;
-    dstrect.w = SCREEN_WIDTH;
-    dstrect.h = SCREEN_HEIGHT;
-    dstrect.x = dstrect.y = 0;
-	// SDL_GetClosestDisplayMode(0, &mode, &modeRecieved);
-    // printf("wxh:%dx%d\n", modeRecieved.w, modeRecieved.h);
-	// SCREEN_WIDTH = modeRecieved.w;
-	// SCREEN_HEIGHT = modeRecieved.h;
-    // Default screen resolution (set in config.txt or auto-detected)
-    // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
-    SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
-    surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
-    SDL_SetColorKey(surface, SDL_TRUE, 0x0);
-    texture_title = SDL_CreateTextureFromSurface(renderer, surface);
-    // surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
-    // SDL_LockSurface(surface);
-    pixels = (UG_COLOR *)surface->pixels;
-    UG_SetBackcolor(C_BLACK);
-    UG_SetForecolor(C_RED);
-    // UG_PutString(6, 10, "Hello World!");
-    // SDL_UnlockSurface(surface);
-    // palette = create_palette();
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
-    if (!texture) {
-        printf("%s\n", SDL_GetError());
-    }
-    //Initialize SDL2 Audio
-    SDL_AudioSpec specs = {};
-    specs.freq = SPC1000_AUDIO_FREQ;
-    specs.format = AUDIO_S16SYS;
-    specs.channels = 1;
-    specs.samples = 2048;
-    specs.callback = audiocallback;
-    constexpr int PLAYBACK_DEV = 0;
-    audid  = SDL_OpenAudioDevice( nullptr, PLAYBACK_DEV, &specs, &audioSpec, 0 );
-    if( audid == 0 )
-    {
-        std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;
-        return 1;
-    }
-    SDL_PauseAudioDevice(audid, 0);
-    // pinMode(16, OUTPUT);
-    // register_timer(&tw, 250000);
-    ptime = SDL_GetTicks();
-    ay8910.initTick(ptime);
-    cpu.initTick(ptime);
     cassette.setfile(tapefile);
+    // struct timer_wait tw;
+
 #ifdef EMSCRIPTEN    
-    emscripten_set_main_loop(main_loop, -1, 1);
+    emscripten_set_main_loop(main_loop, 0, 1);
 #else
     do {
         main_loop();

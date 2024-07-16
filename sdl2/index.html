@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>SPC-1000</title>
+    </head>
+    <body>
+        <div align="center">테잎로딩은 SHIFT+F1 입니다. 테이프변경은 ALT+좌 또는 ALT+우 입니다.</div>
+        <div align="center">
+            <span id='controls'>
+            <span><input type="button" value="Fullscreen" onclick="Module['canvas'].requestFullscreen()"></span>
+            </span>
+        </div>
+        <div align="center">
+            <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+        </div>
+        <div align="center">
+            <span><button id="screenshot" type="button">화면캡처</button>            
+        </div>
+        <script type='text/javascript'>
+            var Module = {
+                canvas: (function() { return document.getElementById('canvas'); })()
+            };
+            const elem = document.querySelector('#screenshot');
+            elem.addEventListener('click', () => {
+              canvas.toBlob((blob) => {
+                saveBlob(blob, `spc-1000-capture.png`);
+              });
+            });
+            const saveBlob = (function() {
+              const a = document.createElement('a');
+              document.body.appendChild(a);
+              a.style.display = 'none';
+              return function saveData(blob, fileName) {
+                 const url = window.URL.createObjectURL(blob);
+                 a.href = url;
+                 a.download = fileName;
+                 a.click();
+              };
+            }());            
+        </script>
+        <script src="index.js"></script>
+    </body>
+</html>

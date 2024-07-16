@@ -100,7 +100,7 @@ def dump(bin, filename=None):
         bin = []
     if complete > 3:
         print('complete:', f,  title, hex(HEADER[3]), length)
-        save_binary(hbin, bbin, f'{title}_{HEADER[0]}_{hex(HEADER[3])}_{length}.bin')
+        save_binary(hbin, bbin, f'{title[:8]}_{HEADER[0]}_{hex(HEADER[3])}_{length}.bin')
         count += 1
     else:
         uncount += 1

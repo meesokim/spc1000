@@ -26,7 +26,7 @@ public:
     string filename() { return fname; }
 };
 
-#define TAPE_SIZE (1024 * 1024 * 4)
+#define TAPE_SIZE (1024 * 1024 * 6)
 class Cassette {
     uint32_t old_cycles;
     char tape[TAPE_SIZE];

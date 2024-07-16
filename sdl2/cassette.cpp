@@ -99,11 +99,12 @@ void Cassette::load(const char *name)
             ifstream file(filename);
             file.seekg(0, std::ios::end);
             len = file.tellg();
+            if (len > TAPE_SIZE) len = TAPE_SIZE;
             file.seekg(0, std::ios::beg);
             file.read(tape, len);
             file.close();
         }
-        // printf("%s (%d)\n", name, len);
+        printf("%s (%d)\n", name, len);
     }
 }
 #include <sys/stat.h>
