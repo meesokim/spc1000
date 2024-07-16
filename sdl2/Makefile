@@ -4,26 +4,23 @@ CSOURCES = spcall.c emu2149.c ugui.c
 SOURCES = $(CXXSOURCES) $(CSOURCES)
 OBJECTS=$(CXXSOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 EMCC_DEBUG=1
-CFLAGS = -sUSE_SDL=2 -sUSE_BZIP2
+CFLAGS = -O2 -sUSE_SDL=2 -sUSE_BZIP2
 CC=emcc
 CXX=em++
 %.o: %.c
-	$(CC) $(CFLAGS) -c "$<" -o "$@"
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 wasm: $(OBJECTS)
 	emcc $(OBJECTS) \
-	-O2 \
-	-std=c++11 \
 	-DWASM \
 	-s WASM=1 \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
 	--preload-file taps \
-	--compression \
-	-o index.js \
-	-flto
+	-sEXPORTED_FUNCTIONS=_remote,_main -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
+	-o index.js 
 bin: $(SOURCES)
 	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++ -lbz2 -lzip
 	

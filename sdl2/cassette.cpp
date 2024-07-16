@@ -4,6 +4,7 @@ typedef unsigned char uint8_t;
 #include "cassette.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <fstream>
 
 // #define PULSE ((1349-200)*0.5)
 #define PULSE 7
@@ -21,7 +22,8 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
     {
         // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
         mark = (tape[pos] == '1' ? 1:0);
-        // printf("%d", mark);
+        // if (pos < 100)
+        //     printf("%d.%d ", mark, pos);
         old_time = cycles;
         inv_time = cycles + 60;
         end_time = cycles + 170 + PULSE * wait * mark;
@@ -53,6 +55,8 @@ void Cassette::write(char ch)
 
 void Cassette::load(const char *name) 
 {
+    pos = 0;
+    len = 0;
 #ifndef __EMSCRIPTEN__
     if (archive)
     {
@@ -61,7 +65,6 @@ void Cassette::load(const char *name)
             name = files[file_index].filename().c_str();
             len = zip_fread(file, tape, sizeof(tape));
             zip_fclose(file); 
-            pos = 0;
         }        
     }
 #endif
@@ -73,54 +76,35 @@ void Cassette::load(const char *name)
         string filename = files[file_index].filename();
 #endif        
         cout << filename << endl;
-        name = filename.c_str();
+        const char *name = filename.c_str();
         if ( strcmp(name+strlen(name)-4, ".bz2") == 0 ) 
         {
+            FILE *f = fopen(name, "rb");
             BZFILE *bzf;
             int bzError;
-            FILE *f = fopen(name, "rb");
             bzf = BZ2_bzReadOpen(&bzError, f, 0, 0, NULL, 0);
             if (bzError != BZ_OK) {
                 fprintf(stderr, "E: BZ2_bzReadOpen:  %d\n", bzError);
                 return;
             }
+            // printf("bzip\n");
             len = BZ2_bzRead(&bzError, bzf, tape, sizeof tape);
             fclose(f);
         }
         else
         {
-            FILE *f = fopen(name, "rb");
-            if (f != NULL) {
-                len = pos = 0;
-                int char_count = 0;
-                while(fgetc(f)=='0');
-                tape[pos++]='1';
-                len=pos;
-                while(!feof(f)) 
-                {
-                    char ch = fgetc(f);
-                    if (ch != '1' && ch != '0' && ch == ' ')
-                        char_count++;
-                    len++;
-                    tape[pos++] = ch == '1' ? '1' : '0';
-                    if (pos == TAPE_SIZE) pos = 0;
-                }
-                // char data[100];
-                // strncpy(data, tape, 99);
-                // printf("%s\n", data);
-                if (len > pos)
-                    len = pos;
-                if (char_count * 1.2 > pos)
-                    type = TYPE_CHARBIN;
-                else
-                    type = TYPE_BINARY;
-                fclose(f);
-            }
-
+            // printf("tap:%s\n", name);
+            // FILE *f = fopen(name, "r");
+            memset(tape, 0, sizeof tape);
+            ifstream file(filename);
+            file.seekg(0, std::ios::end);
+            len = file.tellg();
+            file.seekg(0, std::ios::beg);
+            file.read(tape, len);
+            file.close();
         }
+        // printf("%s (%d)\n", name, len);
     }
-    pos = 0;
-    printf("%s(%d)\n", name, len);
 }
 #include <sys/stat.h>
 void Cassette::setfile(const char *filename)
@@ -150,7 +134,7 @@ void Cassette::loaddir(const char *dirname)
 #else
             files.push_back(ZFile(entry.path(), index));
 #endif
-            printf("%s,%d\n", entry.path().string().c_str(), index );
+            // printf("%s,%d\n", entry.path().string().c_str(), index );
         }
     }
     sort(files.begin(), files.end());

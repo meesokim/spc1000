@@ -6,6 +6,7 @@
 #include <emscripten/html5.h>
 #endif
 #include <SDL.h>
+#include <SDL_events.h>
 //#include <SDL_mixer.h>
 #include "cpu.h"
 #include "mc6847.h"
@@ -41,18 +42,6 @@ void pinMode(int pin, int mode)
 {
     
 }
-
-// SDL_Palette *create_palette()
-// {
-//     SDL_Palette *p = SDL_AllocPalette(2);
-//     p->colors[0].r = 0xff;
-//     p->colors[0].g = 0x00;
-//     p->colors[0].b = 0x00;
-//     p->colors[1].r = 0xff;
-//     p->colors[1].g = 0xff;
-//     p->colors[1].b = 0xff;
-//     return p;
-// }
 
 CMC6847 mc6847;
 CKeyboard kbd;
@@ -248,11 +237,9 @@ unsigned int execute(Uint32 interval, void* name)
     cpu.clr_irq();
     if (frame++%2)
         mc6847.Update();
-    // ay8910.update(etime);
     ptime = etime;
     return 0;
 }
-
 
 #include <iostream>
 
@@ -281,12 +268,12 @@ void setText(const char *s, int keep_time = 2000)
     UG_SetForecolor(C_WHITE);
     UG_FillFrame(10, 10, 639, 50, C_BLACK);
     // printf("%s\n", s);
-    UG_PutString(10, 10, (char *)s);
+    UG_PutString(10, 14, (char *)s);
 }
 
 void clearText()
 {
-    UG_FillFrame(10, 10, 640, 40, C_BLACK);
+    UG_FillFrame(10, 10, 640, 50, C_BLACK);
 }
 
 void reset()
@@ -299,6 +286,7 @@ void reset()
     memset(memory, 0, 0x10000);
     reg.IPLK = true;
 }
+
 
 
 #define SCREEN_WIDTH 640
@@ -383,14 +371,85 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
             case SDLK_F9:
                 cpu.set_turbo(0);
                 break;
+#ifdef __EMSCRIPTEN__                
+            case SDLK_F7:
+                char msg[100];
+                sprintf(msg, "alert('exec:%d한글')", cpu.getCycles());
+                emscripten_run_script(msg);
+                break;
+#endif                
+            case SDLK_F6:
+                SDL_Event event = {};
+                event.type = SDL_KEYDOWN;
+                event.key.state = SDL_PRESSED;
+                event.key.keysym.sym = SDLK_LSHIFT;
+                event.key.keysym.mod = 0; // from SDL_Keymod
+                SDL_PushEvent(&event);
+                event.key.keysym.sym = SDLK_F1;
+                SDL_PushEvent(&event);
+                event.type = SDL_KEYUP;
+                event.key.state = SDL_RELEASED;
+                event.key.keysym.sym = SDLK_F1;
+                SDL_PushEvent(&event);
+                event.key.keysym.sym = SDLK_LSHIFT;
+                SDL_PushEvent(&event);
+                break;
         }
     }
     return pressed;
 }
 
+#ifdef __EMSCRIPTEN__      
+// EMSCRIPTEN_KEEPALIVE
+extern "C" {
+void remote(int i) {
+    printf("remote:%d\n", i);
+    SDL_Event event = {};
+    switch (i) {
+        case 0:
+            reset();        
+            break;
+        case 1:
+            event.type = SDL_KEYDOWN;
+            event.key.keysym.sym = SDLK_F6;
+            // event.key.timestamp = SDL_GetTicks() + 3000;
+            SDL_PushEvent(&event);
+            break;
+        case 2:
+            event.type = SDL_KEYDOWN;
+            event.key.keysym.sym = SDLK_F5;
+            event.key.state = SDL_PRESSED;
+            // event.key.timestamp = SDL_GetTicks() + 3000;
+            SDL_PushEvent(&event);
+            event.type = SDL_KEYUP;
+            event.key.state = SDL_RELEASED;
+            SDL_PushEvent(&event);
+            break;
+        case 3:
+            event.type = SDL_KEYDOWN;
+            event.key.keysym.sym = SDLK_LEFT;
+            event.key.keysym.mod = KMOD_ALT;
+            SDL_PushEvent(&event);
+            event.type = SDL_KEYUP;
+            SDL_PushEvent(&event);
+            break;
+        case 4:
+            event.type = SDL_KEYDOWN;
+            event.key.keysym.sym = SDLK_RIGHT;
+            event.key.keysym.mod = KMOD_ALT;
+            SDL_PushEvent(&event);
+            event.type = SDL_KEYUP;
+            SDL_PushEvent(&event);
+            break;
+    }
+}
+}
+#endif
+
 void  main_loop()
 {
     static int i = 1000;
+    static uint32_t last_time = 0;
     SDL_Delay(16);
     execute(16, NULL);
     if (SDL_PollEvent(&event)) {

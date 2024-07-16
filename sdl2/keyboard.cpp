@@ -102,6 +102,11 @@ void CKeyboard::ProcessKeyUp(SDL_Keycode sym)
 	}
 }
 
+void CKeyboard::KeyPress(char *keyname)
+{
+	
+}
+
 
 /**
  * SDL Key-Down processing. Special Keys only for Emulator
