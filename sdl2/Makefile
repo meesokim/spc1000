@@ -19,6 +19,7 @@ wasm: $(OBJECTS)
 	-DWASM \
 	-s WASM=1 \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
+	-sSTACK_SIZE=4096000 \
 	--preload-file $(DIR) \
 	-sALLOW_MEMORY_GROWTH \
 	-sEXPORTED_FUNCTIONS=_remote,_main -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \

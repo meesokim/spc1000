@@ -3,29 +3,36 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>SPC-1000</title>
+        <title>SPC-1000 Samsung Electronics 8bit personal computer</title>
     </head>
     <body>
-        <div align="center">테잎로딩은 SHIFT+F1 입니다. 테이프변경은 ALT+좌 또는 ALT+우 입니다.</div>
+        <table align="center" padding="0">
+            <tr><td valign="bottom"><img src="images/samsung_logo.png"></td><td style="font-family: 'Trebuchet MS'; font-size: 2.6rem; text-shadow: 4px 4px 5px gray; line-height: 1.2">&nbsp;SPC-1000&nbsp;&nbsp;</td><td><img src="images/spc-1000.jpg"></td></tr>
+        </table>
+        <div align="center"><span id='controls'><input type="button" value="🖭 로딩 SHIFT+F1" onclick="load();"> <input type="button" value="&#x1F3C3; RUN" onclick="RUN();"> <input type="button" value="이전 🖭 ALT + ⇦" onclick="tape_prev();"> <input type="button" value="다음 🖭 ALT + ⇨" onclick="tape_next();"> <input type="button" value="리셋 &#x27f3;" onclick="reset();"> <input type="button" value="전체화면 &#x26F6;" onclick="Module['canvas'].requestFullscreen()"></span></div>
         <div align="center">
-            <span id='controls'>
-            <span><input type="button" value="Fullscreen" onclick="Module['canvas'].requestFullscreen()"></span>
-            </span>
+            <drop_zone><canvas id="canvas" oncontextmenu="event.preventDefault()" allow="autoplay"></canvas></drop_zone>
         </div>
         <div align="center">
-            <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-        </div>
-        <div align="center">
-            <span><button id="screenshot" type="button">화면캡처</button>            
-        </div>
+            <span>
+                <label className="input-file-button" for="upload" style="padding: 1px 5px;background-color:gray;border-radius: 3px;color: white;cursor: pointer;">
+                    &#x1f5ce; 업로드
+                  </label>
+                  <input type="file" id="upload" accept=".tap, .cas" data-buttonText="파일" style='display:none' />
+                  <button id="screenshot" type="button"> &#x2399; 화면캡처</button>
+                <!-- <input type="file" id="upload" name="upload" accept=".tap, .cas" data-buttonText="파일" /> -->
+        </div>          
         <script type='text/javascript'>
             var Module = {
                 canvas: (function() { return document.getElementById('canvas'); })()
             };
-            const elem = document.querySelector('#screenshot');
-            elem.addEventListener('click', () => {
+            const elem1 = document.querySelector('#screenshot');
+            var screen_num = 0;
+            elem1.addEventListener('click', () => {
               canvas.toBlob((blob) => {
-                saveBlob(blob, `spc-1000-capture.png`);
+                var date = new Date().format('yyMMdd');
+                saveBlob(blob, `spc-1000_${date}_${screen_num}.png`);
+                screen_num += 1;
               });
             });
             const saveBlob = (function() {
@@ -38,7 +45,178 @@
                  a.download = fileName;
                  a.click();
               };
-            }());            
+            }());
+            const input = document.querySelector("#upload");
+            input.addEventListener('change', upload_file);
+            const supportsFileSystemAccessAPI =
+            "getAsFileSystemHandle" in DataTransferItem.prototype;
+          const supportsWebkitGetAsEntry =
+            "webkitGetAsEntry" in DataTransferItem.prototype;            
+            // This is the drag and drop zone.
+            const elem = document.querySelector('drop_zone');
+
+            // Prevent navigation.
+            elem.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            });
+
+            // Visually highlight the drop zone.
+            elem.addEventListener('dragenter', (e) => {
+            elem.style.outline = 'solid red 10px';
+            });
+
+            // Visually unhighlight the drop zone.
+            elem.addEventListener('dragleave', (e) => {
+            elem.style.outline = '';
+            });
+
+            // This is where the drop is handled.
+            elem.addEventListener('drop', async (e) => {
+            // Prevent navigation.
+            e.preventDefault();
+            // Unhighlight the drop zone.
+            elem.style.outline = '';
+            // Prepare an array of promises…
+            const fileHandlesPromises = [...e.dataTransfer.items]
+                // …by including only files (where file misleadingly means actual file _or_
+                // directory)…
+                .filter((item) => item.kind === 'file')
+                // …and, depending on previous feature detection…
+                .map((item) =>
+                supportsFileSystemAccessAPI
+                    // …either get a modern `FileSystemHandle`…
+                    ? item.getAsFileSystemHandle()
+                    // …or a classic `File`.
+                    : item.getAsDataURL(),
+                );
+                // Loop over the array of promises.
+                for await (const handle of fileHandlesPromises) {
+                    // This is where we can actually exclusively act on the files.
+                    if (handle.kind === 'file' || handle.isFile) {
+                      console.log(`File: ${handle.name}`);
+                      const filename = handle.name;
+                      const file = await handle.getFile();
+                      if (filename.toLowerCase().includes('.cas'))
+                      {
+                        const adata = new Uint8Array(await file.arrayBuffer());
+                        const length = adata.byteLength;
+                        console.log(length, adata);
+                        let ndata = "";
+                        for (i = 0x10; i < length; i++)
+                        {
+                            for(j = 0; j < 8; j++)
+                                if (adata[i]&(0x80>>j))
+                                    ndata += '1';
+                                else
+                                    ndata += '0';
+                        }
+                        tape_load(ndata, ndata.length, filename);
+                      }
+                      else
+                      {
+                        const data = await file.text();
+                        const length = data.length;
+                        tape_load(data, length, filename);
+                      }
+
+                    }
+                }
+            });
+            function reset() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [0]); // arguments             
+            };
+            function load() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [1]); // arguments             
+            };
+            function RUN() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [2]); // arguments             
+            };           
+            function tape_prev() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [3]); // arguments             
+            }; 
+            function tape_next() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [4]); // arguments             
+            };                       
+            async function tape_load(data, length, filename) {
+                <!-- console.log(data, length, filename); -->
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number', 'number', 'string', 'string'], // argument types
+                [6, length, data, filename]); // arguments             
+            };
+            async function upload_file() {
+                const curFiles = input.files;
+                for (const file of curFiles) {
+                    // const file = await handle.getFile();
+                    filename = file.name;
+                    if (filename.toLowerCase().includes('.cas'))
+                    {
+                      const adata = new Uint8Array(await file.arrayBuffer());
+                      const length = adata.byteLength;
+                      console.log(length, adata);
+                      let ndata = "";
+                      for (i = 0x10; i < length; i++)
+                      {
+                          for(j = 0; j < 8; j++)
+                              if (adata[i]&(0x80>>j))
+                                  ndata += '1';
+                              else
+                                  ndata += '0';
+                      }
+                      tape_load(ndata, ndata.length, filename);
+                    }
+                    else
+                    {
+                      const data = await file.text();
+                      const length = data.length;
+                      tape_load(data, length, filename);
+                    }
+                }                
+            }
+            Date.prototype.format = function (f) {
+                if (!this.valueOf()) return " ";
+                var weekKorName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+                var weekKorShortName = ["일", "월", "화", "수", "목", "금", "토"];
+                var weekEngName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                var weekEngShortName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                var d = this;
+                return f.replace(/(yyyy|yy|MM|dd|KS|KL|ES|EL|HH|hh|mm|ss|a\/p)/gi, function ($1) {
+                    switch ($1) {
+                        case "yyyy": return d.getFullYear(); // 년 (4자리)
+                        case "yy": return (d.getFullYear() % 1000).zf(2); // 년 (2자리)            
+                        case "MM": return (d.getMonth() + 1).zf(2); // 월 (2자리)
+                        case "dd": return d.getDate().zf(2); // 일 (2자리)
+                        case "KS": return weekKorShortName[d.getDay()]; // 요일 (짧은 한글)
+                        case "KL": return weekKorName[d.getDay()]; // 요일 (긴 한글)
+                        case "ES": return weekEngShortName[d.getDay()]; // 요일 (짧은 영어)
+                        case "EL": return weekEngName[d.getDay()]; // 요일 (긴 영어)
+                        case "HH": return d.getHours().zf(2); // 시간 (24시간 기준, 2자리)
+                        case "hh": return ((h = d.getHours() % 12) ? h : 12).zf(2); // 시간 (12시간 기준, 2자리)
+                        case "mm": return d.getMinutes().zf(2); // 분 (2자리)
+                        case "ss": return d.getSeconds().zf(2); // 초 (2자리)
+                        case "a/p": return d.getHours() < 12 ? "오전" : "오후"; // 오전/오후 구분
+                        default: return $1;
+                    }
+                });
+            };
+            String.prototype.string = function (len) { var s = '', i = 0; while (i++ < len) { s += this; } return s; };
+            String.prototype.zf = function (len) { return "0".string(len - this.length) + this; };
+            Number.prototype.zf = function (len) { return this.toString().zf(len); };            
         </script>
         <script src="index.js"></script>
     </body>

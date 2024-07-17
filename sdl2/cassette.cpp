@@ -107,6 +107,15 @@ void Cassette::load(const char *name)
         printf("%s (%d)\n", name, len);
     }
 }
+
+void Cassette::load(const char *data, int length)
+{
+    memset(tape, 0, sizeof tape);
+    len = length > sizeof tape ? sizeof tape : length;
+    memcpy(tape, data, length);
+    printf("drop file from web (%d)\n", len);
+}
+
 #include <sys/stat.h>
 void Cassette::setfile(const char *filename)
 {

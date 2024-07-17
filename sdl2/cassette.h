@@ -48,6 +48,7 @@ public:
     Cassette() {}
     void initTick(uint32_t tick) { old_cycles = tick; }
     void load(const char *name = NULL);
+    void load(const char *data, int length);
     void save(const char *name);
     char read(uint32_t, uint8_t);
     char read1() { return 0;}

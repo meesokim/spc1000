@@ -402,20 +402,30 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
 #ifdef __EMSCRIPTEN__      
 // EMSCRIPTEN_KEEPALIVE
 extern "C" {
-void remote(int i, int j) {
+
+enum {
+    RESET,
+    LOAD,
+    RUN,
+    TAPE_PREV,
+    TAPE_NEXT,
+    TAPE_SET,
+    TAPE_LOAD
+};
+void remote(int i, int j, const char *data, const char *filename) {
     printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
-        case 0:
+        case RESET:
             reset();        
             break;
-        case 1:
+        case LOAD:
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = SDLK_F6;
             // event.key.timestamp = SDL_GetTicks() + 3000;
             SDL_PushEvent(&event);
             break;
-        case 2:
+        case RUN:
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = SDLK_F5;
             event.key.state = SDL_PRESSED;
@@ -425,26 +435,33 @@ void remote(int i, int j) {
             event.key.state = SDL_RELEASED;
             SDL_PushEvent(&event);
             break;
-        case 3:
+        case TAPE_PREV:
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = SDLK_LEFT;
             event.key.keysym.mod = KMOD_ALT;
-            SDL_PushEvent(&event);
-            event.type = SDL_KEYUP;
-            SDL_PushEvent(&event);
+            ProcessSpecialKey(event.key.keysym);
+            // SDL_PushEvent(&event);
+            // event.type = SDL_KEYUP;
+            // SDL_PushEvent(&event);
             break;
-        case 4:
+        case TAPE_NEXT:
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = SDLK_RIGHT;
             event.key.keysym.mod = KMOD_ALT;
-            SDL_PushEvent(&event);
-            event.type = SDL_KEYUP;
-            SDL_PushEvent(&event);
+            ProcessSpecialKey(event.key.keysym);
+            // SDL_PushEvent(&event);
+            // event.type = SDL_KEYUP;
+            // SDL_PushEvent(&event);
             break;
-        case 5:
+        case TAPE_SET:
             cassette.settape(j);
             cassette.get_title(text);
             setText(text);
+            break;
+        case TAPE_LOAD:
+            // printf("data: %s", data);
+            cassette.load(data, j);
+            setText(filename);
             break;
     }
 }
@@ -578,7 +595,7 @@ int main(int argc, char *argv[]) {
     // struct timer_wait tw;
 
 #ifdef EMSCRIPTEN    
-    emscripten_set_main_loop(main_loop, 0, 1);
+    emscripten_set_main_loop(main_loop, 30, 1);
 #else
     do {
         main_loop();
