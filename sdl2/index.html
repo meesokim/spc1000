@@ -4,6 +4,15 @@
         <meta charset="utf-8">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <title>SPC-1000 Samsung Electronics 8bit personal computer</title>
+        <style>
+            body {
+                background-color: #f0f0f0;
+            }
+            #keyboardCanvas {
+                border: 1px solid #999;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        </style>
     </head>
     <body>
         <table align="center" padding="0">
@@ -20,8 +29,14 @@
                   </label>
                   <input type="file" id="upload" accept=".tap, .cas" data-buttonText="파일" style='display:none' />
                   <button id="screenshot" type="button"> &#x2399; 화면캡처</button>
+                  <br>
+                  <a href="http://hits.dwyl.com/spc-1000/spc-1000githubio" target="_blank">
+                    <img src="https://hits.dwyl.com/spc-1000/spc-1000githubio.svg?style=flat&show=unique"></a>
                 <!-- <input type="file" id="upload" name="upload" accept=".tap, .cas" data-buttonText="파일" /> -->
-        </div>          
+        </div>    
+        <div align="center">
+            <canvas id="keyboardCanvas"></canvas></div>
+        </div>      
         <script type='text/javascript'>
             var Module = {
                 canvas: (function() { return document.getElementById('canvas'); })()
@@ -216,7 +231,189 @@
             };
             String.prototype.string = function (len) { var s = '', i = 0; while (i++ < len) { s += this; } return s; };
             String.prototype.zf = function (len) { return "0".string(len - this.length) + this; };
-            Number.prototype.zf = function (len) { return this.toString().zf(len); };            
+            Number.prototype.zf = function (len) { return this.toString().zf(len); };  
+
+            const canvas = document.getElementById('keyboardCanvas');
+            const ctx = canvas.getContext('2d');
+        
+            canvas.width = window.innerWidth * 0.95
+            canvas.height = window.innerHeight / 2;
+        
+            const normalKeys = [
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', '←', '→', '↑', '↓'],
+                [' ', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\', 'BREAK'],
+                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  'INS', 'GRP'],
+                ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ":", ']', 'RETURN'],
+                ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'SHIFT'],
+                ['LOCK', 'SPACE']
+            ];
+        
+            const shiftKeys = [
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', '←', '→', '↑', '↓'],
+                [' ', '!', '"', '#', '$', '%', '&', '(', ')', ' ', '0', '=', '~', '\\', 'BREAK'],
+                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '{', 'DEL', 'GRP'],
+                ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*', '}', 'RETURN'],
+                ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 'SHIFT'],
+                ['LOCK', 'SPACE']
+            ];
+            
+            const offsets = [40,10,0,0,0,50]
+        
+            let keyWidth, keyHeight;
+            let isShiftToggled = false;
+            let isLockToggled = false;
+            let isGRPToggled = false;
+            let isCtrlToggled = false;
+            let pressedKey = null;
+        
+            const specialKeys = ['F1', 'F2', 'F3', 'F4', 'F5', '←', '→', '↑', '↓', 'TAB', 'CTRL', 'LOCK', 'BREAK', 'INS','DEL', 'RETURN', 'GRP', 'SHIFT'];
+        
+            const keyClickSound = new Audio('path_to_your_sound_file.mp3'); // 키 클릭 사운드 파일 경로를 지정하세요
+        
+            function calculateKeySize() {
+                keyWidth = (canvas.width) / 15.5;
+                keyHeight = canvas.height / 6;
+            }
+        
+            function drawKey(x, y, width, height, key, isToggled = false) {
+                const radius = 10;
+        
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+        
+                if (specialKeys.includes(key)) {
+                    ctx.fillStyle = isToggled ? '#505050' : '#404040';
+                } else {
+                    ctx.fillStyle = isToggled ? '#d0d0d0' : (key === pressedKey ? '#b0b0b0' : '#f0f0f0');
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+        
+                ctx.fillStyle = specialKeys.includes(key) ? '#ffffff' : '#333333';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(key, x + width / 2, y + height / 2);
+            }
+        
+            function drawKeyboard() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const keys = isShiftToggled ? shiftKeys : normalKeys;
+                
+                keys.forEach((row, rowIndex) => {
+                    let xOffset = offsets[rowIndex];
+                    row.forEach((key, keyIndex) => {
+                        let width = keyWidth;
+                        let height = keyHeight;
+                        
+                        if (key === 'SPACE') width = keyWidth * 10;
+                        else if (['F1','F2', 'F3', 'F4', 'F5', 'TAB', 'LOCK', 'RETURN'].includes(key)) width = keyWidth * 1.5;
+                        else if (key == 'CTRL') width = keyWidth * 1.7;
+                        else if (key == 'SHIFT') width = keyWidth * 2;
+                        
+                        if (key != ' ')
+                            drawKey(xOffset, rowIndex * keyHeight, width, height, key, (key === 'SHIFT' && isShiftToggled) || (key === 'LOCK' && isLockToggled) || (key == 'CTRL' && isCtrlToggled) || (key == 'GRP' && isGRPToggled));
+                        xOffset += width;
+                    });
+                });
+            }
+        
+            function handleTouch(e) {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const x = e.touches ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+                const y = e.touches ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+                
+                const keys = isShiftToggled ? shiftKeys : normalKeys;
+                
+                let yOffset = 0;
+                for (let rowIndex = 0; rowIndex < keys.length; rowIndex++) {
+                    let xOffset = 0;
+                    for (let keyIndex = 0; keyIndex < keys[rowIndex].length; keyIndex++) {
+                        const key = keys[rowIndex][keyIndex];
+                        let width = keyWidth;
+                        let height = keyHeight;
+                        
+                        if (key === 'SPACE') width = keyWidth * 10;
+                        else if (['F1','F2', 'F3', 'F4', 'F5', 'TAB', 'LOCK', 'RETURN'].includes(key)) width = keyWidth * 1.5;
+                        else if (key == 'CTRL') width = keyWidth * 1.7;
+                        else if (key == 'SHIFT') width = keyWidth * 2;
+                        
+                        if (x >= xOffset && x < xOffset + width &&
+                            y >= yOffset && y < yOffset + height) {
+                            console.log('Pressed key:', key);
+                            pressedKey = key;
+                            keyClickSound.play();
+                            drawKeyboard();
+                            
+                            if (key === 'SHIFT') {
+                                isShiftToggled = !isShiftToggled;
+                            } else if (key === 'LOCK') {
+                                isLockToggled = !isLockToggled;
+                            } else if (key === 'CTRL') {
+                                isCtrlToggled = !isCtrlToggled;
+                            } else if (key === 'GRP') {
+                                isGRPToggled = !isGRPToggled;
+                            } else {
+                                // 여기에서 키 입력을 에뮬레이터로 전달
+                                emulatorKeyPress(key);
+                                // SHIFT가 토글된 상태에서 다른 키를 누르면 SHIFT 상태 해제
+                                if (isShiftToggled && key !== 'SHIFT') {
+                                    isShiftToggled = false;
+                                }
+                            }
+                            
+                            setTimeout(() => {
+                                pressedKey = null;
+                                drawKeyboard();
+                            }, 100);
+                            
+                            return;
+                        }
+                        xOffset += width;
+                    }
+                    yOffset += keyHeight;
+                }
+            }
+        
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('mousedown', function(e) {
+                // 마우스 이벤트를 터치 이벤트로 변환
+                const touch = {
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                };
+                handleTouch({touches: [touch], preventDefault: function() {}});
+            });	
+            
+            function resizeCanvas() {
+                canvas.width = window.innerWidth * 0.97;
+                canvas.height = window.innerHeight / 4;
+                calculateKeySize();
+                drawKeyboard();
+            }
+        
+            // 초기 키보드 그리기 및 리사이즈 이벤트 설정
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        
+            // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
+            function emulatorKeyPress(key) {
+                // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
+                console.log('Emulator key press:', key);
+                // 예: Module.ccall('js_keydown', 'null', ['string'], [key]);
+            }
         </script>
         <script src="index.js"></script>
     </body>
