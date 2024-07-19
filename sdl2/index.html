@@ -35,10 +35,9 @@
                   <td><button id="screenshot" type="button"> &#x2399; 화면캡처</button></td>
                   </tr></table>
             </span>
-                <!-- <input type="file" id="upload" name="upload" accept=".tap, .cas" data-buttonText="파일" /> -->
         </div>    
         <div align="center">
-            <canvas id="keyboardCanvas"></canvas></div>
+            <canvas id="keyboardCanvas" oncontextmenu="event.preventDefault()"></canvas></div>
         </div>      
         <script type='text/javascript'>
             var Module = {
@@ -379,11 +378,10 @@
                                 }
                             }
                             
-                            //setTimeout(() => {
-                                // pressedKey = null;
-                            //    drawKeyboard();
-                            //}, 100);
-                            
+                            setTimeout(() => {
+                                if (!pressedKey)
+                                    handleReleseTouch();
+                            }, 1000);
                             return;
                         }
                         xOffset += width;
@@ -405,15 +403,12 @@
             canvas.addEventListener('mouseup', handleReleseTouch);
 
             function handleReleseTouch() {
-                if (pressedKey)
-                {
-                    pressedkey = null;
-                    emulatorKeyPress(pressedkey);
-                    setTimeout(() => {
-                        // pressedKey = null;
-                        drawKeyboard();
-                    }, 100);
-                }
+                pressedkey = null;
+                emulatorKeyPress(pressedkey);
+                setTimeout(() => {
+                    pressedKey = null;
+                    drawKeyboard();
+                }, 100);
             }
             
             function resizeCanvas() {
@@ -430,7 +425,7 @@
             // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
             function emulatorKeyPress(key) {
                 // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
-                console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
+                // console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
                 Module.ccall('keydown', 'null', ['string','boolean', 'boolean', 'boolean','boolean'], [key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled]);
             }
         </script>
