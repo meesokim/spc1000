@@ -412,6 +412,11 @@ enum {
     TAPE_SET,
     TAPE_LOAD
 };
+void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock)
+{
+    printf("keydown:%s,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock);
+    kbd.KeyPress(code, shift, ctrl, grp, lock);
+}
 void remote(int i, int j, const char *data, const char *filename) {
     printf("remote:%d\n", i);
     SDL_Event event = {};

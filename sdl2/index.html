@@ -6,7 +6,7 @@
         <title>SPC-1000 Samsung Electronics 8bit personal computer</title>
         <style>
             body {
-                background-color: #f0f0f0;
+                background-color: #ffffff;
             }
             #keyboardCanvas {
                 border: 1px solid #999;
@@ -240,18 +240,18 @@
             canvas.height = window.innerHeight / 2;
         
             const normalKeys = [
-                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', '←', '→', '↑', '↓'],
-                [' ', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\', 'BREAK'],
-                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  'INS', 'GRP'],
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', 'HOME', '←', '→', '↑', '↓'],
+                ['ESC', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\', 'BREAK'],
+                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  'DEL', 'GRP'],
                 ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ":", ']', 'RETURN'],
                 ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'SHIFT'],
                 ['LOCK', 'SPACE']
             ];
         
             const shiftKeys = [
-                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', '←', '→', '↑', '↓'],
-                [' ', '!', '"', '#', '$', '%', '&', '(', ')', ' ', '0', '=', '~', '\\', 'BREAK'],
-                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '{', 'DEL', 'GRP'],
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', 'CLS', '←', '→', '↑', '↓'],
+                ['ESC', '!', '"', '#', '$', '%', '&', "'", '(', ')', '0', '=', '~', '\\', 'BREAK'],
+                ['TAB', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '{', 'INS', 'GRP'],
                 ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*', '}', 'RETURN'],
                 ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 'SHIFT'],
                 ['LOCK', 'SPACE']
@@ -266,9 +266,9 @@
             let isCtrlToggled = false;
             let pressedKey = null;
         
-            const specialKeys = ['F1', 'F2', 'F3', 'F4', 'F5', '←', '→', '↑', '↓', 'TAB', 'CTRL', 'LOCK', 'BREAK', 'INS','DEL', 'RETURN', 'GRP', 'SHIFT'];
+            const specialKeys = ['F1', 'F2', 'F3', 'F4', 'F5', '←', '→', '↑', '↓', 'HOME','ESC', 'CLS', 'TAB', 'CTRL', 'LOCK', 'BREAK', 'INS', 'DEL', 'RETURN', 'GRP', 'SHIFT'];
         
-            const keyClickSound = new Audio('path_to_your_sound_file.mp3'); // 키 클릭 사운드 파일 경로를 지정하세요
+            const keyClickSound = new Audio('typing.wav'); // 키 클릭 사운드 파일 경로를 지정하세요
         
             function calculateKeySize() {
                 keyWidth = (canvas.width) / 15.5;
@@ -303,7 +303,7 @@
                 ctx.font = '14px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(key, x + width / 2, y + height / 2);
+                ctx.fillText(key, x + width / 2, y + height / 2, width * 0.8);
             }
         
             function drawKeyboard() {
@@ -341,7 +341,7 @@
                 for (let rowIndex = 0; rowIndex < keys.length; rowIndex++) {
                     let xOffset = offsets[rowIndex];
                     for (let keyIndex = 0; keyIndex < keys[rowIndex].length; keyIndex++) {
-                        const key = keys[rowIndex][keyIndex];
+                        const key = normalKeys[rowIndex][keyIndex];
                         let width = keyWidth;
                         let height = keyHeight;
                         
@@ -352,7 +352,7 @@
                         
                         if (x >= xOffset && x < xOffset + width &&
                             y >= yOffset && y < yOffset + height) {
-                            console.log('Pressed key:', key);
+                            //console.log('Pressed key:', key);
                             pressedKey = key;
                             keyClickSound.play();
                             drawKeyboard();
@@ -414,8 +414,8 @@
             // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
             function emulatorKeyPress(key) {
                 // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
-                console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
-                // 예: Module.ccall('js_keydown', 'null', ['string'], [key]);
+                // console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
+                Module.ccall('keydown', 'null', ['string','boolean', 'boolean', 'boolean','boolean'], [key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled]);
             }
         </script>
         <script src="index.js"></script>

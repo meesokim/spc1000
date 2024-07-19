@@ -8,8 +8,82 @@ extern Uint32 SDL_GetTicks(void);
 CKeyboard::CKeyboard()
 {
 	BuildKeyHashTab();
-	for (int i = 0; i < sizeof(keyMatrix); i++)
-		keyMatrix[i] = 0xff;
+	kmap["SHIFT"] = 0x002;
+	kmap["CTRL"] = 0x004;
+	kmap["BREAK"] = 0x010;
+	kmap["GRP"] = 0x040;
+	
+	kmap["^"] = 0x101;
+	kmap["HOME"] = 0x102;
+	kmap["SPACE"] = 0x104;
+	kmap["RETURN"] = 0x108;
+	kmap["C"] = 0x110;
+	kmap["A"] = 0x120;
+	kmap["Q"] = 0x140;
+	kmap["1"] = 0x180;
+
+	kmap["LOCK"] = 0x201;
+	kmap["Z"] = 0x204;
+	kmap["]"] = 0x208;
+	kmap["V"] = 0x210;
+	kmap["S"] = 0x220;
+	kmap["W"] = 0x240;
+	kmap["2"] = 0x280;
+
+	kmap["DEL"] = 0x301;
+	kmap["ESC"] = 0x304;
+	kmap["["] = 0x308;
+	kmap["B"] = 0x310;
+	kmap["D"] = 0x320;
+	kmap["E"] = 0x340;
+	kmap["3"] = 0x380;
+
+	kmap["→"] = 0x404;
+	kmap["\\"] = 0x408;
+	kmap["N"] = 0x410;
+	kmap["F"] = 0x420;
+	kmap["R"] = 0x440;
+	kmap["4"] = 0x480;
+
+	kmap["F1"] = 0x502;
+	kmap["←"] = 0x504;
+	kmap["M"] = 0x510;
+	kmap["G"] = 0x520;
+	kmap["T"] = 0x540;
+	kmap["5"] = 0x580;
+
+	kmap["F2"] = 0x602;
+	kmap["@"] = 0x604;
+	kmap["X"] = 0x608;
+	kmap[","] = 0x610;
+	kmap["H"] = 0x620;
+	kmap["Y"] = 0x640;
+	kmap["6"] = 0x680;
+
+	kmap["F3"] = 0x702;
+	kmap["↑"] = 0x704;
+	kmap["P"] = 0x708;
+	kmap["."] = 0x710;
+	kmap["J"] = 0x720;
+	kmap["U"] = 0x740;
+	kmap["7"] = 0x780;
+
+	kmap["F4"] = 0x802;
+	kmap["↓"] = 0x804;
+	kmap[":"] = 0x808;
+	kmap["/"] = 0x810;
+	kmap["K"] = 0x820;
+	kmap["I"] = 0x840;
+	kmap["8"] = 0x880;
+
+	kmap["F5"] = 0x902;
+	kmap["-"] = 0x904;
+	kmap["0"] = 0x908;
+	kmap[";"] = 0x910;
+	kmap["L"] = 0x920;
+	kmap["O"] = 0x940;
+	kmap["9"] = 0x980;
+	clearMatrix();
 }
 
 void CKeyboard::handle_event(SDL_Event event)
@@ -102,9 +176,25 @@ void CKeyboard::ProcessKeyUp(SDL_Keycode sym)
 	}
 }
 
-void CKeyboard::KeyPress(char *keyname)
+void CKeyboard::KeyPress(char *str)
 {
-	
+	printf("%s\n", str);
+}
+
+void CKeyboard::KeyPress(char *code, bool shift, bool ctrl, bool grp, bool lock)
+{
+	if (kmap[code]) 
+		setMatrix(code);
+	if (shift) 
+		setMatrix("SHIFT");
+	if (ctrl) 
+		setMatrix("CTRL");
+	if (grp) 
+		setMatrix("GRP");
+	if (lock) 
+		setMatrix("LOCK");
+	pressed = true;
+	repeat = 10;
 }
 
 
