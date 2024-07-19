@@ -24,14 +24,17 @@
         </div>
         <div align="center">
             <span>
+                <table align="center" padding="0">
+                    <tr valign="top"><td>
                 <label className="input-file-button" for="upload" style="padding: 1px 5px;background-color:gray;border-radius: 3px;color: white;cursor: pointer;">
                     &#x1f5ce; 업로드
                   </label>
-                  <input type="file" id="upload" accept=".tap, .cas" data-buttonText="파일" style='display:none' />
-                  <button id="screenshot" type="button"> &#x2399; 화면캡처</button>
-                  <br>
-                  <a href="http://hits.dwyl.com/spc-1000/spc-1000githubio" target="_blank">
-                    <img src="https://hits.dwyl.com/spc-1000/spc-1000githubio.svg?style=flat&show=unique"></a>
+                  <input type="file" id="upload" accept=".tap, .cas" data-buttonText="파일" style='display:none' /></td>
+                  <td><a href="http://hits.dwyl.com/spc-1000/spc-1000githubio" target="_blank">
+                    <img src="https://hits.dwyl.com/spc-1000/spc-1000githubio.svg?style=flat&show=unique"></a></td>
+                  <td><button id="screenshot" type="button"> &#x2399; 화면캡처</button></td>
+                  </tr></table>
+            </span>
                 <!-- <input type="file" id="upload" name="upload" accept=".tap, .cas" data-buttonText="파일" /> -->
         </div>    
         <div align="center">
@@ -265,7 +268,6 @@
             let isGRPToggled = false;
             let isCtrlToggled = false;
             let pressedKey = null;
-        
             const specialKeys = ['F1', 'F2', 'F3', 'F4', 'F5', '←', '→', '↑', '↓', 'HOME','ESC', 'CLS', 'TAB', 'CTRL', 'LOCK', 'BREAK', 'INS', 'DEL', 'RETURN', 'GRP', 'SHIFT'];
         
             const keyClickSound = new Audio('typing.wav'); // 키 클릭 사운드 파일 경로를 지정하세요
@@ -293,7 +295,7 @@
                 if (specialKeys.includes(key)) {
                     ctx.fillStyle = isToggled ? '#505050' : '#404040';
                 } else {
-                    ctx.fillStyle = isToggled ? '#d0d0d0' : (key === pressedKey ? '#b0b0b0' : '#f0f0f0');
+                    ctx.fillStyle = (key === pressedKey ? '#b0b0b0' : '#f0f0f0');
                 }
                 ctx.fill();
                 ctx.strokeStyle = '#999';
@@ -377,10 +379,10 @@
                                 }
                             }
                             
-                            setTimeout(() => {
-                                pressedKey = null;
-                                drawKeyboard();
-                            }, 100);
+                            //setTimeout(() => {
+                                // pressedKey = null;
+                            //    drawKeyboard();
+                            //}, 100);
                             
                             return;
                         }
@@ -391,6 +393,7 @@
             }
         
             canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchend', handleReleseTouch);
             canvas.addEventListener('mousedown', function(e) {
                 // 마우스 이벤트를 터치 이벤트로 변환
                 const touch = {
@@ -398,10 +401,23 @@
                     clientY: e.clientY
                 };
                 handleTouch({touches: [touch], preventDefault: function() {}});
-            });	
+            });
+            canvas.addEventListener('mouseup', handleReleseTouch);
+
+            function handleReleseTouch() {
+                if (pressedKey)
+                {
+                    pressedkey = null;
+                    emulatorKeyPress(pressedkey);
+                    setTimeout(() => {
+                        // pressedKey = null;
+                        drawKeyboard();
+                    }, 100);
+                }
+            }
             
             function resizeCanvas() {
-                canvas.width = window.innerWidth * 0.97;
+                canvas.width = window.innerWidth * 0.98;
                 canvas.height = window.innerHeight / 4;
                 calculateKeySize();
                 drawKeyboard();
@@ -414,7 +430,7 @@
             // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
             function emulatorKeyPress(key) {
                 // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
-                // console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
+                console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
                 Module.ccall('keydown', 'null', ['string','boolean', 'boolean', 'boolean','boolean'], [key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled]);
             }
         </script>

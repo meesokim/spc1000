@@ -183,18 +183,23 @@ void CKeyboard::KeyPress(char *str)
 
 void CKeyboard::KeyPress(char *code, bool shift, bool ctrl, bool grp, bool lock)
 {
-	if (kmap[code]) 
-		setMatrix(code);
-	if (shift) 
-		setMatrix("SHIFT");
-	if (ctrl) 
-		setMatrix("CTRL");
-	if (grp) 
-		setMatrix("GRP");
-	if (lock) 
-		setMatrix("LOCK");
-	pressed = true;
-	repeat = 10;
+	if (!code)
+		clearMatrix();
+	else 
+	{
+		if (kmap[code]) 
+			setMatrix(code);
+		if (shift) 
+			setMatrix("SHIFT");
+		if (ctrl) 
+			setMatrix("CTRL");
+		if (grp) 
+			setMatrix("GRP");
+		if (lock) 
+			setMatrix("LOCK");
+		pressed = true;
+		repeat = 10;
+	}
 }
 
 
