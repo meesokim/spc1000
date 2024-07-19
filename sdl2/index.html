@@ -339,7 +339,7 @@
                 
                 let yOffset = 0;
                 for (let rowIndex = 0; rowIndex < keys.length; rowIndex++) {
-                    let xOffset = 0;
+                    let xOffset = offsets[rowIndex];
                     for (let keyIndex = 0; keyIndex < keys[rowIndex].length; keyIndex++) {
                         const key = keys[rowIndex][keyIndex];
                         let width = keyWidth;
@@ -368,9 +368,12 @@
                             } else {
                                 // 여기에서 키 입력을 에뮬레이터로 전달
                                 emulatorKeyPress(key);
-                                // SHIFT가 토글된 상태에서 다른 키를 누르면 SHIFT 상태 해제
-                                if (isShiftToggled && key !== 'SHIFT') {
+                                // SHIFT, GRP, CTRL 키가 토글된 상태에서 다른 키를 누르면 상태 해제
+                                if (!isLockToggled)
+                                {
                                     isShiftToggled = false;
+                                    isGRPToggled = false;
+                                    isCtrlToggled = false;
                                 }
                             }
                             
@@ -411,7 +414,7 @@
             // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
             function emulatorKeyPress(key) {
                 // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
-                console.log('Emulator key press:', key);
+                console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
                 // 예: Module.ccall('js_keydown', 'null', ['string'], [key]);
             }
         </script>

@@ -4,3 +4,6 @@
 [submodule "UGUI"]
 	path = UGUI
 	url = https://github.com/achimdoebler/UGUI
+[submodule "jgz80"]
+	path = jgz80
+	url = https://github.com/carmiker/jgz80
