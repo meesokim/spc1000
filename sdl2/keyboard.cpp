@@ -181,7 +181,7 @@ void CKeyboard::KeyPress(char *str)
 	printf("%s\n", str);
 }
 
-void CKeyboard::KeyPress(char *code, bool shift, bool ctrl, bool grp, bool lock)
+void CKeyboard::KeyPress(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
 	if (!code)
 		clearMatrix();
@@ -198,7 +198,10 @@ void CKeyboard::KeyPress(char *code, bool shift, bool ctrl, bool grp, bool lock)
 		if (lock) 
 			setMatrix("LOCK");
 		pressed = true;
-		repeat = 10;
+		if (single)
+			repeat = 5;
+		else
+			repeat = -1;
 	}
 }
 

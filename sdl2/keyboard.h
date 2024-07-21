@@ -132,9 +132,9 @@ class CKeyboard {
         CKeyboard();
         unsigned char matrix(char reg) {
             unsigned char ret = keyMatrix[(reg&0xf)];
-            // if (pressed && (reg&0xf) == 0)
-            //     if (!repeat--)
-            //         clearMatrix();
+            if (pressed && (reg&0xf) == 0)
+                if (!repeat--)
+                    clearMatrix();
             return ret;
         }
         void handle_event(SDL_Event);
@@ -142,6 +142,6 @@ class CKeyboard {
         void ProcessKeyDown(SDL_Keycode sym);
         void ProcessKeyUp(SDL_Keycode sym);
         void KeyPress(char *keys);
-        void KeyPress(char *key, bool, bool, bool, bool);
+        void KeyPress(char *key, bool, bool, bool, bool, bool);
 };
 

@@ -266,7 +266,7 @@ void setText(const char *s, int keep_time = 2000)
 {
     textout_time = SDL_GetTicks() + keep_time;
     UG_SetForecolor(C_WHITE);
-    UG_FillFrame(10, 10, 639, 50, C_BLACK);
+    UG_FillFrame(00, 00, 639, 50, C_BLACK);
     // printf("%s\n", s);
     UG_PutString(10, 14, (char *)s);
 }
@@ -410,14 +410,15 @@ enum {
     TAPE_PREV,
     TAPE_NEXT,
     TAPE_SET,
-    TAPE_LOAD
+    TAPE_LOAD,
+    TURBO
 };
-void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock)
+void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
-    printf("keydown:%s,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock);
-    kbd.KeyPress(code, shift, ctrl, grp, lock);
+    printf("keydown:%s,%d,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock, single);
+    kbd.KeyPress(code, shift, ctrl, grp, lock, single);
 }
-void remote(int i, int j, const char *data, const char *filename) {
+const char * remote(int i, int j, const char *data, const char *filename) {
     printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
@@ -445,6 +446,7 @@ void remote(int i, int j, const char *data, const char *filename) {
             event.key.keysym.sym = SDLK_LEFT;
             event.key.keysym.mod = KMOD_ALT;
             ProcessSpecialKey(event.key.keysym);
+            return text;
             // SDL_PushEvent(&event);
             // event.type = SDL_KEYUP;
             // SDL_PushEvent(&event);
@@ -454,6 +456,7 @@ void remote(int i, int j, const char *data, const char *filename) {
             event.key.keysym.sym = SDLK_RIGHT;
             event.key.keysym.mod = KMOD_ALT;
             ProcessSpecialKey(event.key.keysym);
+            return text;
             // SDL_PushEvent(&event);
             // event.type = SDL_KEYUP;
             // SDL_PushEvent(&event);
@@ -462,13 +465,22 @@ void remote(int i, int j, const char *data, const char *filename) {
             cassette.settape(j);
             cassette.get_title(text);
             setText(text);
+            return text;
             break;
         case TAPE_LOAD:
-            // printf("data: %s", data);
+            // printf("filename: %s\n", filename);
             cassette.load(data, j);
-            setText(filename);
+            strcpy(text, filename);
+            setText(text, 5000);
+            printf("filename: %s\n", text);
+            return text;
+            break;
+        case TURBO:
+            cpu.set_turbo(j>0);
+            printf("turbo:%d\n",j>0);
             break;
     }
+    return NULL;
 }
 }
 #endif
@@ -486,42 +498,16 @@ void  main_loop()
         UG_Init(&ug, SetPixel, w * 2, h * 2);
         UG_FontSelect(&FONT_12X20);
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
-        // int modeCount = SDL_GetNumDisplayModes(0);
-        // SDL_Log("Mode count: %d", modeCount);
-        // SDL_DisplayMode mode;
-        // A list of the display sizes available on your device, 
-        // these can often be determined by your OS and Window Manager instead of
-        // your actual hardware
-        // for(int i = 0; i < modeCount; i ++)
-        // {
-        // 	SDL_GetDisplayMode(0, i, &mode);
-        // 	SDL_Log("Mode %d: (w, h) = (%d, %d)", i, mode.w, mode.h);
-        // }
-        // // Fetching the closest mode to your requested size
-        // mode.w = SCREEN_WIDTH;
-        // mode.h = SCREEN_HEIGHT;
-        // SDL_DisplayMode modeRecieved;
         dstrect.w = SCREEN_WIDTH;
         dstrect.h = SCREEN_HEIGHT;
         dstrect.x = dstrect.y = 0;
-        // SDL_GetClosestDisplayMode(0, &mode, &modeRecieved);
-        // printf("wxh:%dx%d\n", modeRecieved.w, modeRecieved.h);
-        // SCREEN_WIDTH = modeRecieved.w;
-        // SCREEN_HEIGHT = modeRecieved.h;
-        // Default screen resolution (set in config.txt or auto-detected)
-        // SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
         SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
         SDL_SetColorKey(surface, SDL_TRUE, 0x0);
         texture_title = SDL_CreateTextureFromSurface(renderer, surface);
-        // surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 16, SDL_PIXELFORMAT_RGB565);
-        // SDL_LockSurface(surface);
         pixels = (UG_COLOR *)surface->pixels;
         UG_SetBackcolor(C_BLACK);
         UG_SetForecolor(C_RED);
-        // UG_PutString(6, 10, "Hello World!");
-        // SDL_UnlockSurface(surface);
-        // palette = create_palette();
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
         if (!texture) {
             printf("%s\n", SDL_GetError());
@@ -586,7 +572,7 @@ int main(int argc, char *argv[]) {
 #ifdef DIR
     #define TAPE DIR
 #else
-    #define TAPE "taps"
+    #define TAPE "taps2"
 #endif
     char *tapefile = (char *)TAPE;
     if (argc > 1)
