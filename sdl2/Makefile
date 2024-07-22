@@ -25,7 +25,7 @@ wasm: $(OBJECTS)
 	-sEXPORTED_FUNCTIONS=_remote,_keydown,_main -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
 	-o index.js 
 bin: $(SOURCES)
-	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lSDL2_ttf -lstdc++ -lbz2 -lzip -DDIR=\"$(DIR)\"
+	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lstdc++ -lbz2 -lzip -DDIR=\"$(DIR)\"
 	
 clean:
 	rm -f *.js *.o *.wasm *.data main 
