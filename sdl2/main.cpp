@@ -415,7 +415,7 @@ enum {
 };
 void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
-    printf("keydown:%s,%d,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock, single);
+    // printf("keydown:%s,%d,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock, single);
     kbd.KeyPress(code, shift, ctrl, grp, lock, single);
 }
 const char * remote(int i, int j, const char *data, const char *filename) {
