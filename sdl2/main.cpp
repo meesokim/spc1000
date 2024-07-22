@@ -424,6 +424,7 @@ const char * remote(int i, int j, const char *data, const char *filename) {
     switch (i) {
         case RESET:
             reset();        
+            return text;
             break;
         case LOAD:
             event.type = SDL_KEYDOWN;

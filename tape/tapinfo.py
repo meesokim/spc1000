@@ -92,11 +92,18 @@ def dump(bin, filename=None):
     else:
         uncount += 1
     return bin
-        
+
+def cas2tap(b):
+    from bitstring import BitArray
+    return ''.join([f'{c:08b}' for c in b[16:]])        
             
 if __name__=='__main__':
     for f in sys.argv[1:]:
-        tapbin = open(f,'r').read()
+        if '.cas' in f.lower():
+            tapbin = cas2tap(open(f,'rb').read())
+            print(tapbin)
+        else:
+            tapbin = open(f,'r').read()
         pcount = count
         while True:
             try:

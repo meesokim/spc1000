@@ -250,6 +250,7 @@ void ReadINI(char *fname)
             {
                 strcpy(load_path_taps, str);
             }
+			printf("tapepath:%s\n", load_path_taps);
             continue;
         }
 		if (!str1ncmp("DISKPATH", inputstr))
@@ -766,7 +767,7 @@ void OutZ80(register word Port,register byte Value)
 		{
 			fcno = 0;
 			FCLOSE(spconf.rfp);
-			sprintf((char *)spconf.current_tap, "..\\tape\\%s.tap", dfile);
+			sprintf((char *)spconf.current_tap, "..\\sdl2\\taps3\\%s.tap", dfile);
 			printf("%s\n", (char *)spconf.current_tap);
             if (OpenTapeFile() < 0)
                 return;
@@ -780,7 +781,7 @@ void OutZ80(register word Port,register byte Value)
 		{
 			fcno = 0;
 			FCLOSE(spconf.wfp);
-			sprintf((char *)spconf.current_tap, "..\\tape\\%s.tap", dfile);
+			sprintf((char *)spconf.current_tap, "..\\sdl2\\taps3\\%s.tap", dfile);
             if (SaveAsTapeFile() < 0)
                 return;
             spcsys.cas.button = CAS_REC;
@@ -1934,7 +1935,7 @@ int main(int argc, char* argv[])
     //memcpy(spcsys.ROM + 32768, spcsys.ROM, 32768);
 	z80mem = spcsys.ROM;
     //ShowWindow (GetConsoleWindow(), SW_HIDE);
-    strcpy(load_path_taps, "../cas");
+    strcpy(load_path_taps, "../sdl2/taps");
     strcpy(path_disks, "../disk");
     strcpy(spconf.path_snaps, ".");
 	ReadINI((char*)"SPCEMUL.INI");

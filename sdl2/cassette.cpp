@@ -22,6 +22,7 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
     {
         // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
         mark = (tape[pos] == '1' ? 1:0);
+        // printf("%d", mark);
         // if (pos < 100)
         //     printf("%d.%d ", mark, pos);
         old_time = cycles;
@@ -30,8 +31,11 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
         // if (pos < 100)
         //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
             // printf("%d\n", mark);
-        if (++pos >= len)
+        if (++pos > len)
+        {
             pos = 0;
+            printf("tape rewinded.\n");
+        }
     }
     if (mark > -1)
     {
@@ -55,6 +59,7 @@ void Cassette::write(char ch)
 
 void Cassette::load(const char *name) 
 {
+    string filename;
     pos = 0;
     len = 0;
 #ifndef __EMSCRIPTEN__
@@ -71,41 +76,64 @@ void Cassette::load(const char *name)
     if (!name)
     {
 #ifdef __EMSCRIPTEN__
-        string filename = files[file_index].string();
+        filename = files[file_index].string();
 #else
-        string filename = files[file_index].filename();
-#endif        
-        cout << filename << endl;
-        const char *name = filename.c_str();
-        if ( strcmp(name+strlen(name)-4, ".bz2") == 0 ) 
-        {
-            FILE *f = fopen(name, "rb");
-            BZFILE *bzf;
-            int bzError;
-            bzf = BZ2_bzReadOpen(&bzError, f, 0, 0, NULL, 0);
-            if (bzError != BZ_OK) {
-                fprintf(stderr, "E: BZ2_bzReadOpen:  %d\n", bzError);
-                return;
-            }
-            // printf("bzip\n");
-            len = BZ2_bzRead(&bzError, bzf, tape, sizeof tape);
-            fclose(f);
+        filename = files[file_index].filename();
+#endif
+    } else {
+        filename = name;
+    }        
+    cout << filename << endl;
+    name = filename.c_str();
+    if ( strcmp(name+strlen(name)-4, ".bz2") == 0 ) 
+    {
+        FILE *f = fopen(name, "rb");
+        BZFILE *bzf;
+        int bzError;
+        bzf = BZ2_bzReadOpen(&bzError, f, 0, 0, NULL, 0);
+        if (bzError != BZ_OK) {
+            fprintf(stderr, "E: BZ2_bzReadOpen:  %d\n", bzError);
+            return;
         }
-        else
-        {
-            // printf("tap:%s\n", name);
-            // FILE *f = fopen(name, "r");
-            memset(tape, 0, sizeof tape);
-            ifstream file(filename);
-            file.seekg(0, std::ios::end);
-            len = file.tellg();
-            if (len > TAPE_SIZE) len = TAPE_SIZE;
-            file.seekg(0, std::ios::beg);
-            file.read(tape, len);
-            file.close();
-        }
-        printf("%s (%d)\n", name, len);
+        // printf("bzip\n");
+        len = BZ2_bzRead(&bzError, bzf, tape, sizeof tape);
+        fclose(f);
     }
+    else if (strcmp(name+strlen(name)-4, ".tap") == 0 ) 
+    {
+        printf("tap:%s\n", name);
+        // FILE *f = fopen(name, "r");
+        memset(tape, 0, sizeof tape);
+        ifstream file(filename);
+        file.seekg(0, std::ios::end);
+        len = file.tellg();
+        if (len > TAPE_SIZE) len = TAPE_SIZE;
+        file.seekg(0, std::ios::beg);
+        file.read(tape, len);
+        file.close();
+    } 
+    else if (strcmp(name+strlen(name)-4, ".cas") == 0 ) 
+    {
+        memset(tape, 0, sizeof tape);
+        ifstream file(filename, std::ios_base::binary);
+        file.seekg(0, std::ios::end);
+        len = file.tellg() * 8;
+        if (len > TAPE_SIZE) len = TAPE_SIZE;
+        file.seekg(0, std::ios::beg);
+        printf("cas:%s(%d)\n", name, len);
+        for(int i = 0; i < len>>3; i++)
+        {
+            uint8_t c = file.get();
+            for(int j = 0; j < 8; j++)  
+            {
+                tape[i*8+j] = (c&(0x80>>j))>0 ? '1' : '0';
+                // printf("%c", tape[i*8+j]);
+            }
+        }
+        file.close();
+        // printf("%s", tape);
+    }
+    printf("%s (%d)\n", name, len);
 }
 
 void Cassette::load(const char *data, int length)
@@ -121,10 +149,20 @@ void Cassette::setfile(const char *filename)
 {
     struct stat sb;
     stat(filename, &sb);
-    if (S_ISREG(sb.st_mode))
-        loadzip(filename);
-    else
+    if (S_ISDIR(sb.st_mode))
+    {
         loaddir(filename);
+        printf("loaddir\n");
+    }
+    else if (!strcmp(filename+strlen(filename)-4, ".zip"))
+    {
+        loadzip(filename);
+        printf("loadzip\n");
+    }
+    else {
+        load(filename);
+        printf("load\n");
+    }
 }
 #include <algorithm>
 
@@ -136,7 +174,7 @@ void Cassette::loaddir(const char *dirname)
     for (const auto & entry : fs::directory_iterator(dirname))
     {
         // cout << entry.path().extension() << endl;
-        if (!entry.path().extension().compare(".tap") || !entry.path().extension().compare(".bz2"))
+        if (!entry.path().extension().compare(".tap") || !entry.path().extension().compare(".cas") || !entry.path().extension().compare(".bz2"))
         {
             // cout << entry.path() << endl;
 #ifdef __EMSCRIPTEN__
