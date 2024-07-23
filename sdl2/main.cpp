@@ -168,7 +168,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 					reg.pulse = 0;
                     cassette.motor = !cassette.motor;
                     cpu.set_turbo(cassette.motor);
-                    wb(NULL, 0x3c5, cassette.motor ? 1 : 90);
+                    // wb(NULL, 0x3c5, cassette.motor ? 90 : 90);
                     // printf("montor:%d(%d)\n", cassette.motor, rb(0, 0x3c5));
 				}
 			}
@@ -589,6 +589,7 @@ int main(int argc, char *argv[]) {
 #ifdef EMSCRIPTEN    
     emscripten_set_main_loop(main_loop, 30, 1);
 #else
+    // cpu.set_breakpoint(0x27);
     do {
         main_loop();
     }

@@ -13,6 +13,10 @@ def parity_check(data):
         onebits += sum([int(c) for c in b[:8]])        
     return paribits, onebits
 
+def hexdump(addr, bin):
+    for i in range(0, len(bin), 16):
+        print(f'{addr+i:04x}:', ' '.join([f'{c:02x}' for c in bin[i:i+16]]))
+
 def dump(bin, filename=None):
     global count, uncount
     TYPE = ['Basic(0)','Machine(1)']
@@ -39,17 +43,20 @@ def dump(bin, filename=None):
             zeropos += 1
         title = ''.join([chr(c) for c in HEADER[1][:zeropos] if chr(c) >= ' '])
         complete += int(p==len(sdata[:-2])) + int(o==checksum)
+        start_address = HEADER[3]
         if filename != None:
             print('FILE:', filename)
         print('parity: ', p==len(sdata[:-2]), 'checksum:', o==checksum)
         print('Name:', title)
         print('Type:', TYPE[HEADER[0]==1])
-        print('Loading Address:', hex(HEADER[3]))
+        print('Loading Address:', hex(start_address))
         print('Checksum:', checksum, MATCHED[o==checksum], o)
         print('Length:', length)
         if HEADER[0] == 1:
             print('Jump Address: ', hex(HEADER[4]))
         print('Protect:', HEADER[5])
+
+        hexdump(0x1396, idata[:-2])
         bodies = bin[tag_pos+82+130*9:]
         btag_pos = bodies.find('1'*20+'0'*20+'11')
         if btag_pos > -1:
@@ -82,6 +89,7 @@ def dump(bin, filename=None):
             # print(len(bdata[:-2]), bdata[-2:], idata[-2:], bodies[-9*4:])
             print('parity:', p==len(bdata[:-2]), 'checksum:', o == checksum)
             print('Length:', length, len(idata))
+            hexdump(start_address, idata[:-2])
         else:
             bin = []
     else:
@@ -101,7 +109,7 @@ if __name__=='__main__':
     for f in sys.argv[1:]:
         if '.cas' in f.lower():
             tapbin = cas2tap(open(f,'rb').read())
-            print(tapbin)
+            # print(tapbin)
         else:
             tapbin = open(f,'r').read()
         pcount = count
@@ -110,7 +118,7 @@ if __name__=='__main__':
                 tapbin = dump(tapbin, f)
             except:
                 import traceback
-                # traceback.print_exc()
+                traceback.print_exc()
                 break
             if len(tapbin) < 1000:
                 break

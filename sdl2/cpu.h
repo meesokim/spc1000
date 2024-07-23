@@ -1,13 +1,16 @@
 #include "z80.h"
-
+#include <set>
 #define CPU_FREQ 4000000
+typedef std::set<uint16_t> SET_INT;
 class CPU {
         uint32_t cycles = 0;
         uint32_t prev = 0;
         bool turbo = false;
         uint32_t turbo_off_time = -1;
+        SET_INT bp;
     public:
         z80 *r;
+
         CPU() { r = new z80(); }
         void initTick(uint32_t clk) { prev = clk; }
         uint32_t getCycles() { return cycles; }
@@ -21,12 +24,38 @@ class CPU {
                 // printf("turbo on: %d\n", turbo_off_time);
             }
         }
+        bool checK(uint16_t addr) {
+            return (bp.find(addr) != bp.end());
+        }
         void set_pc(uint16_t pc) { r->pc = pc;}
         void set_sp(uint16_t sp) { r->sp = sp;}
-        void step() { cycles += z80_step(r); }
+        int step() { 
+            int c;
+            if (checK(r->pc)) {
+                printf("%04x: break point\n", r->pc);
+            
+                // int addr = 0xfa00;
+                // if (r->pc == addr) {
+                //     for(int i = 0; i < 1028; i++)
+                //     {
+                //         if (i % 16 == 0) {
+                //             printf("\n %04x:", addr+i);
+                //         }
+                //         printf(" %02x", r->read_byte(0, addr+i));
+                //     }
+                // }
+                // printf("MTEXEC: %04x\n", r->read_byte(0, 0x13ac) | (r->read_byte(0, 0x13ac) << 8));
+            } 
+            // else {
+            //     printf("%04x: executed\r", r->pc);
+            // }
+            c = z80_step(r); 
+            cycles += c;
+            return c;
+        }
         int  exec(int ms) 
         { 
-            int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 100 : 1000)); 
+            int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 10 : 1000)); 
             if (turbo && turbo_off_time < prev) 
             { 
                 turbo = 0; 
@@ -36,17 +65,19 @@ class CPU {
             prev = ms;
             return steps; 
         }
-        int  step_n(unsigned ncycles) { 
+        int step_n(unsigned ncycles) { 
             unsigned cyc = 0;
             int c = 0;
             while (cyc < ncycles) {
-                c = z80_step(r);
-                cycles += c;
-                cyc += c;
+                cyc += step();
+                // cycles += c;
+                // cyc += c;
             }
             return cyc;
         }
-        // { int steps = z80_step_n(r, ncycles); cycles += steps; return steps; }
+        void breakpoint(uint16_t addr) {
+            bp.insert(addr);
+        }
         void debug() { z80_debug_output(r);}
         void assert_nmi() { z80_assert_nmi(r);}
         void pulse_nmi() { z80_pulse_nmi(r);}
@@ -63,5 +94,9 @@ class CPU {
         void set_in_out(uint8_t (*read)(z80 *, uint16_t), void (*write)(z80 *, uint16_t, uint8_t)) {
             r->port_in = read;
             r->port_out = write;
+        }
+        void set_breakpoint(uint16_t addr) {
+            bp.insert(addr);
+            printf("breakpoint:%04x added\n", addr);
         }
 };

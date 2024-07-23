@@ -7,7 +7,7 @@ typedef unsigned char uint8_t;
 #include <fstream>
 
 // #define PULSE ((1349-200)*0.5)
-#define PULSE 7
+#define PULSE 14
 char Cassette::read(uint32_t cycles, uint8_t wait) {
     char val = 0;
     int diff = cycles - old_cycles;
@@ -26,8 +26,8 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
         // if (pos < 100)
         //     printf("%d.%d ", mark, pos);
         old_time = cycles;
-        inv_time = cycles + 60;
-        end_time = cycles + 170 + PULSE * wait * mark;
+        inv_time = cycles + 70;
+        end_time = cycles + 160 + PULSE * wait * mark;
         // if (pos < 100)
         //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
             // printf("%d\n", mark);
