@@ -216,6 +216,7 @@ static unsigned ptime;
 static unsigned etime;
 SDL_AudioSpec audioSpec;
 int audid;
+bool crt_effect = false;
 
 void audiocallback(
   void* userdata,
@@ -247,7 +248,7 @@ SDL_Renderer *renderer;
 SDL_Surface *surface;
 SDL_Window *screen;
 SDL_Texture *texture;
-SDL_Texture *texture_title;
+SDL_Texture *texture_title, *texture_display;
 UG_COLOR *pixels;
 SDL_Event event;
 UG_GUI ug;
@@ -365,6 +366,9 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
     else {
         switch (ksym.sym)
         {
+            case SDLK_F8:
+                crt_effect = !crt_effect;
+                break;
             case SDLK_F10:
                 reset();
                 break;
@@ -411,7 +415,8 @@ enum {
     TAPE_NEXT,
     TAPE_SET,
     TAPE_LOAD,
-    TURBO
+    TURBO,
+    CRT_EFFECT
 };
 void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
@@ -480,12 +485,16 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             cpu.set_turbo(j>0);
             printf("turbo:%d\n",j>0);
             break;
+        case CRT_EFFECT:
+            crt_effect = ! crt_effect;
+            break;
     }
     return NULL;
 }
 }
 #endif
 
+UG_COLOR crtbuf[640*480];
 void  main_loop()
 {
     static int i = 1000;
@@ -506,6 +515,16 @@ void  main_loop()
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
         SDL_SetColorKey(surface, SDL_TRUE, 0x0);
         texture_title = SDL_CreateTextureFromSurface(renderer, surface);
+        texture_display = SDL_CreateTextureFromSurface(renderer, surface);
+        for(int i = 0; i < 480; i++)
+        {
+            int color = i%2 ? 0x88555555 : 0x22000000;
+            for(int j = 0; j < 640; j++)
+            {
+                crtbuf[i*640+j] = color;
+            }
+        }
+        SDL_UpdateTexture(texture_display, NULL, crtbuf, w*2*4);
         pixels = (UG_COLOR *)surface->pixels;
         UG_SetBackcolor(C_BLACK);
         UG_SetForecolor(C_RED);
@@ -558,7 +577,8 @@ void  main_loop()
     int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, &dstrect);
-    // SDL_LockSurface(surface);
+    if (crt_effect)
+        SDL_RenderCopy(renderer, texture_display, NULL, &dstrect); // draws the character
     if (SDL_GetTicks() < textout_time)
     {
         SDL_UpdateTexture(texture_title, NULL, surface->pixels, w*2*4);
