@@ -26,6 +26,9 @@ wasm: $(OBJECTS)
 	-o index.js 
 bin: $(SOURCES)
 	gcc $(SOURCES) -o main -I/usr/include/SDL2 -lc -lSDL2 -lstdc++ -lbz2 -lzip -DDIR=\"$(DIR)\"
+
+pub:
+	cp index.* ~/spc1000.wiki/docs
 	
 clean:
 	rm -f *.js *.o *.wasm *.data main 

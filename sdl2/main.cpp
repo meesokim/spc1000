@@ -167,7 +167,7 @@ static void out(z80* const z, uint16_t port, uint8_t val) {
 				{
 					reg.pulse = 0;
                     cassette.motor = !cassette.motor;
-                    cpu.set_turbo(cassette.motor);
+                    // cpu.set_turbo(cassette.motor);
                     // wb(NULL, 0x3c5, cassette.motor ? 90 : 90);
                     // printf("montor:%d(%d)\n", cassette.motor, rb(0, 0x3c5));
 				}
@@ -216,7 +216,7 @@ static unsigned ptime;
 static unsigned etime;
 SDL_AudioSpec audioSpec;
 int audid;
-bool crt_effect = false;
+bool crt_effect = true;
 
 void audiocallback(
   void* userdata,
@@ -255,37 +255,46 @@ UG_GUI ug;
 int w, h;
 uint32_t textout_time;
 char text[256];
+UG_COLOR bgcolor;
 
 void SetPixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 {
-    if (pixels) {
-        pixels[x + y * w * 2] = 0xff000000 | color;
+    if (pixels && color != bgcolor) {
+        pixels[x + y * w * 2] = color;
     }
 }
 
 void setText(const char *s, int keep_time = 2000)
 {
     textout_time = SDL_GetTicks() + keep_time;
-    UG_SetForecolor(C_WHITE);
-    UG_FillFrame(00, 00, 639, 50, C_BLACK);
+    bgcolor = 0xff000000;
+    UG_FillFrame(00, 00, 639, 50, 0x0);
+    UG_SetForecolor(0xff000000 | C_DARK_GRAY);
+    bgcolor = C_BLACK;
     // printf("%s\n", s);
+    UG_PutString(11, 15, (char *)s);
+    UG_SetForecolor(0xff000000 | C_WHITE);
     UG_PutString(10, 14, (char *)s);
 }
 
 void clearText()
 {
-    UG_FillFrame(10, 10, 640, 50, C_BLACK);
+    // UG_FillFrame(10, 10, 640, 50, 0xff000000 | C_BLACK);
 }
+
+static uint32_t last_time = 0;
 
 void reset()
 {
     cpu.init();
+    cpu.set_turbo(0);
     cpu.set_read_write(rb, wb);
     cpu.set_in_out(in, out);
     mc6847.Initialize();
     ay8910.reset();
     memset(memory, 0, 0x10000);
     reg.IPLK = true;
+    last_time = SDL_GetTicks();
 }
 
 
@@ -370,6 +379,7 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
                 crt_effect = !crt_effect;
                 break;
             case SDLK_F10:
+                cpu.set_turbo(0);
                 reset();
                 break;
             case SDLK_F9:
@@ -498,11 +508,12 @@ UG_COLOR crtbuf[640*480];
 void  main_loop()
 {
     static int i = 1000;
-    static uint32_t last_time = 0;
     static auto first_call = true;
+    static uint32_t times = 0;
     if(first_call)
     {
         int led_status = LOW;
+        last_time = SDL_GetTicks();
         reset();
         w = 320; h = 240;
         UG_Init(&ug, SetPixel, w * 2, h * 2);
@@ -518,7 +529,7 @@ void  main_loop()
         texture_display = SDL_CreateTextureFromSurface(renderer, surface);
         for(int i = 0; i < 480; i++)
         {
-            int color = i%2 ? 0x88555555 : 0x22000000;
+            int color = i%2 ? 0x00000000 : 0x40000000;
             for(int j = 0; j < 640; j++)
             {
                 crtbuf[i*640+j] = color;
@@ -527,11 +538,12 @@ void  main_loop()
         SDL_UpdateTexture(texture_display, NULL, crtbuf, w*2*4);
         pixels = (UG_COLOR *)surface->pixels;
         UG_SetBackcolor(C_BLACK);
-        UG_SetForecolor(C_RED);
+        // UG_SetForecolor(C_RED);
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
         if (!texture) {
             printf("%s\n", SDL_GetError());
         }
+        
         //Initialize SDL2 Audio
         SDL_AudioSpec specs = {};
         specs.freq = SPC1000_AUDIO_FREQ;
@@ -553,10 +565,14 @@ void  main_loop()
         ay8910.initTick(ptime);
         cpu.initTick(ptime);
         cassette.initTick(ptime);
+        cassette.get_title(text);
+        setText(text);        
         first_call = false;
     }
-    SDL_Delay(16);
-    execute(16, NULL);
+    SDL_Delay(1000/60);
+    uint32_t ticks = SDL_GetTicks();
+    execute(ticks - last_time, NULL);
+    last_time = ticks;
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_KEYDOWN)
         {
@@ -574,17 +590,20 @@ void  main_loop()
 #endif
         kbd.handle_event(event);
     }
-    int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
-    if (crt_effect)
-        SDL_RenderCopy(renderer, texture_display, NULL, &dstrect); // draws the character
-    if (SDL_GetTicks() < textout_time)
+    if (times++%2)
     {
-        SDL_UpdateTexture(texture_title, NULL, surface->pixels, w*2*4);
-        SDL_RenderCopy(renderer, texture_title, NULL, &dstrect);
+        int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+        if (crt_effect)
+            SDL_RenderCopy(renderer, texture_display, NULL, &dstrect); // draws the character
+        if (SDL_GetTicks() < textout_time)
+        {
+            SDL_UpdateTexture(texture_title, NULL, surface->pixels, w*2*4);
+            SDL_RenderCopy(renderer, texture_title, NULL, &dstrect);
+        }
+        SDL_RenderPresent(renderer);
     }
-    SDL_RenderPresent(renderer);
 }
 
 #include <sys/stat.h>

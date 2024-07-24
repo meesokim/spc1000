@@ -16,13 +16,15 @@ class CPU {
         uint32_t getCycles() { return cycles; }
         void init() { z80_init(r); r->interrupt_mode = 1; turbo = false;}
         void reset() { z80_reset(r); cycles = 0; }
-        void set_turbo(int b, int ms = 1000) { 
-            if (!turbo)
-            {
-                turbo = b; 
+        void set_turbo(int b, int ms = 200) { 
+            // if (b != turbo) {
+            //     printf("turbo:%d\n", b);
+            // }
+            if (b)
                 turbo_off_time = prev + ms;
-                // printf("turbo on: %d\n", turbo_off_time);
-            }
+            else
+                turbo_off_time = -1;
+            turbo = b; 
         }
         bool checK(uint16_t addr) {
             return (bp.find(addr) != bp.end());
@@ -55,13 +57,9 @@ class CPU {
         }
         int  exec(int ms) 
         { 
-            int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 10 : 1000)); 
             if (turbo && turbo_off_time < prev) 
-            { 
-                turbo = 0; 
-                turbo_off_time = -1; 
-                // printf("turbo off\n");  
-            } 
+                set_turbo(0);
+            int steps = step_n((ms - prev) * CPU_FREQ / (turbo ? 10 : 1000));
             prev = ms;
             return steps; 
         }

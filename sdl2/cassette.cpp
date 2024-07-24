@@ -83,7 +83,7 @@ void Cassette::load(const char *name)
     } else {
         filename = name;
     }        
-    cout << filename << endl;
+    // cout << filename << endl;
     name = filename.c_str();
     if ( strcmp(name+strlen(name)-4, ".bz2") == 0 ) 
     {
@@ -101,7 +101,7 @@ void Cassette::load(const char *name)
     }
     else if (strcmp(name+strlen(name)-4, ".tap") == 0 ) 
     {
-        printf("tap:%s\n", name);
+        // printf("tap:%s\n", name);
         // FILE *f = fopen(name, "r");
         memset(tape, 0, sizeof tape);
         ifstream file(filename);
