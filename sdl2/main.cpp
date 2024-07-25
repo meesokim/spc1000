@@ -310,41 +310,10 @@ void ToggleFullscreen(SDL_Window* window) {
     bool isFullscreen = SDL_GetWindowFlags(window) & flag;
     if(!isFullscreen){
         SDL_GetWindowPosition(window, &lastWindowX, &lastWindowY);
-    }
-    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : flag);
-
-    if(isFullscreen){
-        int w, h;
-        SDL_Rect viewport;
-        SDL_RenderGetViewport(renderer, &viewport);
-        SDL_GetWindowSize(window, &w, &h);
-        if (w * 3 > h * 4) {
-            viewport.w = h * 4 / 3;
-            viewport.h = h;
-        } else {
-            viewport.w = w;
-            viewport.h = w * 3 / 4;
-        }
-        viewport.x = (w - viewport.w) / 2;
-        viewport.y = (h - viewport.h) / 2;
-        SDL_RenderSetViewport(renderer, &viewport);
-        // cout << "set window to: " << lastWindowX << " " << lastWindowY << endl;
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    } else {
         SDL_SetWindowPosition(window, lastWindowX, lastWindowY);
-        dstrect.x = 0;
-        dstrect.y = 0;
-        dstrect.w = SCREEN_WIDTH;
-        dstrect.h = SCREEN_HEIGHT;         
-    }
-    else
-    {
-        SDL_DisplayMode DM;
-        SDL_GetCurrentDisplayMode(0, &DM);
-        auto Width = DM.w;
-        auto Height = DM.h;
-        dstrect.x = (Width-Height*4/3)/2;
-        dstrect.y = 0;
-        dstrect.w = Height*4/3;
-        dstrect.h = Height; 
+        SDL_SetWindowFullscreen(window, 0);
     }
 }
 
@@ -426,7 +395,7 @@ enum {
     TAPE_SET,
     TAPE_LOAD,
     TURBO,
-    CRT_EFFECT
+    SCANLINE
 };
 void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
@@ -495,14 +464,27 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             cpu.set_turbo(j>0);
             printf("turbo:%d\n",j>0);
             break;
-        case CRT_EFFECT:
+        case SCANLINE:
             crt_effect = ! crt_effect;
             break;
     }
     return NULL;
 }
+// The callback:
+static bool display_size_changed = false;  // custom global flag
+static EM_BOOL on_web_display_size_changed( int event_type, 
+  const EmscriptenUiEvent *event, void *user_data )
+{
+    display_size_changed = true;
+    printf("on_web_display_size_changed\n");
+    return 0;
 }
+}
+
+
 #endif
+
+
 
 UG_COLOR crtbuf[640*480];
 void  main_loop()
@@ -510,6 +492,8 @@ void  main_loop()
     static int i = 1000;
     static auto first_call = true;
     static uint32_t times = 0;
+    static double w0, h0;
+    SDL_Rect viewport;
     if(first_call)
     {
         int led_status = LOW;
@@ -519,18 +503,22 @@ void  main_loop()
         UG_Init(&ug, SetPixel, w * 2, h * 2);
         UG_FontSelect(&FONT_12X20);
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
+
         dstrect.w = SCREEN_WIDTH;
         dstrect.h = SCREEN_HEIGHT;
         dstrect.x = dstrect.y = 0;
-        SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
+        SDL_CreateWindowAndRenderer(w * 2, h * 2, 0, &screen, &renderer);
+        SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+        SDL_RenderGetViewport(renderer, &viewport);
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
         SDL_SetColorKey(surface, SDL_TRUE, 0x0);
         texture_title = SDL_CreateTextureFromSurface(renderer, surface);
         texture_display = SDL_CreateTextureFromSurface(renderer, surface);
-        for(int i = 0; i < 480; i++)
+
+        for(int i = 0; i < SCREEN_HEIGHT; i++)
         {
             int color = i%2 ? 0x00000000 : 0x40000000;
-            for(int j = 0; j < 640; j++)
+            for(int j = 0; j < SCREEN_WIDTH; j++)
             {
                 crtbuf[i*640+j] = color;
             }
@@ -579,19 +567,54 @@ void  main_loop()
             if (ProcessSpecialKey(event.key.keysym))
                 return;
         }
-#ifdef __EMSCRIPTEN__
+// #ifdef __EMSCRIPTEN__
         else if (event.type == SDL_WINDOWEVENT)
         {
             if (event.window.event == SDL_WINDOWEVENT_RESIZED) 
             {
-                ToggleFullscreen(screen);
+                SDL_Rect  vp;
+                SDL_RenderGetViewport(renderer, &vp);
+                printf("w=%d,h=%d\n", vp.w, vp.h);
+                // if (viewport.w != vp.w || viewport.h != vp.h)
+                // {
+                //     // auto Width = vp.w;
+                //     // auto Height = vp.h;
+                //     // dstrect.x = (Width-Height*4/3)/2;
+                //     // dstrect.y = 0;
+                //     // dstrect.w = Height*4/3;
+                //     // dstrect.h = Height; 
+                //     Update_Window(screen);              
+                //    SDL_RenderGetViewport(renderer, &viewport);    
+                // }
             }
         }
-#endif
+// #endif
         kbd.handle_event(event);
     }
     if (times++%2)
     {
+        // SDL_Rect  vp;
+        // SDL_RenderGetViewport(renderer, &vp);
+        // if (vp.h != viewport.h || vp.w != viewport.w)
+        // {
+        //     printf("w=%d,h=%d\n,", vp.w, vp.h);
+        //     viewport.h = vp.h;
+        //     viewport.w = vp.w;
+        // }
+#ifdef __EMSCRIPTEN__
+        if (times%100)
+        {
+            double w, h;
+            emscripten_get_element_css_size( "#canvas", &w, &h );
+            if (w0 != w || h0 != h)
+            {
+                SDL_SetWindowSize( screen, (int)w, (int) h );
+                printf("w=%d,h=%d\n", (int)w, (int) h);
+                w0 = w; h0 = h;
+            }
+            // display_size_changed = true;
+        }
+#endif
         int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, &dstrect);
@@ -625,7 +648,11 @@ int main(int argc, char *argv[]) {
     cassette.setfile(tapefile);
     // struct timer_wait tw;
 
-#ifdef EMSCRIPTEN    
+#ifdef __EMSCRIPTEN__    
+    emscripten_set_resize_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW,
+        0, 0, on_web_display_size_changed
+    );
     emscripten_set_main_loop(main_loop, 30, 1);
 #else
     // cpu.set_breakpoint(0x27);
