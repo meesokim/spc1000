@@ -465,7 +465,10 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             printf("turbo:%d\n",j>0);
             break;
         case SCANLINE:
-            crt_effect = ! crt_effect;
+            if (j>1)
+                crt_effect = ! crt_effect;
+            else
+                crt_effect = j == 1 ? 1 : 0;
             break;
     }
     return NULL;
