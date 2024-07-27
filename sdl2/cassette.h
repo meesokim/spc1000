@@ -5,9 +5,7 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#ifndef __EMSCRIPTEN__
-#include <zip.h> 
-#endif
+#include "miniz_zip.h"
 #include <bzlib.h>
 using namespace std;
 namespace fs = std::filesystem;
@@ -23,6 +21,9 @@ public:
     bool operator<(const ZFile& other) {
         return fname < other.fname;
     }
+    string operator=(const char *name) {
+        return name;
+    }
     string filename() { return fname; }
 };
 
@@ -37,11 +38,12 @@ class Cassette {
 #ifdef __EMSCRIPTEN__    
     vector<filesystem::path> files;
 #else
-    zip* archive;
     vector<ZFile> files;
 #endif
     int file_index = 0;
     char *dirname;
+    string loaded_filename;
+    vector<string> exts {".tap",".cas",".zip",".bz2"};
 public:
     char motor;
     int pos = 0;
@@ -54,7 +56,7 @@ public:
     char read1() { return 0;}
     void write(char);
     void next() { if (++file_index >= files.size()) file_index = 0; load(); }
-    void get_title(char *buf) { strcpy(buf, files[file_index].filename().c_str()); };
+    void get_title(char *buf) { strcpy(buf, loaded_filename.c_str()); };
     void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
     void settape(unsigned int i) 
     {
@@ -66,7 +68,7 @@ public:
     };
     void setfile(const char *);
     void loaddir(const char *);
-    void loadzip(const char *);
+    int loadzip(const char *, int len = 0);
 };
 
 #endif

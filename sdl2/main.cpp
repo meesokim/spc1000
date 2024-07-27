@@ -268,7 +268,7 @@ void setText(const char *s, int keep_time = 2000)
 {
     textout_time = SDL_GetTicks() + keep_time;
     bgcolor = 0xff000000;
-    UG_FillFrame(00, 00, 639, 50, 0x0);
+    UG_FillFrame(00, 00, 639, 55, 0x0);
     UG_SetForecolor(0xff000000 | C_DARK_GRAY);
     bgcolor = C_BLACK;
     // printf("%s\n", s);
@@ -306,14 +306,16 @@ SDL_Rect dstrect;
 
 void ToggleFullscreen(SDL_Window* window) {
     Uint32 flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
-    static int lastWindowX, lastWindowY;
+    static int lastWindowX, lastWindowY, width, height;
     bool isFullscreen = SDL_GetWindowFlags(window) & flag;
     if(!isFullscreen){
         SDL_GetWindowPosition(window, &lastWindowX, &lastWindowY);
+        SDL_GetWindowSize(window, &width, &height);
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     } else {
         SDL_SetWindowPosition(window, lastWindowX, lastWindowY);
         SDL_SetWindowFullscreen(window, 0);
+        SDL_SetWindowSize(window, width, height);
     }
 }
 
@@ -453,9 +455,9 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             return text;
             break;
         case TAPE_LOAD:
-            // printf("filename: %s\n", filename);
+            // printf("filename: %s (%d)\n", filename, j);
             cassette.load(data, j);
-            strcpy(text, filename);
+            cassette.get_title(text);
             setText(text, 5000);
             printf("filename: %s\n", text);
             return text;
@@ -506,12 +508,12 @@ void  main_loop()
         UG_Init(&ug, SetPixel, w * 2, h * 2);
         UG_FontSelect(&FONT_12X20);
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
-
         dstrect.w = SCREEN_WIDTH;
         dstrect.h = SCREEN_HEIGHT;
         dstrect.x = dstrect.y = 0;
         SDL_CreateWindowAndRenderer(w * 2, h * 2, 0, &screen, &renderer);
         SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+        SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
         SDL_RenderGetViewport(renderer, &viewport);
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
         SDL_SetColorKey(surface, SDL_TRUE, 0x0);
@@ -611,8 +613,8 @@ void  main_loop()
             emscripten_get_element_css_size( "#canvas", &w, &h );
             if (w0 != w || h0 != h)
             {
-                SDL_SetWindowSize( screen, (int)w, (int) h );
-                printf("w=%d,h=%d\n", (int)w, (int) h);
+                // SDL_SetWindowSize( screen, (int)w, (int) h );
+                // printf("w=%d,h=%d\n", (int)w, (int) h);
                 w0 = w; h0 = h;
             }
             // display_size_changed = true;
