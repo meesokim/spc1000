@@ -456,7 +456,7 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             break;
         case TAPE_LOAD:
             // printf("filename: %s (%d)\n", filename, j);
-            cassette.load(data, j);
+            cassette.load(data, j, filename);
             cassette.get_title(text);
             setText(text, 5000);
             printf("filename: %s\n", text);

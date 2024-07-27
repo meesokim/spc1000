@@ -137,7 +137,7 @@ void Cassette::load(const char *name)
     printf("%s (%d)\n", filename.c_str(), len);
 }
 
-void Cassette::load(const char *data, int length)
+void Cassette::load(const char *data, int length, const char *filename)
 {
     if (data[0] == 'P' && data[1] == 'K')
     {
@@ -148,6 +148,7 @@ void Cassette::load(const char *data, int length)
         memset(tape, 0, sizeof tape);
         len = length > sizeof tape ? sizeof tape : length;
         memcpy(tape, data, length);
+        loaded_filename = filename;
     }
 }
 
@@ -271,7 +272,7 @@ int Cassette::loadzip(const char *zipname, int len)
                     }
                 }
                 uncomp_size = uncomp_size * 8; 
-                printf("unzip file:%s(%d)\n", unzipfile, uncomp_size << 3);
+                printf("unzip file:%s(%d)\n", unzipfile, (int) uncomp_size << 3);
             } else 
                 continue;
             loaded_filename = unzipfile;
