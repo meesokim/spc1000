@@ -7,7 +7,12 @@ typedef unsigned char uint8_t;
 #include <fstream>
 #include <vector>
 #include <algorithm>
-
+inline string lower(string data) {
+    string ret = data;
+    for (int i = 0; i < data.length(); i++)
+        ret[i] = tolower(data[i]);
+    return ret;
+}
 bool in_array(const std::string &value, const std::vector<std::string> &array)
 {
     return std::find(array.begin(), array.end(), value) != array.end();
@@ -80,8 +85,9 @@ void Cassette::load(const char *name)
     }        
     std::filesystem::path filename(file);
     loaded_filename = filename;
+    string ext = lower(filename.extension());
     // cout << filename.extension() << endl;
-    if (!filename.extension().compare(".bz2")) 
+    if (!ext.compare(".bz2")) 
     {
         FILE *f = fopen(name, "rb");
         BZFILE *bzf;
@@ -95,7 +101,7 @@ void Cassette::load(const char *name)
         len = BZ2_bzRead(&bzError, bzf, tape, sizeof tape);
         fclose(f);
     }
-    else if (!filename.extension().compare(".tap")) 
+    else if (!ext.compare(".tap")) 
     {
         // printf("tap:%s\n", name);
         // FILE *f = fopen(name, "r");
@@ -108,7 +114,7 @@ void Cassette::load(const char *name)
         file.read(tape, len);
         file.close();
     } 
-    else if (!filename.extension().compare(".cas")) 
+    else if (!ext.compare(".cas")) 
     {
         memset(tape, 0, sizeof tape);
         ifstream file(filename, std::ios_base::binary);
@@ -129,7 +135,7 @@ void Cassette::load(const char *name)
         file.close();
         // printf("%s", tape);
     } 
-    else if (!filename.extension().compare(".zip"))
+    else if (!ext.compare(".zip"))
     {
         // cout << filename << endl;
         len = loadzip(filename.c_str());
@@ -147,7 +153,8 @@ void Cassette::load(const char *data, int length, const char *filename)
     {
         memset(tape, 0, sizeof tape);
         len = length > sizeof tape ? sizeof tape : length;
-        memcpy(tape, data, length);
+        memcpy(tape, data, len);
+        // printf("load:%s (%d)\n", tape, len);
         loaded_filename = filename;
     }
 }
@@ -157,12 +164,13 @@ void Cassette::setfile(const char *filename)
 {
     struct stat sb;
     stat(filename, &sb);
+    string ext = lower(filename);
     if (S_ISDIR(sb.st_mode))
     {
         loaddir(filename);
         printf("loaddir\n");
     }
-    else if (!strcmp(filename+strlen(filename)-4, ".zip"))
+    else if (!ext.compare(".zip"))
     {
         loadzip(filename);
         printf("loadzip\n");
@@ -172,8 +180,6 @@ void Cassette::setfile(const char *filename)
         printf("load\n");
     }
 }
-#include <algorithm>
-
 void Cassette::loaddir(const char *dirname)
 {
     // int index = -1;
@@ -182,7 +188,7 @@ void Cassette::loaddir(const char *dirname)
     for (const auto & entry : fs::directory_iterator(dirname))
     {
         // cout << entry.path().extension() << endl;
-        if (in_array(entry.path().extension(), exts))
+        if (in_array(lower(entry.path().extension()), exts))
         // if (!entry.path().extension().compare(".tap") || !entry.path().extension().compare(".cas") 
         //  || !entry.path().extension().compare(".bz2") || !entry.path().extension().compare(".zip"))
         {
@@ -244,7 +250,8 @@ int Cassette::loadzip(const char *zipname, int len)
             strcpy(unzipfile, file_stat.m_filename);
             uncomp_size = file_stat.m_uncomp_size;
             std::filesystem::path file(unzipfile);
-            if (!file.extension().compare(".tap"))
+            string ext = lower(file.extension()); 
+            if (!ext.compare(".tap"))
             {
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, sizeof uncompressed, 0);
                 // printf("%x,%s extracted\n", p, unzipfile);
@@ -255,7 +262,7 @@ int Cassette::loadzip(const char *zipname, int len)
                 }
                 memcpy(tape, uncompressed, uncomp_size);			
             } 
-            else if (!file.extension().compare(".cas"))
+            else if (!ext.compare(".cas"))
             {
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, sizeof uncompressed, 0);
                 // printf("%x,%s extracted\n", p, unzipfile);

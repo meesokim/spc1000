@@ -292,6 +292,8 @@ def load_tape(f):
         loading_address = HEADER[3]
         jump_address = HEADER[4]
         HEADER.append(bytes(idata[25:]))
+        # TYPE = ['Basic', 'Machine']
+        # MATCHED = ['not matched', 'matched']
         # print('parity: ', p==len(sdata[:-2]), 'checksum:', o==checksum)
         # print('Name:', title)
         # print('Type:', TYPE[HEADER[0]==1])
@@ -399,11 +401,20 @@ def bas2txt(body, start_addr=0x7c9d):
                 code.append(STATEMENT2[token-0x81])
                 pos += 1
                 # print(body[pos:pos+3])
-        codes.append(''.join([str(a) if type(a) != str else a for a in code]))
-    f = open('source.txt', 'wb')
+        if pos < len(body):
+            codes.append(''.join([str(a) if type(a) != str else a for a in code]))
+    from io import BytesIO
+    f = BytesIO()
     for code in codes:
         f.write(bytes([ord(c) for c in code]))
-        f.write(b'\n')
+        f.write(bytes([10]))
+    print(f.getvalue().decode())
+    # f = open('source.txt', 'wb')
+    # for code in codes:
+    #     f.write(bytes([ord(c) for c in code]))
+    #     f.write(b'\n')
+    # f.close()
+    # /    print(open('source.txt').read())
     # print('\n'.join(codes).encode('utf-8'))
     # print('\n'.join(codes))
     
@@ -413,6 +424,7 @@ if __name__=='__main__':
         if not os.path.exists(f):
             continue
         header, body = load_tape(f)
+        # print(header[0], len(body))
         if header[0] == 2:
             bas2txt(body, header[3])
             break

@@ -455,7 +455,7 @@ const char * remote(int i, int j, const char *data, const char *filename) {
             return text;
             break;
         case TAPE_LOAD:
-            // printf("filename: %s (%d)\n", filename, j);
+            printf("filename: %s (%d)\n", filename, j);
             cassette.load(data, j, filename);
             cassette.get_title(text);
             setText(text, 5000);
@@ -621,7 +621,7 @@ void  main_loop()
         }
 #endif
         int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
-        SDL_RenderClear(renderer);
+        // SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, &dstrect);
         if (crt_effect)
             SDL_RenderCopy(renderer, texture_display, NULL, &dstrect); // draws the character
