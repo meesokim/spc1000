@@ -49,7 +49,7 @@
 /* -------------------------------------------------------------------------------- */
 #include "ugui.h"
 #define PROGMEM
-#include "HMGOTH.h"
+#include "hangul-dkby-dinaru-2.png.h"
 
 /* Static functions */
  UG_RESULT _UG_WindowDrawTitle( UG_WINDOW* wnd );

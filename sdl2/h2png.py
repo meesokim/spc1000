@@ -29,10 +29,12 @@ def png2h(file):
     c = Image.open(file)
     if not '.h' in file:
         GAP = [-1,-1,0]
-        if c.mode == 'RGBA':
-            alpha = c.split()[-1]
     else:
         GAP = [0,0,0]
+    bitmap = np.array(c.getchannel(0))
+    unique, counts = np.unique(bitmap, return_counts=True)
+    white = unique[0 if counts[0] < counts[1] else 1]
+    # white = unique[0] if black == unique[1] else unique[1]
     x0 = 0
     y0 = 0
     carray = []
@@ -57,12 +59,12 @@ def png2h(file):
         if x >= 0:
             for j in range(0, 8):
                 y = y0 + j + (0 if i < 16 else 8)
-                if c.getpixel((x, y)) == (255,255,255):
+                if bitmap[y][x] == white:
                     d += 1 << j
         b.append(d)
     carray.append(b)
     print()
-    print('const unsigned char K_font[360][32] = {       ')
+    print('const uint8_t K_font[360][32] = {       ')
     for ix, b in enumerate(carray):
         print()
         print(f'  {{{','.join([f'0x{d:02X}' for d in b[:16]])},')
