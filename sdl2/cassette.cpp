@@ -140,7 +140,7 @@ void Cassette::load(const char *name)
         // cout << filename << endl;
         len = loadzip(filename.c_str());
     }
-    printf("%s (%d)\n", filename.c_str(), len);
+    printf("%s (%d)\n", loaded_filename.c_str(), len);
 }
 
 void Cassette::load(const char *data, int length, const char *filename)
@@ -206,9 +206,9 @@ void Cassette::loaddir(const char *dirname)
     load();
 }
 
-int Cassette::loadzip(const char *zipname, int len)
+int Cassette::loadzip(const char *zipname, int size)
 {
-    size_t uncomp_size; 
+    size_t uncomp_size, len; 
     mz_zip_archive zip;
     mz_zip_archive_file_stat file_stat;
     uint8_t compresssed[1024*1024*1];
@@ -216,23 +216,24 @@ int Cassette::loadzip(const char *zipname, int len)
     char unzipfile[1024];
     memset(tape, 0, sizeof tape);
     memset(&zip, 0, sizeof(zip));
-    if (!len)
+    len = 0;
+    if (!size)
     {
         ifstream file(zipname, std::ios_base::binary);
         file.seekg(0, std::ios::end);
-        len = file.tellg();
-        if (len > TAPE_SIZE) len = TAPE_SIZE;
+        size = file.tellg();
+        if (size > TAPE_SIZE) size = TAPE_SIZE;
         file.seekg(0, std::ios::beg);
-        file.read((char *)compresssed, len);
+        file.read((char *)compresssed, size);
         file.close();
-        printf("%s (%d)\n", zipname, len);
+        printf("loadzip: %s (%d)\n", zipname, size);
     }
     else 
     {
-        // printf("memcpy: %d\n", len);
-        memcpy(compresssed, zipname, len);
+        // printf("memcpy: %d\n", size);
+        memcpy(compresssed, zipname, size);
     }
-    if (mz_zip_reader_init_mem(&zip, compresssed, len, 0))
+    if (mz_zip_reader_init_mem(&zip, compresssed, size, 0))
     {
         // printf("mz_zip_reader_init_mem:\n");
         for (mz_uint no = 0;no < mz_zip_reader_get_num_files(&zip); no++)
@@ -243,7 +244,7 @@ int Cassette::loadzip(const char *zipname, int len)
                 // return EXIT_FAILURE;
                 break;
             }
-            cout << "unzipped:" << file_stat.m_filename << endl;
+            // cout << "unzipped:" << file_stat.m_filename << endl;
             // printf("files:%d.%s (%d)\n", file_stat.m_file_index, file_stat.m_filename, file_stat.m_comp_size);
             if (!strlen(file_stat.m_filename))
                 continue;
@@ -260,7 +261,8 @@ int Cassette::loadzip(const char *zipname, int len)
                     printf("fatal error\n");
                     exit(0);
                 }
-                memcpy(tape, uncompressed, uncomp_size);			
+                memcpy(tape+len, uncompressed, uncomp_size);
+                len += uncomp_size;
             } 
             else if (!ext.compare(".cas"))
             {
@@ -275,19 +277,19 @@ int Cassette::loadzip(const char *zipname, int len)
                 {
                     for(int j = 0; j < 8; j++)  
                     {
-                        tape[i*8+j] = (uncompressed[i]&(0x80>>j))>0 ? '1' : '0';
+                        tape[len+i*8+j] = (uncompressed[i]&(0x80>>j))>0 ? '1' : '0';
                     }
                 }
                 uncomp_size = uncomp_size * 8; 
-                printf("unzip file:%s(%d)\n", unzipfile, (int) uncomp_size << 3);
+                len += uncomp_size;
             } else 
                 continue;
-            loaded_filename = unzipfile;
-            // cout << loaded_filename << endl;
-            break;
-            // printf("unzipped(%d):%s(%d)\n", no, files[file_index].filename(), uncomp_size);
+            printf("unzip:%d. %s(%d)\n", no+1, unzipfile, (int) uncomp_size);
+            if (!no) {
+                loaded_filename = unzipfile;
+            }
         }
     }
     mz_zip_reader_end(&zip);
-    return uncomp_size;
+    return len;
 }
