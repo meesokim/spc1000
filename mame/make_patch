@@ -1,0 +1,2 @@
+#!/bin/bash
+git status -s | awk '{ print $2 }' | xargs -I % diff -urN ../mame_orig/% ../mame/% | gzip > $(dirname "$0")/mame.patch.gz

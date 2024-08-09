@@ -1,0 +1,2 @@
+#!/bin/bash
+gzip -d -c $(dirname "$0")/mame.patch.gz | patch -p 2

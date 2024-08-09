@@ -1,0 +1,2 @@
+#!/bin/bash
+git status -s | awk '{ print $2 }' | xargs -I % cp -v --parents % $(dirname $0)/backup/
