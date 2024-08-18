@@ -55,7 +55,7 @@ int parsemain1(void)
 
 	for (;;) {
 		ret = findcode1();
-		//printf("ret=%d\n", ret);
+		printf("ret=%d\n", ret);
 		if (ret < 0) {
 
 			// if no match, output 1 byte as is

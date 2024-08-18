@@ -52,7 +52,9 @@ int buf_fgets(void)
 // buf_fgetc : like fgetc
 char buf_fgetc(void)
 {
-	return(buf[bufid_read++]);
+	if (bufid_read < 1024)
+		return(buf[bufid_read++]);
+	return 0;
 }
 
 // ------------------------------------------------------------

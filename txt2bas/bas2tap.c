@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
 	datastart=0x7c9d;
 	exeat=0;
 
+	printf("datastart:%04x\n", datastart);
 	if ( (fpin=fopen(argv[1],"rb") ) == NULL ) {
         fprintf(stdout,"Can't open input file\n");
 		exit(1);

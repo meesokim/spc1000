@@ -559,7 +559,7 @@ void  main_loop()
         cpu.initTick(ptime);
         cassette.initTick(ptime);
         cassette.get_title(text);
-        setText(text);        
+        // setText(text);        
         first_call = false;
     }
     SDL_Delay(1000/60);
