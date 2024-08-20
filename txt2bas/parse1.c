@@ -21,7 +21,7 @@
 // variables
 // ------------------------------------------------------------
 
-static char buf[WORDLEN];	// token buffer
+static char buf[WORDLEN+1];	// token buffer
 
 typedef struct _spc1kcode {
   char	*str;
@@ -55,7 +55,7 @@ int parsemain1(void)
 
 	for (;;) {
 		ret = findcode1();
-		printf("ret=%d\n", ret);
+		// printf("ret=%d\n", ret);
 		if (ret < 0) {
 
 			// if no match, output 1 byte as is
@@ -173,8 +173,9 @@ int parsemain1(void)
 			} else if (spc1kcodelist[ret].ffflag == 1) {
 				fputc(0xff, outfp);
 			}
-			//printf("code=%02x\n", spc1kcodelist[ret].number);
-			fputc(spc1kcodelist[ret].number, outfp);
+			// printf("code=%02x\n", spc1kcodelist[ret].number);
+			if (spc1kcodelist[ret].number != CODE_REMA)
+				fputc(spc1kcodelist[ret].number, outfp);
 			if (spc1kcodelist[ret].number == CODE_DATA) {
 				// raw output until return or colon
 				int c, quoteflag;
@@ -202,7 +203,7 @@ int parsemain1(void)
 					fputc(0x27, outfp);
 				int c;
 				c = buf_fgetc();
-                printf("%c",c);
+                // printf("%c",c);
 				while (c != '\n') {
 					fputc(c, outfp);
 					c = buf_fgetc();	  
@@ -331,13 +332,14 @@ int findcode1(void)
   char chars[256];
   for (i = 0; i < WORDLEN; i++) {
     buf[i] = (char)toupper(buf_fgetc());
-    if (buf[i] == '\0')
+    if (buf[i] == 0)
       break;
   }
 //  scanf("%s", &chars[0]);
+//   printf("buf=%s(%d)\n", buf, i);
   for (i = 0; i < sizeof(spc1kcodelist)/sizeof(spc1kcode); i++) {
     if (strncmp(buf, spc1kcodelist[i].str, strlen(spc1kcodelist[i].str)) == 0) {
-	  //printf("%s[%d]-(%d)\n", spc1kcodelist[i].str, strlen(spc1kcodelist[i].str), i);
+	//   printf("%s[%d]-(%d)\n", spc1kcodelist[i].str, strlen(spc1kcodelist[i].str), i);
       buf_progid(strlen(spc1kcodelist[i].str));
       return(i);
     }
