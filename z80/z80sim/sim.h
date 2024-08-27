@@ -1,1 +1,1 @@
-sim.h.debug
+#include "sim.h.debug"

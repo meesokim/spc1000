@@ -95,7 +95,7 @@ void lst_line(int val, int opanz)
 	char *p;
 	int tab;
 	char code[256];
-	char str[1024];
+	//char str[1024];
 	if (!list_flag || sd_flag == 4) {
 		sd_flag = 0;
 		return;

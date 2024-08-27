@@ -389,7 +389,7 @@ void disass(unsigned char **p, int adr)
 	addr = adr;
 	len = (*optab[**p].fun)	(optab[**p].text, p);
 #ifndef WANT_GUI
-	printf(Disass_Str);
+	printf("%s", Disass_Str);
 #endif
 #ifdef WANT_GUI
         get_opcodes(p, len);
