@@ -7,3 +7,6 @@
 [submodule "jgz80"]
 	path = jgz80
 	url = https://github.com/carmiker/jgz80
+[submodule "samdisk"]
+	path = samdisk
+	url = /home/msx/spc1000/samdisk
