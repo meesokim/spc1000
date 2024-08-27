@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 	else
 		strcpy(tapfile, argv[2]);
 		
-	strcpy(name, argv[1]);
+	strcpy(name, "GOOD PICTURE");
 
 	datastart=0x7c9d;
 	exeat=0;
@@ -127,6 +127,7 @@ int main(int argc, char *argv[])
 		strncpy(head->name, name+strlen(name)-17, 16);
 	else
 		strcpy(head->name, name);
+	printf("name:%s", head->name);
 	head->size = len;
 	head->load = datastart;
 	head->jump = exeat;

@@ -1,5 +1,6 @@
 ASM=../bin/z80asm
-VFORMAT=../bin/vformat
+MKFS=mkfs.cpm
+CPMCP=cpmcp
 
 all: system.dsk cpm.bin boot.bin bios.bin
 
@@ -13,4 +14,8 @@ bios.bin: spc-1000_cpm_bios.asm
 	$(ASM) -fb -l -sa -o$@ $<
 
 system.dsk: cpm.bin boot.bin bios.bin
-	$(VFORMAT) $@
+	$(MKFS) -f sd725 $@
+	$(CPMCP) -f sd725 $@ cpm22/*.com 0:
+
+clean:
+	rm system.dsk

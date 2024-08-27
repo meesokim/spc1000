@@ -2215,7 +2215,7 @@ L0FB5Ch:                                ;
     JP  LOADCPM                         ;fb6d  c3 b9 fb    ;
     RET PE                              ;fb70  e8          ;
     EI                                  ;fb71  fb          ;
-    LD  D,07Fh                          ;fb72  16 7f       ;
+    LD  D,07Fh                          ;fb72  16 7f       ;
     CALL    SENDDAT                     ;fb74  cd fb fb    ;
     LD  D,01Ch                          ;fb77  16 1c       ;
     CALL    SENDDAT                     ;fb79  cd fb fb    ;
@@ -2228,7 +2228,7 @@ L0FB5Ch:                                ;
     CALL    SENDDAT                     ;fb8b  cd fb fb    ;
     LD  D,SDTRANS1                      ;fb8e  16 0b       ;
     CALL    SENDCOM                     ;fb90  cd f3 fb    ;
-    LD  D,07Fh                          ;fb93  16 7f       ;
+    LD  D,07Fh                          ;fb93  16 7f       ;
     CALL    SENDDAT                     ;fb95  cd fb fb    ;
     LD  D,01Ch                          ;fb98  16 1c       ;
     CALL    SENDDAT                     ;fb9a  cd fb fb    ;
@@ -2237,17 +2237,17 @@ L0FB5Ch:                                ;
     LD  D,003h                          ;fba2  16 03       ;
     CALL    SENDDAT                     ;fba4  cd fb fb    ;
     CALL    GETDATA                     ;fba7  cd 2a fc    ;
-    LD  A,D                             ;fbaa  7a          ;z
+    LD  A,D                             ;fbaa  7a          ;
     CP  00Fh                            ;fbab  fe 0f       ;
     JP  NZ,L0FB5Ch                      ;fbad  c2 5b fb    ;
     CALL    GETDATA                     ;fbb0  cd 2a fc    ;
-    LD  A,D                             ;fbb3  7a          ;z
+    LD  A,D                             ;fbb3  7a          ;
     CP  00Fh                            ;fbb4  fe 0f       ;
     JP  NZ,L0FB5Ch                      ;fbb6  c2 5b fb    ;
 LOADCPM:                                ;                  
-    LD  D,SDREAD                        ;fbb9  16 02       ;
-    CALL    SENDCOM                     ;fbbb  cd f3 fb    ;
-    LD  D,001h                          ;fbbe  16 01       ;
+    LD  D,SDREAD                        ;fbb9  16 02       
+    CALL    SENDCOM                     ;fbbb  cd f3 fb    
+    LD  D,001h                          ;fbbe  16 01       
     CALL    SENDDAT                     ;fbc0  cd fb fb    ;
     LD  D,000h                          ;fbc3  16 00       ;
     CALL    SENDDAT                     ;fbc5  cd fb fb    ;
@@ -2258,11 +2258,11 @@ LOADCPM:                                ;
     LD  D,SDSEND                        ;fbd2  16 03       ;
     CALL    SENDCOM                     ;fbd4  cd f3 fb    ;
     LD  E,000h                          ;fbd7  1e 00       ;
-    LD  HL,CPM_RUN                      ;fbd9  21 00 cb    ;!
+    LD  HL,CPM_RUN                      ;fbd9  21 00 cb    ;
 SYM1:                                   ;                  
     CALL    GETDATA                     ;fbdc  cd 2a fc    ;
-    LD  (HL),D                          ;fbdf  72          ;r
-    INC HL                              ;fbe0  23          ;#
+    LD  (HL),D                          ;fbdf  72          ;
+    INC HL                              ;fbe0  23          ;
     DEC E                               ;fbe1  1d          ;
     JR  NZ,SYM1                         ;fbe2  20 f8       ; 
     LD  BC, 0100h                       ;fbe4  01 00 01    
@@ -2277,85 +2277,88 @@ CLS3:                                   ;
 SENDCOM:                                ;                  
     LD  B,0C0h                          ;fbf3  06 c0       ;
     LD  C,002h                          ;fbf5  0e 02       ;
-    LD  A,080h                          ;fbf7  3e 80       ;>
-    OUT (C),A                           ;fbf9  ed 79       ;y
+    LD  A,080h                          ;fbf7  3e 80       ;
+    OUT (C),A                           ;fbf9  ed 79       ; OUT &hc002, &h80 (ATN=1)
 SENDDAT:                                ;                  
-    LD  B,0C0h                          ;fbfb  06 c0       ;
+    LD  B,0C0h                          ;fbfb  06 c0       ; 
     LD  C,002h                          ;fbfd  0e 02       ;
-CHKRFD1:    IN  A,(C)                   ;fbff  ed 78       ;x
+CHKRFD1:                                ;                  
+    IN  A,(C)                           ;fbff  ed 78       ;
     AND 002h                            ;fc01  e6 02       ;
-    JR  Z,CHKRFD1                       ;fc03  28 fa       ;(
-    LD  C,002h                          ;fc05  0e 02       ;
+    JR  Z,CHKRFD1                       ;fc03  28 fa       ; WAIT: INP(&hc002) -> (RFD=1)
+    LD  C,002h                          ;fc05  0e 02       ; 
     XOR A                               ;fc07  af          ;
-    OUT (C),A                           ;fc08  ed 79       ; ATN=0
+    OUT (C),A                           ;fc08  ed 79       ; OUT &hc002, 0 (ATN=0)
     LD  C,000h                          ;fc0a  0e 00       ;
-    OUT (C),D                           ;fc0c  ed 51       ;
+    OUT (C),D                           ;fc0c  ed 51       ; OUT &hc000, DATA (D register)
     LD  C,002h                          ;fc0e  0e 02       ;
     LD  A,010h                          ;fc10  3e 10       ;
-    OUT (C),A                           ;fc12  ed 79       ;
+    OUT (C),A                           ;fc12  ed 79       ; OUT &hc002, &h10 (DAV=1)
     LD  C,002h                          ;fc14  0e 02       ;
-CHKDAC2:    IN  A,(C)                   ;fc16  ed 78       ;x
+CHKDAC2:                                ;                  
+    IN  A,(C)                           ;fc16  ed 78       ; 
     AND 004h                            ;fc18  e6 04       ;
-    JR  Z,CHKDAC2                       ;fc1a  28 fa       ;(
+    JR  Z,CHKDAC2                       ;fc1a  28 fa       ; WAIT: INP(&hc002) -> (DAC=1)
     LD  C,002h                          ;fc1c  0e 02       ;
     XOR A                               ;fc1e  af          ;
-    OUT (C),A                           ;fc1f  ed 79       ;y
+    OUT (C),A                           ;fc1f  ed 79       ; OUT &hc002, 0 (DAV=0)
     LD  C,002h                          ;fc21  0e 02       ;
-CHKDAC3:    IN  A,(C)                   ;fc23  ed 78       ;x
+CHKDAC3:                                ;                  
+    IN  A,(C)                           ;fc23  ed 78       ;
     AND 004h                            ;fc25  e6 04       ;
-    JR  NZ,CHKDAC3                      ;fc27  20 fa       ; 
+    JR  NZ,CHKDAC3                      ;fc27  20 fa       ; WAIT: INT(&hc002) -> (DAC=0)
     RET                                 ;fc29  c9          ;
 GETDATA:                                ;                  
     PUSH    BC                          ;fc2a  c5          ;
     LD  C,002h                          ;fc2b  0e 02       ;
     LD  B,0C0h                          ;fc2d  06 c0       ;
-    LD  A,020h                          ;fc2f  3e 20       ;> 
-    OUT (C),A                           ;fc31  ed 79       ;y
+    LD  A,020h                          ;fc2f  3e 20       ;
+    OUT (C),A                           ;fc31  ed 79       ; OUT &hc002, &h20 (RFD=1)
     LD  C,002h                          ;fc33  0e 02       ;
-CHKDAV0:    IN  A,(C)                   ;fc35  ed 78       ;x
+CHKDAV0:    IN  A,(C)                   ;fc35  ed 78       ;
     AND 001h                            ;fc37  e6 01       ;
-    JR  Z,CHKDAV0                       ;fc39  28 fa       ;(
+    JR  Z,CHKDAV0                       ;fc39  28 fa       ; WAIT: INP(&hc002) -> (DAV=1)
     LD  C,002h                          ;fc3b  0e 02       ;
     XOR A                               ;fc3d  af          ;
-    OUT (C),A                           ;fc3e  ed 79       ;y
+    OUT (C),A                           ;fc3e  ed 79       ; OUT &hc002, 0 (RFD=0)
     LD  C,001h                          ;fc40  0e 01       ;
-    IN  D,(C)                           ;fc42  ed 50       ;P
+    IN  D,(C)                           ;fc42  ed 50       ; INP(&hc001) -> D register
     LD  C,002h                          ;fc44  0e 02       ;
-    LD  A,040h                          ;fc46  3e 40       ;>@
-    OUT (C),A                           ;fc48  ed 79       ;y
+    LD  A,040h                          ;fc46  3e 40       ;
+    OUT (C),A                           ;fc48  ed 79       ; OUT &hc002, &h40 (DAC=1)
     LD  C,002h                          ;fc4a  0e 02       ;
-CHKDAV1:    IN  A,(C)                   ;fc4c  ed 78       ;x
+CHKDAV1:    IN  A,(C)                   ;fc4c  ed 78       ;
     AND 001h                            ;fc4e  e6 01       ;
-    JR  NZ,CHKDAV1                      ;fc50  20 fa       ; 
+    JR  NZ,CHKDAV1                      ;fc50  20 fa       ; WAIT: INP(&hc002) -> (DAV=0)
     LD  C,002h                          ;fc52  0e 02       ;
     XOR A                               ;fc54  af          ;
-    OUT (C),A                           ;fc55  ed 79       ;y
+    OUT (C),A                           ;fc55  ed 79       ; OUT &hc002, 0 (DAC=0)
     POP BC                              ;fc57  c1          ;
     RET                                 ;fc58  c9          ;
 TITLEMSG:                               ;                  
     DEFM 'SELECT BASIC (B) OR CP/M (C) ?';fc59  53 45 4c 45 
-                                        ;fc5d  43 54 20 42    194   2332
-                                        ;fc61  41 53 49 43    194   2333
-                                        ;fc65  20 28 42 29    194   2334
-                                        ;fc69  20 4f 52 20    194   2335
-                                        ;fc6d  43 50 2f 4d    194   2336
-                                        ;fc71  20 28 43 29    194   2337
-                                        ;fc75  20 3f          194   2338
+                                        ;fc5d  43 54 20 42    197   2335
+                                        ;fc61  41 53 49 43    197   2336
+                                        ;fc65  20 28 42 29    197   2337
+                                        ;fc69  20 4f 52 20    197   2338
+                                        ;fc6d  43 50 2f 4d    197   2339
+                                        ;fc71  20 28 43 29    197   2340
+                                        ;fc75  20 3f          197   2341
     DEFB 00h                            ;fc77  00          
 WAITMSG:                                ;                  
     DEFB 43h, 0dh, 20h                  ;fc78  43 0d 20    
     DEFM 'BOOTING FROM FDD-----'        ;fc7b  42 4f 4f 54 
-                                        ;fc7f  49 4e 47 20    198   2343
-                                        ;fc83  46 52 4f 4d    198   2344
-                                        ;fc87  20 46 44 44    198   2345
-                                        ;fc8b  2d 2d 2d 2d    198   2346
-                                        ;fc8f  2d             198   2347
+                                        ;fc7f  49 4e 47 20    201   2346
+                                        ;fc83  46 52 4f 4d    201   2347
+                                        ;fc87  20 46 44 44    201   2348
+                                        ;fc8b  2d 2d 2d 2d    201   2349
+                                        ;fc8f  2d             201   2350
     DEFB 0DH                            ;fc90  0d          
     DEFM ' WAIT FOR A MOMENT!'          ;fc91  20 57 41 49 
-                                        ;fc95  54 20 46 4f    200   2350
-                                        ;fc99  52 20 41 20    200   2351
-                                        ;fc9d  4d 4f 4d 45    200   2352
-                                        ;fca1  4e 54 21       200   2353
+                                        ;fc95  54 20 46 4f    203   2353
+                                        ;fc99  52 20 41 20    203   2354
+                                        ;fc9d  4d 4f 4d 45    203   2355
+                                        ;fca1  4e 54 21       203   2356
     DEFB 0H                             ;fca4  00          
                                         ;                  
     JP  NZ, L0FC9Fh                     ;fca5  c2 aa fc    
@@ -2659,9 +2662,9 @@ L0FE6Dh:    DEC BC                      ;fe7c  0b          ;
                   
     DEFB 0                              ;fe88  00          
     DEFM '                '             ;fe89  20 20 20 20 
-                                        ;fe8d  20 20 20 20    503   2657
-                                        ;fe91  20 20 20 20    503   2658
-                                        ;fe95  20 20 20 20    503   2659
+                                        ;fe8d  20 20 20 20    506   2660
+                                        ;fe91  20 20 20 20    506   2661
+                                        ;fe95  20 20 20 20    506   2662
 RVRTFONT:                               ;                  
     LD  HL,000FFh                       ;fe99  21 ff 00    ;
     LD  (055D3h),HL                     ;fe9c  22 d3 55    ; CHR$(&H8A)
