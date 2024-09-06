@@ -2,8 +2,11 @@ import sys, os, requests, time
 from urllib.parse import urlparse
 
 if __name__=='__main__':
+    subpath = ''
     if len(sys.argv) > 1:
         filename = sys.argv[1]
+        if len(sys.argv) > 2:
+            subpath = sys.argv[2]
     else:
         print(sys.argv[0], 'usage: filename')
         os.exit()
@@ -12,6 +15,8 @@ if __name__=='__main__':
         for url in files:
             o = urlparse(url)
             fullpath = f'{os.environ['HOME']}/{o.hostname}{requests.utils.unquote(o.path)}'
+            if len(subpath) and not subpath in fullpath:
+                continue
             path = '/'.join(fullpath.split('/')[:-1])
             if os.path.exists(fullpath):
                 print(fullpath, 'already exists')
