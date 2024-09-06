@@ -9,4 +9,4 @@
 	url = https://github.com/carmiker/jgz80
 [submodule "samdisk"]
 	path = samdisk
-	url = /home/msx/spc1000/samdisk
+	url = https://github.com/simonowen/samdisk 
