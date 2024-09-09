@@ -33,6 +33,8 @@ def get_links(url, link=''):
         print(r.html.links)
         for link in r.html.links:
             print('link', link)
+            if '../' in link:
+                continue
             if (not 'http' in link) and len(link) > 1:
                 if link[0] == '/':
                     link = surl + link
