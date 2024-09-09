@@ -1,9 +1,11 @@
 import sys, os, requests, time, threading, urllib3, zipfile
 from urllib.parse import urlparse
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from concurrent.futures import ThreadPoolExecutor
 
 def download(url, fullpath):
     global filename
+    print(fullpath, 'downloading ...')
     response = requests.get(url, verify=False)
     if response.status_code == 200:
         open(fullpath,'wb').write(response.content)
@@ -20,6 +22,8 @@ if __name__=='__main__':
     else:
         print(sys.argv[0], 'usage: filename')
         os.exit()
+    urls = []
+    paths = []
     if os.path.exists(filename):
         files = open(filename,'r').read().split('\n')
         filename404 = f'{filename}.404'
@@ -51,11 +55,14 @@ if __name__=='__main__':
                 if ret is None:
                     # print(fullpath, 'already exists')
                     continue
-            print(fullpath, 'downloading ...')
             if not os.path.exists(path):
                 os.makedirs(path)
-            task = threading.Thread(target=download, args=(url, fullpath))
-            task.start()
-            time.sleep(2)
+            urls.append(url)
+            paths.append(fullpath)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            results = list(executor.map(download, urls, paths))
+            # task = threading.Thread(target=download, args=(url, fullpath))
+            # task.start()
+            # time.sleep(2)
     else:
         print(filename, 'not exists')
