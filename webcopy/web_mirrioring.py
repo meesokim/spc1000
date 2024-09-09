@@ -18,7 +18,8 @@ def get_links(url, link=''):
             url = url + link
     if url in gurls:
         return []
-    print('get_links:', url)
+    print(f'\033[0;32m{url}\033[0m')
+    url0 = url
     o = urlparse(url)
     fileurls = []
     session = HTMLSession()
@@ -29,22 +30,25 @@ def get_links(url, link=''):
             surl = url.replace(o.path, '')
         else:
             surl = url
-        print(1, surl, o.path)
-        print(r.html.links)
+        if '.html' == url[-5:] or '.htm' == url[-4:]:
+            url = '/'.join(url.split('/')[:-1])
+        # print(1, surl, o.path, url)
+        # print(r.html.links)
         for link in r.html.links:
-            print('link', link)
             if '../' in link:
                 continue
             if (not 'http' in link) and len(link) > 1:
                 if link[0] == '/':
                     link = surl + link
                 else:
-                    if url[-1] == '/':
-                        link = url + link
-                    else:
-                        link = url + '/' + link
+                    # if url[-1] == '/':
+                    #     link = url + link
+                    # else:
+                    link = url + ('/' if url[-1] != '/' else '') + link
                 if link[-1] == '/' or link[-4:] == 'html' or link[-3:] == 'htm':
                     gurls.append(url)
+                    if url != url0:
+                        gurls.append(url0)
                     fileurls.extend(get_links(link))
                 elif '?' not in link:
                     print(link)
