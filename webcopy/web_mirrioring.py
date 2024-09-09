@@ -1,8 +1,8 @@
 import sys
-import requests, time
+import requests, time, urllib3
 from bs4 import BeautifulSoup
 from requests_html import HTMLSession
-
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import nest_asyncio
 from urllib.parse import urlparse
 nest_asyncio.apply()
