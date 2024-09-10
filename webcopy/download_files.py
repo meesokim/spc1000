@@ -9,9 +9,12 @@ def download(url, fullpath):
     response = requests.get(url, verify=False)
     if response.status_code == 200:
         open(fullpath,'wb').write(response.content)
-    if response.status_code == 404:
+        print(fullpath, 'downloaded ...')
+    elif response.status_code >= 403:
         open(f'{filename}.404','a').write(url+'\n')
         print(url, 'error', response.status_code)
+    else:
+        print(fullpath, response.status_code)
 
 if __name__=='__main__':
     subpath = ''
@@ -42,19 +45,27 @@ if __name__=='__main__':
                 ret = None
                 ftext = os.path.splitext(fullpath)
                 if ftext[1].lower() == '.zip':
-                    # print(fullpath, 'zipfile check')
-                    try:
-                        the_zip_file = zipfile.ZipFile(fullpath)
-                        ret = the_zip_file.testzip()
-                    except zipfile.BadZipfile as ex:
-                        print(fullpath, 'is not a zipfile?')
-                        import magic
-                        print(magic.from_file(fullpath))
-                    except:
+                    import magic
+                    datatype = magic.from_file(fullpath)
+                    if not 'Zip' in datatype:
                         ret = False
+                        print(fullpath, datatype, 'download again ...')
+                    # print(fullpath, 'zipfile check')
+                    # try:
+                    #     the_zip_file = zipfile.ZipFile(fullpath)
+                    #     ret = the_zip_file.testzip()
+                    # except zipfile.BadZipfile as ex:
+                    #     # print(fullpath, 'is not a zipfile?')
+                    #     # print(datatype)
+                    # except:
+                    #     import traceback
+                    #     traceback.print_exc()
+                    #     ret = False
                 if ret is None:
                     # print(fullpath, 'already exists')
                     continue
+            else:
+                print(fullpath, ' not exist ...')
             if not os.path.exists(path):
                 os.makedirs(path)
             urls.append(url)
