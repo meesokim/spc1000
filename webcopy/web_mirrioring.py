@@ -50,7 +50,7 @@ def get_links(url, link=''):
                     if url != url0:
                         gurls.append(url0)
                     fileurls.extend(get_links(link))
-                elif '?' not in link:
+                elif '?' not in link and not link[-4:] == '.php':
                     print(link)
                     fileurls.append(link)
             elif surl in link and '?' in link:

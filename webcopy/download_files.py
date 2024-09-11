@@ -4,18 +4,28 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from concurrent.futures import ThreadPoolExecutor
 
 def download(url, fullpath):
-    global filename
+    global filename, ran
     # print(fullpath, 'downloading ...')
-    response = requests.get(url, verify=False)
-    if response.status_code == 200:
-        open(fullpath,'wb').write(response.content)
-        print(fullpath, ' ... completed')
-    elif response.status_code >= 403:
-        open(f'{filename}.404','a').write(url+'\n')
-        print(url, 'error', response.status_code)
-    else:
-        print(fullpath, response.status_code)
-    time.sleep(random.randint(1,100))
+    try:
+        response = requests.get(url, verify=False)
+        if response.status_code == 200:
+            if len(response.content):
+                open(fullpath,'wb').write(response.content)
+                print(fullpath, ' ... completed')
+            else:
+                open(f'{filename}.404','a').write(url+'\n')
+        elif response.status_code >= 403:
+            open(f'{filename}.404','a').write(url+'\n')
+            print(url, 'error', response.status_code)
+        else:
+            print(fullpath, response.status_code)
+    except:
+        import traceback
+        traceback.print_exc()
+        time.sleep(5)
+        download(url, fullpath)
+    # if 'ran' in globals():
+    #     time.sleep(random.randint(1,ran))
 
 if __name__=='__main__':
     subpath = ''
@@ -72,7 +82,7 @@ if __name__=='__main__':
             urls.append(url)
             paths.append(fullpath)
         print(f'Total downloading files:{len(urls)}')
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             results = list(executor.map(download, urls, paths))
             # task = threading.Thread(target=download, args=(url, fullpath))
             # task.start()
