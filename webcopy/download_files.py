@@ -7,28 +7,27 @@ def download(url, fullpath):
     global filename, ran
     # print(fullpath, 'downloading ...')
     try:
-        response = requests.get(url, verify=False)
-        if response.status_code == 200:
-            if len(response.content):
-                open(fullpath,'wb').write(response.content)
-                print(fullpath, ' ... completed')
-            else:
-                open(f'{filename}.404','a').write(url+'\n')
-        elif response.status_code >= 403:
-            open(f'{filename}.404','a').write(url+'\n')
-            print(url, 'error', response.status_code)
+        header = {"User-Agent":'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'}
+        response = requests.get(url, headers=header)
+        rcode = response.status_code
+        if rcode == 200 and len(response.content):
+            open(fullpath,'wb').write(response.content)
+            print(fullpath, ' ... completed')
         else:
-            print(fullpath, response.status_code)
+            open(f'{filename}.err','a').write(f'{rcode},{url}\n')
+            print(url, 'error', rcode)
     except:
         import traceback
         traceback.print_exc()
-        time.sleep(5)
+        # time.sleep(5)
+        print(url, 'error')
         download(url, fullpath)
     # if 'ran' in globals():
     #     time.sleep(random.randint(1,ran))
 
 if __name__=='__main__':
     subpath = ''
+    zipcheck = False
     if len(sys.argv) > 1:
         filename = sys.argv[1]
         if len(sys.argv) > 2:
@@ -41,9 +40,13 @@ if __name__=='__main__':
     if os.path.exists(filename):
         files = open(filename,'r').read().split('\n')
         filename404 = f'{filename}.404'
+        filenameerr = f'{filename}.err'
         if os.path.exists(filename404):
             f404 = open(filename404,'r').read().split('\n')
             files = list(set(files)-set(f404))
+        elif os.path.exists(filenameerr):
+            ferr = open(filenameerr,'r').read().split('\n')
+            files = list(set(files)-set([line[4:] for line in ferr]))
         for url in files:
             if '?' in url:
                 continue
@@ -55,10 +58,10 @@ if __name__=='__main__':
             if os.path.exists(fullpath) and os.stat(fullpath).st_size > 0:
                 ret = None
                 ftext = os.path.splitext(fullpath)
-                if ftext[1].lower() == '.zip':
+                if zipcheck and ftext[1].lower() == '.zip':
                     import magic
                     datatype = magic.from_file(fullpath)
-                    if not 'Zip' in datatype:
+                    if not 'zip' in datatype.lower():
                         ret = False
                         print(fullpath, datatype, 'download again ...')
                     # print(fullpath, 'zipfile check')

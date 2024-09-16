@@ -57,7 +57,8 @@ def get_links(url, link=''):
                 fileurls.extend(get_links(link))
     except:
         import traceback
-        traceback.print_exc()
+        # traceback.print_exc()
+        print(url, '... error')
         time.sleep(5)
         fileurls.extend(get_links(url))
     return fileurls
