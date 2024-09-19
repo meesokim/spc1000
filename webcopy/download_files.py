@@ -44,7 +44,7 @@ if __name__=='__main__':
         if os.path.exists(filename404):
             f404 = open(filename404,'r').read().split('\n')
             files = list(set(files)-set(f404))
-        elif os.path.exists(filenameerr):
+        if os.path.exists(filenameerr):
             ferr = open(filenameerr,'r').read().split('\n')
             files = list(set(files)-set([line[4:] for line in ferr]))
         for url in files:
