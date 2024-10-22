@@ -83,7 +83,7 @@ def get_links(url, link=''):
     # if len(fileurls) > 0:
     #     print('\n'.join(fileurls))
     # return fileurls
-
+from urllib.parse import urlparse
 if __name__=='__main__':
     args = sys.argv
     url = 'http://cpmarchives.classiccmp.org/cpm/mirrors/oak.oakland.edu/pub'
@@ -92,5 +92,8 @@ if __name__=='__main__':
         url = args[1]
     if len(args) > 2:
         file = args[2]
+    else:
+        o = urlparse(url)
+        file = o.hostname + '.txt'
     fileurls = get_links(url)
     open(file, 'w').write('\n'.join(fileurls))
