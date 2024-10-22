@@ -18,7 +18,8 @@ def download(url, fullpath):
             print(url, 'error', rcode)
     except:
         import traceback
-        traceback.print_exc()
+        # traceback.print_exc()
+        print(traceback.format_exc())
         # time.sleep(5)
         print(url, 'error')
         download(url, fullpath)
@@ -50,6 +51,7 @@ if __name__=='__main__':
         for url in files:
             if '?' in url:
                 continue
+            url = url.replace('/./','/')
             o = urlparse(url)
             fullpath = f'{os.environ['HOME']}/{o.hostname}{requests.utils.unquote(o.path)}'
             if len(subpath) and not subpath in fullpath:

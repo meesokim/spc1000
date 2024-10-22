@@ -96,4 +96,8 @@ if __name__=='__main__':
         o = urlparse(url)
         file = o.hostname + '.txt'
     fileurls = get_links(url)
-    open(file, 'w').write('\n'.join(fileurls))
+    f = open(file, 'w')
+    for url in fileurls:
+        url = url.replace('/./','/')
+        f.write(url+'\n')
+    f.close()
