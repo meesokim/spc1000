@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 def download(url, fullpath):
     global filename, ran
-    # print(fullpath, 'downloading ...')
+    print(fullpath, 'downloading ...')
     try:
         header = {"User-Agent":'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'}
         response = requests.get(url, headers=header)
@@ -49,7 +49,7 @@ if __name__=='__main__':
             ferr = open(filenameerr,'r').read().split('\n')
             files = list(set(files)-set([line[4:] for line in ferr]))
         for url in files:
-            if '?' in url:
+            if '?' in url or not len(url):
                 continue
             url = url.replace('/./','/')
             o = urlparse(url)
@@ -66,17 +66,6 @@ if __name__=='__main__':
                     if not 'zip' in datatype.lower():
                         ret = False
                         print(fullpath, datatype, 'download again ...')
-                    # print(fullpath, 'zipfile check')
-                    # try:
-                    #     the_zip_file = zipfile.ZipFile(fullpath)
-                    #     ret = the_zip_file.testzip()
-                    # except zipfile.BadZipfile as ex:
-                    #     # print(fullpath, 'is not a zipfile?')
-                    #     # print(datatype)
-                    # except:
-                    #     import traceback
-                    #     traceback.print_exc()
-                    #     ret = False
                 if ret is None:
                     # print(fullpath, 'already exists')
                     continue
