@@ -22,22 +22,12 @@ using namespace std;
     IMPLEMENTATION
 ***************************************************************************/
 
-// WRITE_LINE_MEMBER(spc1000_neo_exp_device::vdp_interrupt)
-// {
-// 	// nothing here?
-// }
-
 //-------------------------------------------------
 //  device_add_mconfig
 //-------------------------------------------------
 
 void spc1000_neo_exp_device::device_add_mconfig(machine_config &config)
 {
-	// TMS9928A(config, m_vdp, XTAL(10'738'635)); // TODO: which clock?
-	// m_vdp->set_vram_size(0x4000);
-	// m_vdp->int_callback().set(FUNC(spc1000_neo_exp_device::vdp_interrupt));
-	// m_vdp->set_screen("tms_screen");
-	// SCREEN(config, "tms_screen", SCREEN_TYPE_RASTER);
 }
 
 
@@ -179,7 +169,6 @@ spc1000_neo_exp_device::~spc1000_neo_exp_device()
 std::pair<std::error_condition, std::string> spc1000_neo_exp_device::call_create(int format_type, util::option_resolution *format_options)
 {
 	// std::pair<std::error_condition, std::string> err;
-	// printf("display:%s\n", format_options);
 	printf("call_create\n");
 	return internal_load(true);
 }
@@ -192,15 +181,6 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::call_load()
 
 void spc1000_neo_exp_device::call_unload()
 {
-// 	/* if we are recording, write the value to the image */
-// 	if ((m_state & CASSETTE_MASK_UISTATE) == CASSETTE_RECORD)
-// 		update();
-
-// 	/* close out the cassette */
-// 	m_cassette.reset();
-
-// 	/* set to default state, but only change the UI state */
-// 	change_state(CASSETTE_STOPPED, CASSETTE_MASK_UISTATE);
 }
 
 const software_list_loader &spc1000_neo_exp_device::get_software_list_loader() const
@@ -215,8 +195,6 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::internal_lo
 	return err;
 }
 
-
-
 //-------------------------------------------------
 //  display a small tape animation, with the
 //  current position in the tape image
@@ -224,50 +202,6 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::internal_lo
 
 std::string spc1000_neo_exp_device::call_display()
 {
-	// const int ANIMATION_FPS = 1;
-
-	std::string result = "";
-
-	// // only show the image when a cassette is loaded and the motor is on
-	// if (exists() && !is_stopped() && motor_on())
-	// {
-	// 	static char const *const shapes[] = { u8"\u2500", u8"\u2572", u8"\u2502", u8"\u2571" };
-
-	// 	// figure out where we are in the cassette
-	// 	double position = get_position();
-	// 	double length = get_length();
-	// 	cassette_state uistate = get_state() & CASSETTE_MASK_UISTATE;
-
-	// 	// choose which frame of the animation we are at
-	// 	int n = (int(position) / ANIMATION_FPS) % std::size(shapes);
-
-	// 	// play or record
-	// 	const char *status_icon = (uistate == CASSETTE_PLAY)
-	// 		? u8"\u25BA"
-	// 		: u8"\u25CF";
-
-	// 	// create information string
-	// 	result = string_format("%s %s %02d:%02d (%04d) [%02d:%02d (%04d)]",
-	// 		shapes[n],                  // animation
-	// 		status_icon,                // play or record
-	// 		((int)position / 60),
-	// 		((int)position % 60),
-	// 		(int)position,
-	// 		((int)length / 60),
-	// 		((int)length % 60),
-	// 		(int)length);
-
-	// 	// make sure tape stops at end when playing
-	// 	if ((m_state & CASSETTE_MASK_UISTATE) == CASSETTE_PLAY)
-	// 	{
-	// 		if (m_cassette)
-	// 		{
-	// 			if (get_position() > get_length())
-	// 			{
-	// 				m_state = ((m_state & ~CASSETTE_MASK_UISTATE) | CASSETTE_STOPPED);
-	// 			}
-	// 		}
-	// 	}
-	// }
+	std::string result = "/";
 	return result;
 }
