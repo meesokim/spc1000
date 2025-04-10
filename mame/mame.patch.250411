@@ -1,7 +1,7 @@
 
 diff -urN mame_orig/src/mame/samsung/spc1000.cpp mame/src/mame/samsung/spc1000.cpp
 --- mame_orig/src/mame/samsung/spc1000.cpp	2025-04-10 23:47:46.803728082 +0900
-+++ mame/src/mame/samsung/spc1000.cpp	2025-04-10 23:49:02.415752800 +0900
++++ mame/src/mame/samsung/spc1000.cpp	2025-04-11 00:52:06.805261586 +0900
 @@ -135,6 +135,7 @@
  #include "bus/spc1000/exp.h"
  #include "bus/spc1000/fdd.h"
@@ -10,9 +10,26 @@ diff -urN mame_orig/src/mame/samsung/spc1000.cpp mame/src/mame/samsung/spc1000.c
  
  #include "softlist_dev.h"
  #include "speaker.h"
+@@ -472,6 +473,7 @@
+ {
+ 	device.option_add("fdd", SPC1000_FDD_EXP);
+ 	device.option_add("vdp", SPC1000_VDP_EXP);
++	device.option_add("neo", SPC1000_NEO_EXP);
+ }
+ 
+ void spc1000_state::spc1000(machine_config &config)
+@@ -525,7 +527,7 @@
+ ROM_START( spc1000 )
+ 	ROM_REGION(0x8000, "maincpu", ROMREGION_ERASEFF)
+ 	//ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(2fbb6eca) SHA1(cc9a076b0f00d54b2aec31f1f558b10f43ef61c8))  // bad?
+-	ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(240426be) SHA1(8eb32e147c17a6d0f947b8bb3c6844750a7b64a8))
++	ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(8a29ab28) SHA1(02baf46f588f9c44e2f7818a27d8a314a417a08b))
+ ROM_END
+ 
+ } // anonymous namespace
 diff -urN mame_orig/src/devices/bus/spc1000/neo.cpp mame/src/devices/bus/spc1000/neo.cpp
 --- mame_orig/src/devices/bus/spc1000/neo.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ mame/src/devices/bus/spc1000/neo.cpp	2025-04-10 23:09:59.453920500 +0900
++++ mame/src/devices/bus/spc1000/neo.cpp	2025-04-11 00:58:09.253658695 +0900
 @@ -0,0 +1,227 @@
 +// license:BSD-3-Clause
 +// copyright-holders:Miso Kim meeso.kim@gmail.com
@@ -238,7 +255,7 @@ diff -urN mame_orig/src/devices/bus/spc1000/neo.cpp mame/src/devices/bus/spc1000
 +
 +std::string spc1000_neo_exp_device::call_display()
 +{
-+	std::string result = "/";
++	std::string result = "";
 +	return result;
 +}
 diff -urN mame_orig/src/devices/bus/spc1000/neo.h mame/src/devices/bus/spc1000/neo.h

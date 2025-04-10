@@ -201,5 +201,5 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::internal_lo
 std::string spc1000_neo_exp_device::call_display()
 {
 	std::string result = "/";
-	return result;
+	return nullptr;
 }

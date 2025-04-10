@@ -27,8 +27,8 @@ extern "C" {
     {
         unsigned char b = 0;
         bool ret = false;
-        // printf("R%04x:%02x\n", addr, b);
         b = sbox->read(addr);
+        // printf("R%04x:%02x\n", addr, b);
         return b;
     }
 

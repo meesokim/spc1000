@@ -473,6 +473,7 @@ void spc1000_exp(device_slot_interface &device)
 {
 	device.option_add("fdd", SPC1000_FDD_EXP);
 	device.option_add("vdp", SPC1000_VDP_EXP);
+	device.option_add("neo", SPC1000_NEO_EXP);
 }
 
 void spc1000_state::spc1000(machine_config &config)
