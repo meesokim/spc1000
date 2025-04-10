@@ -21,7 +21,7 @@ SOURCES = $(shell find -maxdepth 1 -name "*.c")
 COBJS = $(shell echo $(SOURCES) | sed -r 's/\.s|\.c|\.cpp|.cc/\.o/g') 
 DEBUGFLAGS = -O0 -D _DEBUG -shared ../lib/libbcm2835.a
 RELEASEFLAGS = libbcm2835.a -O2 -D DEBUG -combine -fwhole-program -shared 
-OBJS = $(COBJS)
+OBJS = $(COBJS) tap.o spcdrive.o
 
 all: $(TARGET).$(ZEMMIX_EXT) $(LIBINFO)
 

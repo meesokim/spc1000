@@ -11,7 +11,7 @@
 #include "miniz.h"
 using std::map;
 using std::string;
-#define min(a, b) (a > b ? b : a)
+#define MIN(a, b) (a > b ? b : a)
 
 #ifdef __circle__
 #include "ob_file.h"
@@ -162,7 +162,7 @@ public:
         int tlen = 0, llen = 0;
         for (int i = 0; i < len; i++) {
             filename = fileonly(files[i]);
-            llen = min(strlen(filename), 26);
+            llen = MIN(strlen(filename), 26);
             strncpy(flist+tlen, filename, llen);
             strcat(flist, "\\\0");
             // printf("%s\n",flist);
