@@ -1,2 +1,8 @@
 #!/bin/bash
-git status -s | awk '{ print $2 }' | xargs -I % diff -urN ../mame_orig/% ../mame/% | gzip > $(dirname "$0")/mame.patch.gz
+declare -a array=( "src/mame/samsung" "src/devices/bus/spc1000" "src/emu" "scripts/src" )
+patchfile=mame.patch.$(date '+%y%m%d')
+echo > $patchfile
+for path in "${array[@]}" 
+do 
+    diff -urN mame_orig/$path mame/$path >> $patchfile
+done
