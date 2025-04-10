@@ -13,8 +13,6 @@
 #include <fstream>
 using namespace std;
 
-#include "spcbox.h"
-
 #include "emu.h"
 #include "neo.h"
 
@@ -41,11 +39,9 @@ DEFINE_DEVICE_TYPE(SPC1000_NEO_EXP, spc1000_neo_exp_device, "spc1000_neo_exp", "
 //  LIVE DEVICE
 //**************************************************************************
 
-SpcBox *sbox = 0;
 //-------------------------------------------------
 //  spc1000_neo_exp_device - constructor
 //-------------------------------------------------
-#include "tap.h"
 
 spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, SPC1000_NEO_EXP, tag, owner, clock)
@@ -110,19 +106,20 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::load(std::s
 
 void spc1000_neo_exp_device::device_start()
 {
-    if (!::sbox) {
-		TapeFiles *tape = new TapeFiles();
-		printf("filename:%s\n", filename());
-		if (filename())
-			tape->initialize(filename());
-		else if (size>0) 
-			tape->initialize(files, size);
-		else
-			tape->initialize((const char*)tap_zip, sizeof(tap_zip));
-        ::sbox = new SpcBox(tape);
-	}
-    sbox=::sbox;
-	sbox->initialize();
+    // if (!::sbox) {
+	// 	TapeFiles *tape = new TapeFiles();
+	// 	printf("filename:%s\n", filename());
+	// 	if (filename())
+	// 		tape->initialize(filename());
+	// 	else if (size>0) 
+	// 		tape->initialize(files, size);
+	// 	else
+	// 		tape->initialize((const char*)tap_zip, sizeof(tap_zip));
+    //     ::sbox = new SpcBox(tape);
+	// }
+    // sbox=::sbox;
+	// sbox->initialize();
+	spcinit();
 }
 
 //-------------------------------------------------
@@ -131,6 +128,7 @@ void spc1000_neo_exp_device::device_start()
 
 void spc1000_neo_exp_device::device_reset()
 {
+	spcreset();
 }
 
 /*-------------------------------------------------
@@ -140,7 +138,7 @@ uint8_t spc1000_neo_exp_device::read(offs_t offset)
 {
 	if (offset > 0xff)
 		return 0xff;
-	return sbox->read(offset);
+	return spcread(offset);
 }
 
 //-------------------------------------------------
@@ -152,7 +150,7 @@ void spc1000_neo_exp_device::write(offs_t offset, uint8_t data)
 	if (offset <= 0xff)
 	{
 		// printf("neo%d:%02x\n", offset, data);
-		sbox->write(offset, data);
+		spcwrite(offset, data);
         //sbox->execute();
 	}
 }

@@ -1,8 +1,8 @@
 
 #define SPCREAD "spcread"
 #define SPCWRITE "spcwrite"
-#define SPCRESET "reset"
-#define SPCINIT "init"
+#define SPCRESET "spcreset"
+#define SPCINIT "spcinit"
 
 typedef unsigned char (*ReadfnPtr)(int, unsigned short);
 typedef void (*WritefnPtr)(int, unsigned short, unsigned char);

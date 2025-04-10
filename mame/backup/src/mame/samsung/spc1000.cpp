@@ -178,8 +178,8 @@ private:
 		return m_p_videoram[0x1000 + (ch & 0x7f) * 16 + line];
 	}
 
-	void io_map(address_map &map);
-	void mem_map(address_map &map);
+	void io_map(address_map &map) ATTR_COLD;
+	void mem_map(address_map &map) ATTR_COLD;
 
 	uint8_t m_IPLK = 0U;
 	uint8_t m_GMODE = 0U;
@@ -187,8 +187,8 @@ private:
 	std::unique_ptr<uint8_t[]> m_work_ram;
 	attotime m_time;
 	bool m_centronics_busy = false;
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
 	required_device<z80_device> m_maincpu;
 	required_device<mc6847_base_device> m_vdg;
 	required_device<cassette_image_device> m_cass;
@@ -473,7 +473,6 @@ void spc1000_exp(device_slot_interface &device)
 {
 	device.option_add("fdd", SPC1000_FDD_EXP);
 	device.option_add("vdp", SPC1000_VDP_EXP);
-	device.option_add("neo", SPC1000_NEO_EXP);
 }
 
 void spc1000_state::spc1000(machine_config &config)
@@ -527,7 +526,7 @@ void spc1000_state::spc1000(machine_config &config)
 ROM_START( spc1000 )
 	ROM_REGION(0x8000, "maincpu", ROMREGION_ERASEFF)
 	//ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(2fbb6eca) SHA1(cc9a076b0f00d54b2aec31f1f558b10f43ef61c8))  // bad?
-	ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(8a29ab28) SHA1(02baf46f588f9c44e2f7818a27d8a314a417a08b))
+	ROM_LOAD("spcall.rom", 0x0000, 0x8000, CRC(240426be) SHA1(8eb32e147c17a6d0f947b8bb3c6844750a7b64a8))
 ROM_END
 
 } // anonymous namespace

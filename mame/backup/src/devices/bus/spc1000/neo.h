@@ -6,9 +6,9 @@
 #pragma once
 
 #include "exp.h"
+#include "spc.h"
 #include "softlist_dev.h"
 
-class SpcBox;
 //**************************************************************************
 //  TYPE DEFINITIONS
 //**************************************************************************
@@ -57,8 +57,7 @@ protected:
 	virtual void write(offs_t offset, uint8_t data) override;
 
 private:
-	SpcBox *sbox = 0;
-	char            m_extension_list[256];
+	char m_extension_list[256];
 	const char *m_interface;
 	std::pair<std::error_condition, std::string> internal_load(bool is_create);
 	const char *files[1024];
