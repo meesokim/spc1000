@@ -1,15 +1,11 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
-#include <string.h>
-#include <iostream>
 #include <filesystem>
-#include <vector>
-#include "miniz_zip.h"
-#include <bzlib.h>
-using namespace std;
 namespace fs = std::filesystem;
-
+#include <string>
+#include <vector>
+using namespace std;
 enum casmode {CASSETTE_STOP, CASSETTE_PLAY, CASSETTE_REC};
 enum castype {TYPE_CHARBIN, TYPE_BINARY};
 

@@ -513,7 +513,9 @@ void  main_loop()
         dstrect.x = dstrect.y = 0;
         SDL_CreateWindowAndRenderer(w * 2, h * 2, 0, &screen, &renderer);
         SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+#ifndef __circle__        
         SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+#endif
         SDL_RenderGetViewport(renderer, &viewport);
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
         SDL_SetColorKey(surface, SDL_TRUE, 0x0);

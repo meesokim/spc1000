@@ -1,12 +1,17 @@
+#ifndef __circle__
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
+#endif 
 
-#include "cassette.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include "cassette.h"
+#include <bzlib.h>
+#include <miniz_zip.h>
 inline string lower(string data) {
     string ret = data;
     for (int i = 0; i < data.length(); i++)

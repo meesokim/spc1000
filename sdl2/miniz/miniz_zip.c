@@ -417,7 +417,11 @@ static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_tim
     t.actime = access_time;
     t.modtime = modified_time;
 
+#ifndef __circle__
     return !utime(pFilename, &t);
+#else
+    return 0;
+#endif
 }
 #endif /* #ifndef MINIZ_NO_STDIO */
 #endif /* #ifndef MINIZ_NO_TIME */
