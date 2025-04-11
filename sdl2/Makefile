@@ -17,7 +17,7 @@ CXX=em++
 wasm: $(OBJECTS)
 	emcc $(OBJECTS) \
 	-DWASM \
-	-s WASM=1 \
+	-sWASM=1 -sUSE_WEBGL2=1 \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
 	-sSTACK_SIZE=8192000 \
 	--preload-file $(DIR) \
