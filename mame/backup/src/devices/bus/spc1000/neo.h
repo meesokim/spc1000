@@ -62,6 +62,10 @@ private:
 	std::pair<std::error_condition, std::string> internal_load(bool is_create);
 	const char *files[1024];
 	int size = 0;
+	ReadfnPtr spcread = NULL;
+	WritefnPtr spcwrite = NULL;
+	InitfnPtr spcinit = NULL;
+	ResetfnPtr spcreset = NULL;	
 };
 
 // device type definition

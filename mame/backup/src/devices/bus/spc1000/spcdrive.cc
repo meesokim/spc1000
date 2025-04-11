@@ -16,7 +16,7 @@ extern "C" {
 				tape->initialize(path);
 			// else if (size>0) 
 			// 	tape->initialize(files, size);
-			// else
+			else
 				tape->initialize((const char*)tap_zip, sizeof(tap_zip));
 	        ::sbox = new SpcBox(tape);
 		}

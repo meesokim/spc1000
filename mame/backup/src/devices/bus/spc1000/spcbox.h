@@ -115,7 +115,8 @@ public:
         } else {
             printf("else:%s\n", ext);
             zipped = false;
-#ifdef __LINUX__            
+#ifdef __linux__
+            printf("dir:%s\n", ext);
             if (!opendir(ext)) {
                 files.insert(map<int, const char *>::value_type(len++, exp));
             } else {

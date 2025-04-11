@@ -49,6 +49,18 @@ spc1000_neo_exp_device::spc1000_neo_exp_device(const machine_config &mconfig, co
 	, device_image_interface(mconfig, *this)
 {
 	strcpy(m_extension_list, "tap,cas,zip,*");
+    void *hDLL = OpenSPC((char*)SPC_DRIVE, RTLD_LAZY);
+    if (!hDLL)
+    {
+        printf("DLL open error!!\n");
+    }
+    else
+    {
+	    spcreset = (ResetfnPtr)GetSPCFunc(hDLL, (char*)SPCRESET);
+	    spcread = (ReadfnPtr)GetSPCFunc(hDLL, (char*)SPCREAD);
+	    spcwrite = (WritefnPtr)GetSPCFunc(hDLL, (char*)SPCWRITE);
+	    spcinit = (InitfnPtr)GetSPCFunc(hDLL, (char*)SPCINIT);	
+	}
 }
 
 std::vector<std::string_view> Split(const std::string_view str, const char delim = ';')
@@ -119,7 +131,16 @@ void spc1000_neo_exp_device::device_start()
 	// }
     // sbox=::sbox;
 	// sbox->initialize();
-	spcinit();
+    char *path = getenv("SPC_PATH");
+    if (spcinit)
+    {
+        if (!path)
+        {
+            path = (char*)".";
+        }
+        spcinit(path);
+
+    }
 }
 
 //-------------------------------------------------
@@ -128,7 +149,8 @@ void spc1000_neo_exp_device::device_start()
 
 void spc1000_neo_exp_device::device_reset()
 {
-	spcreset();
+	if (spcreset)
+		spcreset();
 }
 
 /*-------------------------------------------------
@@ -136,7 +158,7 @@ void spc1000_neo_exp_device::device_reset()
 -------------------------------------------------*/
 uint8_t spc1000_neo_exp_device::read(offs_t offset)
 {
-	if (offset > 0xff)
+	if (offset > 0xff || !spcread)
 		return 0xff;
 	return spcread(offset);
 }
@@ -147,7 +169,7 @@ uint8_t spc1000_neo_exp_device::read(offs_t offset)
 
 void spc1000_neo_exp_device::write(offs_t offset, uint8_t data)
 {
-	if (offset <= 0xff)
+	if (offset <= 0xff && spcwrite)
 	{
 		// printf("neo%d:%02x\n", offset, data);
 		spcwrite(offset, data);
@@ -200,6 +222,6 @@ std::pair<std::error_condition, std::string> spc1000_neo_exp_device::internal_lo
 
 std::string spc1000_neo_exp_device::call_display()
 {
-	std::string result = "/";
-	return nullptr;
+	std::string result = "";
+	return result;
 }
