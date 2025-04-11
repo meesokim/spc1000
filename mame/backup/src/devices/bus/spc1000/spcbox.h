@@ -5,23 +5,23 @@
 #include <string>
 #include <unistd.h>
 #include <algorithm>
-// #ifndef RASPPI
+#ifndef RASPPI
 #include <dirent.h>
-// #endif
+#endif
 #include "miniz.h"
 using std::map;
 using std::string;
 #define MIN(a, b) (a > b ? b : a)
 
-#ifdef __circle__
-#include "ob_file.h"
-#define fopen ob_fopen
-#define fseek ob_fseek
-#define ftell ob_ftell
-#define rewind ob_rewind
-#define fread ob_fread
-#define fclose ob_fclose
-#endif
+// #ifdef __circle__
+// #include "ob_file.h"
+// #define fopen ob_fopen
+// #define fseek ob_fseek
+// #define ftell ob_ftell
+// #define rewind ob_rewind
+// #define fread ob_fread
+// #define fclose ob_fclose
+// #endif
 class TapeFiles {
     int len = 0;
     int skipdir = 0;
@@ -463,6 +463,24 @@ class SpcBox {
         FILE *f;
         int ret;
         fdd[0] = spc1000_bin;
+#ifdef RASSPI
+        FRESULT fr;     /* Return value */
+        FILINFO fno;    /* File information */
+        int i = 4, j = 0;
+        FIL File;
+        unsigned nBytesRead;
+        char str[256];
+        FRESULT Result =  f_open (&File, filename, FA_READ | FA_OPEN_EXISTING);
+        if (Result == FR_OK)
+        {
+            f_read (&File, str, 256, &nBytesRead);
+            f_close(&File);
+            if (nBytesRead > 0)
+            {
+                sscanf(str, "%d", &oldnum);
+            }
+        }
+#else
         f = fopen("number.txt","r");
         if (f) {
             ret = fscanf(f, "%d", &oldnum);
@@ -474,6 +492,7 @@ class SpcBox {
         }
         else
             oldnum = 0;
+#endif        
     	printf("number:%d\n", oldnum);
     } 
     void initialize() {
