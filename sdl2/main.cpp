@@ -346,6 +346,9 @@ bool ProcessSpecialKey(SDL_Keysym ksym)
     else {
         switch (ksym.sym)
         {
+	    case SDLK_F12:
+		exit(0);
+		break;
             case SDLK_F8:
                 crt_effect = !crt_effect;
                 break;
