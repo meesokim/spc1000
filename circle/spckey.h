@@ -1,0 +1,107 @@
+// SPC-1000 key mapping for SDL
+#ifndef SPC_KEYMAP
+#define SPC_KEYMAP
+typedef enum {
+        /** @name ASCII mapped keysyms
+         *  The keyboard syms have been cleverly chosen to map to ASCII
+         */
+        /*@{*/
+        CRLK_RSHIFT = 0x120,
+        CRLK_LSHIFT = 0x102,
+        CRLK_RCTRL = 0x110,
+        CRLK_LCTRL = 0x101,
+        CRLK_LMETA = 0x108,
+        CRLK_RMETA = 0x180,
+        CRLK_LALT = 0x104,
+        CRLK_RALT = 0x140,
+        CRLK_ESCAPE = 0x29,
+        CRLK_F1  = 0x3A,
+        CRLK_F2  = 0x3B,
+        CRLK_F3  = 0x3C,
+        CRLK_F4  = 0x3d,
+        CRLK_F5  = 0x3e,
+        CRLK_F6  = 0x3f,
+        CRLK_F7  = 0x40,
+        CRLK_F8  = 0x41,
+        CRLK_F9  = 0x42,
+        CRLK_F10 = 0x43,
+        CRLK_F11 = 0x44,
+        CRLK_F12 = 0x45,
+        CRLK_PRINT = 0x46,
+        CRLK_SCROLLOCK = 0x47,
+        CRLK_PAUSE = 0x48,
+        CRLK_INSERT = 0x49,
+        CRLK_HOME = 0x4a,
+        CRLK_PAGEUP = 0x4b,
+        CRLK_DELETE = 0x4c,
+        CRLK_END = 0x4d,
+        CRLK_PAGEDOWN = 0x4e,
+        CRLK_RIGHT = 0x4f,
+        CRLK_LEFT = 0x50,
+        CRLK_DOWN = 0x51,
+        CRLK_UP = 0x52,
+        CRLK_BACKSPACE = 0x2a,
+        CRLK_BACKSLASH = 0x31,
+        CRLK_ENTER = 0x28,
+        CRLK_RETURN = 0x28,
+        CRLK_BACKQUOTE = 0x35,
+        CRLK_1 = 0x1e,
+        CRLK_2 = 0x1f,
+        CRLK_3 = 0x20,
+        CRLK_4 = 0x21,
+        CRLK_5 = 0x22,
+        CRLK_6 = 0x23,
+        CRLK_7 = 0x24,
+        CRLK_8 = 0x25,
+        CRLK_9 = 0x26,
+        CRLK_0 = 0x27,
+		CRLK_SPACE = 0x2c,
+        CRLK_MINUS = 0x2d,
+        CRLK_EQUALS = 0x2e,
+        CRLK_TAB = 0x2b,
+        CRLK_CAPS = 0x39,
+        CRLK_a = 0x04,
+        CRLK_b = 0x05,
+        CRLK_c = 0x06,
+        CRLK_d = 0x07,
+        CRLK_e = 0x08,
+        CRLK_f = 0x09,
+        CRLK_g = 0x0a,
+        CRLK_h = 0x0b,
+        CRLK_i = 0x0c,
+        CRLK_j = 0x0d,
+        CRLK_k = 0x0e,
+        CRLK_l = 0x0f,
+        CRLK_m = 0x10,
+        CRLK_n = 0x11,
+        CRLK_o = 0x12,
+        CRLK_p = 0x13,
+        CRLK_q = 0x14,
+        CRLK_r = 0x15,
+        CRLK_s = 0x16,
+        CRLK_t = 0x17,
+        CRLK_u = 0x18,
+        CRLK_v = 0x19,
+        CRLK_w = 0x1a,
+        CRLK_x = 0x1b,
+        CRLK_y = 0x1c,
+        CRLK_z = 0x1d,
+        CRLK_LEFTBRACKET = 0x2f,
+        CRLK_RIGHTBRACKET = 0x30,
+        CRLK_SEMICOLON = 0x33,
+        CRLK_QUOTE = 0x34,
+        CRLK_COMMA = 0x36,
+        CRLK_PERIOD = 0x37,
+        CRLK_SLASH = 0x38,
+} CRLKey;
+
+typedef struct
+{
+	CRLKey sym;
+	int keyMatIdx;
+	unsigned char keyMask;
+	const char *keyName; // for debugging
+} TKeyMap;
+#define CRLK_MOD 0x100
+extern TKeyMap spcKeyMap[]; 
+#endif

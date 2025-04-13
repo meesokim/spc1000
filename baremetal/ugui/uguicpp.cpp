@@ -45,12 +45,12 @@ boolean CUGUI::Initialize (void)
 	m_pMouseDevice = (CMouseDevice *) CDeviceNameService::Get ()->GetDevice ("umouse1", FALSE);
 	if (m_pMouseDevice != 0)
 	{
-		if (m_pMouseDevice->Setup (m_pScreen->GetWidth (), m_pScreen->GetHeight ()))
-		{
-			m_pMouseDevice->ShowCursor (TRUE);
+		// if (m_pMouseDevice->Setup (m_pScreen->GetBuffer ()))
+		// {
+		// 	m_pMouseDevice->ShowCursor (TRUE);
 
-			m_pMouseDevice->RegisterEventHandler (MouseEventStub);
-		}
+		// 	m_pMouseDevice->RegisterEventHandler (MouseEventStub);
+		// }
 	}
 
 	m_pTouchScreen = (CTouchScreenDevice *) CDeviceNameService::Get ()->GetDevice ("touch1", FALSE);

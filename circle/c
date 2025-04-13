@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ ! -d mmc ]; then
+    mkdir mmc
+fi
+sudo mount -t drvfs h: mmc
+cp kernel.img mmc
+sudo umount mmc

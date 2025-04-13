@@ -92,7 +92,7 @@ CKernel::CKernel(void)
 	: m_Screen(320, 240),
 	  m_Memory(TRUE),
 	  m_Timer(&m_Interrupt),
-	//   m_Logger(LogPanic, &m_Timer),
+	  m_Logger(LogPanic, &m_Timer),
 // #if RASPPI <= 4
 //       m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
 // #endif
@@ -152,7 +152,7 @@ boolean CKernel::Initialize (void)
 			pTarget = &m_Screen;
 		}
 
-		// bOK = m_Logger.Initialize (pTarget);
+		bOK = m_Logger.Initialize (pTarget);
 	}
 	// memset(m_Screen.GetBuffer(), 0xff, 320*240);
 	printf("Screen!!!\n");
@@ -185,12 +185,12 @@ boolean CKernel::Initialize (void)
 // 	{
 // 			bOK = m_USBHCI.Initialize ();
 // 	}	
-// #ifdef USE_VCHIQ_SOUND
-// 	if (bOK)
-// 	{
-// 			bOK = m_VCHIQ.Initialize ();
-// 	}
-// #endif
+#ifdef USE_VCHIQ_SOUND
+	if (bOK)
+	{
+			bOK = m_VCHIQ.Initialize ();
+	}
+#endif
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 	} while(spcKeyMap[num++].sym != 0);

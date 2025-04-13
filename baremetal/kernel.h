@@ -78,7 +78,7 @@ private:
 	// CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
 	CInterruptSystem    m_Interrupt;
-	// CLogger				m_Logger;
+	CLogger				m_Logger;
 // #if RASPPI <= 4
 // 	CI2CMaster          m_I2CMaster;    
 // #endif

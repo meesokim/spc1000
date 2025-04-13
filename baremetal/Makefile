@@ -9,7 +9,7 @@
 #LIBCIRCLE = libcircle
 #endif
 
-#USE_VCHIQ_SOUND=1
+USE_VCHIQ_SOUND=1
 
 CIRCLEHOME = ../../circle
 INCLUDE = -I$(CIRCLEHOME)/addon
