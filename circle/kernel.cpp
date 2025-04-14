@@ -25,6 +25,8 @@
 
 //#define USB_GADGET_MODE
 
+#define DRIVE		"SD:"
+
 static const char FromKernel[] = "kernel";
 
 CKernel::CKernel (void)
@@ -37,6 +39,7 @@ CKernel::CKernel (void)
 #else
 	m_pUSB (new CUSBMIDIGadget (&m_Interrupt)),
 #endif
+	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
 	m_Keyboard()
 	// m_pMiniOrgan (0)
 {
@@ -56,6 +59,7 @@ boolean CKernel::Initialize (void)
 	if (bOK) { bOK = m_Timer.Initialize (); }
 	if (bOK) { bOK = m_I2CMaster.Initialize (); }
 	if (bOK) { assert (m_pUSB); bOK = m_pUSB->Initialize (); }
+	if (bOK) { bOK = m_EMMC.Initialize (); }
 	// if (bOK) { m_pMiniOrgan = new CMiniOrgan (&m_Interrupt, &m_I2CMaster); bOK = m_pMiniOrgan->Initialize (); }
 	return bOK;
 }
@@ -64,7 +68,10 @@ TShutdownMode CKernel::Run (void)
 {
 	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
 	m_Logger.Write (FromKernel, LogNotice, "SPC-1000");
-	// m_pMiniOrgan->Start ();
+	if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
+	{
+		m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
+	}
 
 	for (unsigned nCount = 0; true; nCount++)
 	{

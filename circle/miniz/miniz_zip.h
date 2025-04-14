@@ -232,7 +232,12 @@ mz_uint mz_zip_reader_get_num_files(mz_zip_archive *pZip);
 
 mz_uint64 mz_zip_get_archive_size(mz_zip_archive *pZip);
 mz_uint64 mz_zip_get_archive_file_start_offset(mz_zip_archive *pZip);
+#ifdef MINIZ_NO_STDIO
+void* *mz_zip_get_cfile(mz_zip_archive *pZip);
+#else
 MZ_FILE *mz_zip_get_cfile(mz_zip_archive *pZip);
+#endif
+
 
 /* Reads n bytes of raw archive data, starting at file offset file_ofs, to pBuf. */
 size_t mz_zip_read_archive_data(mz_zip_archive *pZip, mz_uint64 file_ofs, void *pBuf, size_t n);

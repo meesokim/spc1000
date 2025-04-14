@@ -66,6 +66,21 @@
 #include "cassette.h"
 #include "spcall.h"
 
+#define LOW 0
+#define HIGH 1
+#define OUTPUT 1
+#define INPUT 0
+
+typedef struct _reg {
+    char IPLK;
+    char motor;
+    char pulse;
+    char button;
+    _reg() { 
+        IPLK = 1;
+    }
+} Registers;
+
 
 // struct TNoteInfo
 // {

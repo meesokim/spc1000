@@ -33,6 +33,8 @@
 #include <circle/usb/usbcontroller.h>
 #include <circle/string.h>
 #include <circle/util.h>
+#include <SDCard/emmc.h>
+#include <fatfs/ff.h>
 
 #include "spc1000.h"
 
@@ -66,7 +68,16 @@ private:
 	CI2CMaster			m_I2CMaster;
 	CUSBController		*m_pUSB;
 	CKeyboard			m_Keyboard;
+	CEMMCDevice			m_EMMC;
+	FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
+	Registers reg;
+
+	CMC6847 mc6847;
+	// CKeyboard kbd;
+	CPU cpu;
+	AY8910 ay8910;
+	Cassette cassette;
 };
 
 #endif

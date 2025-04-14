@@ -1,11 +1,14 @@
-#ifndef __circle__
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
-#endif 
-
 #include "cassette.h"
-#include <bzlib.h>
-#include <miniz_zip.h>
+extern "C" {
+    #include <bzlib.h>
+    #include <miniz_zip.h>
+}
+
+#ifdef __circle__
+#include <circle/fs/fat/fatdir.h>
+#include <fatfs/ff.h>
+#define printf(a, ...) void(0)
+#endif
 inline string lower(string data) {
     string ret = data;
     for (int i = 0; i < data.length(); i++)
@@ -18,7 +21,7 @@ bool in_array(const std::string &value, const std::vector<std::string> &array)
 }
 
 #define PULSE 14
-char Cassette::read(uint32_t cycles, uint8_t wait) {
+char Cassette::read(unsigned int cycles, unsigned char wait) {
     char val = 0;
     int diff = cycles - old_cycles;
     if (diff > 4 * PULSE * 90)
@@ -82,7 +85,7 @@ void Cassette::load(const char *name)
     } else {
         file = name;
     }        
-    std::filesystem::path filename(file);
+    ZFile filename(file);
     loaded_filename = filename;
     string ext = lower(filename.extension());
     // cout << filename.extension() << endl;
@@ -184,7 +187,21 @@ void Cassette::loaddir(const char *dirname)
     // int index = -1;
     // this->dirname = (char *)dirname;
     printf("loaddir:%s\n", dirname);
-    for (const auto & entry : fs::directory_iterator(dirname))
+#ifdef __circle__
+	DIR Directory;
+	FILINFO FileInfo;
+	FRESULT Result = f_findfirst (&Directory, &FileInfo, "SD:/", "*");
+    for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0]; i++)
+    {
+        ZFile file(FileInfo.fname);
+        if (in_array(lower(file.extension()), exts))
+        {
+            files.push_back(file);
+        }
+        Result = f_findnext (&Directory, &FileInfo);
+    }
+#else
+    for (const auto & entry : CFATDirectory::GetEntry(dirname))
     {
         // cout << entry.path().extension() << endl;
         if (in_array(lower(entry.path().extension()), exts))
@@ -200,6 +217,7 @@ void Cassette::loaddir(const char *dirname)
             // printf("%s,%d\n", entry.path().string().c_str(), index );
         }
     }
+#endif
     sort(files.begin(), files.end());
     file_index = 0;
     load();
@@ -249,7 +267,7 @@ int Cassette::loadzip(const char *zipname, int size)
                 continue;
             strcpy(unzipfile, file_stat.m_filename);
             uncomp_size = file_stat.m_uncomp_size;
-            std::filesystem::path file(unzipfile);
+            ZFile file(unzipfile);
             string ext = lower(file.extension()); 
             if (!ext.compare(".tap"))
             {
