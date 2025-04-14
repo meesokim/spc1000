@@ -56,6 +56,13 @@ public:
 	boolean Initialize (void);
 
 	TShutdownMode Run (void);
+	static unsigned int GetTicks() 
+	{
+		if (s_pThis) {
+			return s_pThis->m_Timer.GetClockTicks () / 1000;
+		}
+		return 0;
+	}
 private:
 	// do not change this order
 	CActLED				m_ActLED;
@@ -70,11 +77,10 @@ private:
 	CUSBController		*m_pUSB;
 	CEMMCDevice			m_EMMC;
 	CUSBHCIDevice		m_USBHCI;
-	CKeyboard			m_Keyboard;
+	// CKeyboard			m_Keyboard;
 	CUSBKeyboardDevice *m_pKeyboard;
 	FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
-	Registers reg;
 
 	CMC6847 mc6847;
 	// CKeyboard kbd;
@@ -82,6 +88,7 @@ private:
 	AY8910 ay8910;
 	Cassette cassette;
 	static void KeyboardRemovedHandler (CDevice *pDevice, void *pContext);
+	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]);
 	static CKernel *s_pThis;	
 };
 
