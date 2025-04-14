@@ -4,6 +4,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
+#include <fstream>
+#include <algorithm>
+#include <filesystem>
+
 // namespace fs = std::filesystem;
 #include <string>
 using namespace std;
@@ -37,7 +42,7 @@ class Cassette {
 #else
     vector<ZFile> files;
 #endif
-    int file_index = 0;
+    unsigned int file_index = 0;
     char *dirname;
     string loaded_filename;
     vector<string> exts {".tap",".cas",".zip",".bz2"};

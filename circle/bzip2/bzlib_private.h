@@ -22,6 +22,8 @@
 #ifndef _BZLIB_PRIVATE_H
 #define _BZLIB_PRIVATE_H
 
+#define BZ_NO_STDIO
+
 #include <stdlib.h>
 
 #ifndef BZ_NO_STDIO

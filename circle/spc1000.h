@@ -61,6 +61,12 @@
 
 #include "Keyboard.h"
 #include "ay8910.h"
+#include "cpu.h"
+#include "mc6847.h"
+#include "cassette.h"
+#include "spcall.h"
+
+
 // struct TNoteInfo
 // {
 // 	char	Key;

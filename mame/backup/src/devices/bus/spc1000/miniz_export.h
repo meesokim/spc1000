@@ -22,6 +22,7 @@
 #endif
 
 #define MINIZ_NO_TIME
+#define MINIZ_NO_STDIO
 
 #ifndef MINIZ_DEPRECATED
 #  define MINIZ_DEPRECATED __attribute__ ((__deprecated__))

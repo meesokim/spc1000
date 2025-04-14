@@ -207,7 +207,7 @@ endif
 
 %.o: %.cpp
 	@echo "  CPP   $@"
-	$(CPP) $(CPPFLAGS) -c -o $@ $<
+	@$(CPP) $(CPPFLAGS) -c -o $@ $<
 
 %.d: %.S
 	@$(AS) $(AFLAGS) -M -MG -MT $*.o -MT $@ -MF $@ $<

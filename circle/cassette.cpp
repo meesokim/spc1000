@@ -3,10 +3,6 @@ typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
 #endif 
 
-#include <vector>
-#include <fstream>
-#include <algorithm>
-#include <filesystem>
 #include "cassette.h"
 #include <bzlib.h>
 #include <miniz_zip.h>
