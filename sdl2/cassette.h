@@ -10,18 +10,24 @@ enum casmode {CASSETTE_STOP, CASSETTE_PLAY, CASSETTE_REC};
 enum castype {TYPE_CHARBIN, TYPE_BINARY};
 
 class ZFile {
-public:
+    public:
     string fname;
     int index;
-    ZFile(string f, int i) { fname = f; index = i;};
+    ZFile(string f, int i=0) { fname = f; index = i;};
     bool operator<(const ZFile& other) {
         return fname < other.fname;
     }
     string operator=(const char *name) {
         return name;
     }
+    operator string() {
+        return fname;
+    }
     string filename() { return fname; }
+    string extension() { return fname.substr(fname.find_last_of(".")); }
+    const char *c_str() { return fname.c_str(); }
 };
+
 
 #define TAPE_SIZE (1024 * 1024 * 6)
 class Cassette {

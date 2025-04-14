@@ -27,7 +27,7 @@
      wrong parameter order in call to bzDecompressInit in
      bzBuffToBuffDecompress.  Fixed.
 */
-#define BZ_NO_STDIO
+// #define BZ_NO_STDIO
 #include "bzlib_private.h"
 #include "bz_version.h"
 

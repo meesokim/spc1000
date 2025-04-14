@@ -67,8 +67,8 @@ private:
 	CLogger				m_Logger;
 	CI2CMaster			m_I2CMaster;
 	CUSBController		*m_pUSB;
-	CKeyboard			m_Keyboard;
 	CEMMCDevice			m_EMMC;
+	CKeyboard			m_Keyboard;
 	FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
 	Registers reg;
