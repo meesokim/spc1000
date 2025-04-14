@@ -7,18 +7,22 @@
 class CKeyboard {
 	TKeyMap spcKeyHash [0x200];
 	unsigned char keyMatrix[16];
+	static CKeyboard *s_pThis;
 public:
+	static CKeyboard *GetInstance()
+	{
+		return s_pThis;
+	}
 	CKeyboard()
 	{
 		int num = 0;
 		do {
 			spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
 		} while(spcKeyMap[num++].sym != 0);        
+		s_pThis = this;
 	}
-	void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]) 
+	void keyHandler(unsigned char ucModifiers, const unsigned char RawKeys[6])
 	{
-		CString Message;
-		Message.Format ("Key status (modifiers %02X, %s)", (unsigned) ucModifiers, RawKeys);
 		TKeyMap *map;
 		for(int i = 0; i < 10; i++)
 			keyMatrix[i] = 0xff;
@@ -46,5 +50,12 @@ public:
 					keyMatrix[map->keyMatIdx] &= ~ map->keyMask;
 			}
 		}		
+	}
+	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]) 
+	{
+		CString Message;
+		Message.Format ("Key status (modifiers %02X, %s)", (unsigned) ucModifiers, RawKeys);
+		if (s_pThis)
+			s_pThis->keyHandler(ucModifiers, RawKeys);
 	}
 };

@@ -92,8 +92,8 @@ void Cassette::load(const char *name)
     }        
 #ifdef __circle__
     FIL File;
-    int nBytesRead;
-    Result = f_open (&File, file, FA_WRITE | FA_CREATE_ALWAYS);
+    unsigned int nBytesRead;
+    FRESULT Result = f_open (&File, file.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
     if (Result != FR_OK) {
         f_read (&File, Buffer, sizeof Buffer, &nBytesRead);
     }

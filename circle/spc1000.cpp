@@ -572,8 +572,3 @@ TKeyMap spcKeyMap[] = // the last item's keyMatIdx must be -1
 	{ (CRLKey)0, -1, 0, "LAST KEY" }
 };
 
-extern "C" {
-	void bz_internal_error ( int errcode ) {};
-	void abort() { while(1); };
-	char *  getenv (const char *__string) { return 0; };
-}

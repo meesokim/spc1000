@@ -40,11 +40,16 @@ CKernel::CKernel (void)
 	m_pUSB (new CUSBMIDIGadget (&m_Interrupt)),
 #endif
 	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
+	m_USBHCI (&m_Interrupt, &m_Timer, TRUE),		// TRUE: enable plug-and-play
 	m_Keyboard()
 	// m_pMiniOrgan (0)
 {
 	m_ActLED.Blink (5);	// show we are alive
+	m_pKeyboard = nullptr;
 }
+
+CKeyboard *CKeyboard::s_pThis = 0;
+CKernel *CKernel::s_pThis = 0;
 
 CKernel::~CKernel (void)
 {
@@ -53,6 +58,7 @@ CKernel::~CKernel (void)
 boolean CKernel::Initialize (void)
 {
 	boolean bOK = TRUE;
+	// if (bOK) { bOK = m_DeviceNameService.Initialize (); }
 	if (bOK) { bOK = m_Screen.Initialize (); }
 	if (bOK) { bOK = m_Logger.Initialize (&m_Screen); }
 	if (bOK) { bOK = m_Interrupt.Initialize (); }
@@ -60,6 +66,7 @@ boolean CKernel::Initialize (void)
 	if (bOK) { bOK = m_I2CMaster.Initialize (); }
 	if (bOK) { assert (m_pUSB); bOK = m_pUSB->Initialize (); }
 	if (bOK) { bOK = m_EMMC.Initialize (); }
+	if (bOK) { bOK = m_USBHCI.Initialize (); }
 	// if (bOK) { m_pMiniOrgan = new CMiniOrgan (&m_Interrupt, &m_I2CMaster); bOK = m_pMiniOrgan->Initialize (); }
 	return bOK;
 }
@@ -72,7 +79,26 @@ TShutdownMode CKernel::Run (void)
 	{
 		m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
 	}
+	while(true)
+	{
+		boolean bUpdated = m_USBHCI.UpdatePlugAndPlay ();
+		if (  bUpdated && m_pKeyboard == nullptr)
+		{
+			m_pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+			if (m_pKeyboard != nullptr)
+			{
+				m_pKeyboard->RegisterRemovedHandler (KeyboardRemovedHandler);
 
+#if 0	// set to 0 to test raw mode
+				m_pKeyboard->RegisterShutdownHandler (ShutdownHandler);
+				m_pKeyboard->RegisterKeyPressedHandler (KeyPressedHandler);
+#else
+				m_pKeyboard->RegisterKeyStatusHandlerRaw (m_Keyboard.KeyStatusHandlerRaw);
+#endif
+				m_Logger.Write (FromKernel, LogNotice, "Just type something!");			
+			}
+		}
+	}
 	for (unsigned nCount = 0; true; nCount++)
 	{
 		// This must be called from TASK_LEVEL to update the tree of connected USB devices.
@@ -82,4 +108,12 @@ TShutdownMode CKernel::Run (void)
 		m_Screen.Rotor (0, nCount);
 	}
 	return ShutdownHalt;
+}
+
+void CKernel::KeyboardRemovedHandler (CDevice *pDevice, void *pContext)
+{
+	assert (s_pThis != nullptr);
+	CLogger::Get ()->Write (FromKernel, LogDebug, "Keyboard removed");
+
+	s_pThis->m_pKeyboard = 0;
 }

@@ -7,12 +7,12 @@ typedef unsigned char uint8_t;
 #endif
 
 #include <string.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include <fstream>
+// #include <fstream>
 #include <algorithm>
-#include <filesystem>
+// #include <filesystem>
 
 #include <string>
 using namespace std;
@@ -62,7 +62,7 @@ public:
     Cassette() {}
     void initTick(unsigned int tick) { old_cycles = tick; }
     void load(const char *name = NULL);
-    void load(const char *data, int length, const char *filename);
+    void load(const char *data, unsigned int length, const char *filename);
     void save(const char *name);
     char read(unsigned int, unsigned char);
     char read1() { return 0;}

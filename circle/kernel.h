@@ -31,6 +31,8 @@
 #include <circle/types.h>
 #include <circle/i2cmaster.h>
 #include <circle/usb/usbcontroller.h>
+#include <circle/usb/usbhcidevice.h>
+#include <circle/usb/usbkeyboard.h>
 #include <circle/string.h>
 #include <circle/util.h>
 #include <SDCard/emmc.h>
@@ -54,7 +56,6 @@ public:
 	boolean Initialize (void);
 
 	TShutdownMode Run (void);
-
 private:
 	// do not change this order
 	CActLED				m_ActLED;
@@ -68,7 +69,9 @@ private:
 	CI2CMaster			m_I2CMaster;
 	CUSBController		*m_pUSB;
 	CEMMCDevice			m_EMMC;
+	CUSBHCIDevice		m_USBHCI;
 	CKeyboard			m_Keyboard;
+	CUSBKeyboardDevice *m_pKeyboard;
 	FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
 	Registers reg;
@@ -78,6 +81,8 @@ private:
 	CPU cpu;
 	AY8910 ay8910;
 	Cassette cassette;
+	static void KeyboardRemovedHandler (CDevice *pDevice, void *pContext);
+	static CKernel *s_pThis;	
 };
 
 #endif

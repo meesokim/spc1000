@@ -11,7 +11,7 @@ extern "C" {
 #endif
 inline string lower(string data) {
     string ret = data;
-    for (int i = 0; i < data.length(); i++)
+    for (unsigned int i = 0; i < data.length(); i++)
         ret[i] = tolower(data[i]);
     return ret;
 }
@@ -89,8 +89,8 @@ void Cassette::load(const char *name)
     }        
 #ifdef __circle__
     FIL File;
-    int nBytesRead;
-    Result = f_open (&File, file, FA_WRITE | FA_CREATE_ALWAYS);
+    unsigned int nBytesRead;
+    FRESULT Result = f_open (&File, file.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
     if (Result != FR_OK) {
         f_read (&File, Buffer, sizeof Buffer, &nBytesRead);
     }
@@ -146,7 +146,7 @@ void Cassette::load(const char *name)
     printf("%s (%d)\n", loaded_filename.c_str(), len);
 }
 
-void Cassette::load(const char *data, int length, const char *filename)
+void Cassette::load(const char *data, unsigned int length, const char *filename)
 {
     if (data[0] == 'P' && data[1] == 'K')
     {
@@ -237,6 +237,16 @@ int Cassette::loadzip(const char *data, int size)
     len = 0;
     if (!size)
     {
+#ifdef __circle__
+        string zipname(data);
+        FIL File;
+        unsigned int nBytesRead;
+        FRESULT Result = f_open (&File, zipname.c_str(), FA_READ);
+        if (Result != FR_OK) {
+            f_read (&File, compresssed, sizeof compresssed, &nBytesRead);
+        }
+        size = nBytesRead;
+#else
         string zipname(data);
         ifstream file(zipname, std::ios_base::binary);
         file.seekg(0, std::ios::end);
@@ -245,6 +255,7 @@ int Cassette::loadzip(const char *data, int size)
         file.seekg(0, std::ios::beg);
         file.read((char *)compresssed, size);
         file.close();
+#endif        
         printf("loadzip: %s (%d)\n", zipname, size);
     }
     else 
@@ -292,7 +303,7 @@ int Cassette::loadzip(const char *data, int size)
                     printf("fatal error\n");
                     exit(0);
                 }
-                for(int i = 0; i < uncomp_size; i++)
+                for(unsigned int i = 0; i < uncomp_size; i++)
                 {
                     for(int j = 0; j < 8; j++)  
                     {
