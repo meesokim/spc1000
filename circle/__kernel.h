@@ -2,8 +2,8 @@
 // kernel.h
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
-// 
+// Copyright (C) 2014-2024  R. Stange <rsta2@o2online.de>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -24,21 +24,21 @@
 #include <circle/koptions.h>
 #include <circle/devicenameservice.h>
 #include <circle/screen.h>
+#include <circle/serial.h>
 #include <circle/exceptionhandler.h>
 #include <circle/interrupt.h>
 #include <circle/timer.h>
 #include <circle/logger.h>
-#include <circle/types.h>
+#include <circle/sched/scheduler.h>
 #include <circle/i2cmaster.h>
-#include <circle/usb/usbcontroller.h>
 #include <circle/usb/usbhcidevice.h>
-#include <circle/usb/usbkeyboard.h>
-#include <circle/string.h>
-#include <circle/util.h>
-#include <SDCard/emmc.h>
-#include <fatfs/ff.h>
+#include <circle/sound/soundbasedevice.h>
+#include <circle/types.h>
+#include "oscillator.h"
 
-#include "spc1000.h"
+#ifdef USE_VCHIQ_SOUND
+	#include <vc4/vchiq/vchiqdevice.h>
+#endif
 
 enum TShutdownMode
 {
@@ -56,34 +56,34 @@ public:
 	boolean Initialize (void);
 
 	TShutdownMode Run (void);
-	static unsigned int GetTicks() 
-	{
-		if (s_pThis) {
-			return s_pThis->m_Timer.GetClockTicks () / 1000;
-		}
-		return 0;
-	}
+
+private:
+	void WriteSoundData (unsigned nFrames);
+
+	void GetSoundData (void *pBuffer, unsigned nFrames);
+
 private:
 	// do not change this order
-	CActLED				m_ActLED;
+	CActLED			m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
 	CScreenDevice		m_Screen;
+	CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
 	CInterruptSystem	m_Interrupt;
-	CTimer				m_Timer;
-	CLogger				m_Logger;
-	// CI2CMaster			m_I2CMaster;
-	// CUSBController		*m_pUSB;
-	// CUSBHCIDevice		m_USBHCI;
-	// CEMMCDevice			m_EMMC;
-	// CKeyboard			m_Keyboard;
-	// CUSBKeyboardDevice *m_pKeyboard;
-	// FATFS				m_FileSystem;
-	// CMiniOrgan		*m_pMiniOrgan;
-	static void KeyboardRemovedHandler (CDevice *pDevice, void *pContext);
-	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]);
-	static CKernel *s_pThis;	
+	CTimer			m_Timer;
+	CLogger			m_Logger;
+	CScheduler		m_Scheduler;
+	CI2CMaster		m_I2CMaster;
+	CUSBHCIDevice		m_USBHCI;
+
+#ifdef USE_VCHIQ_SOUND
+	CVCHIQDevice		m_VCHIQ;
+#endif
+	CSoundBaseDevice	*m_pSound;
+
+	COscillator m_LFO;
+	COscillator m_VFO;
 };
 
 #endif

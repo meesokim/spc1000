@@ -14,7 +14,7 @@ extern "C" {
 }
 #endif
 
-#include "../screen8.h"
+#include <circle/screen.h> 
 #include <circle/usb/usbmouse.h>
 #include <circle/input/touchscreen.h>
 
@@ -27,12 +27,13 @@ extern "C" {
 class CUGUI
 {
 public:
-	CUGUI (CScreenDevice8 *pScreen);
+	CUGUI (CScreenDevice *pScreen);
 	~CUGUI (void);
 
 	boolean Initialize (void);
 
 	void Update (void);
+	void Update (bool);
 
 private:
 	static void SetPixel (UG_S16 sPosX, UG_S16 sPosY, UG_COLOR Color);
@@ -46,7 +47,7 @@ private:
 					  unsigned nID, unsigned nPosX, unsigned nPosY);
 
 private:
-	CScreenDevice8 *m_pScreen;
+	CScreenDevice *m_pScreen;
 
 	UG_GUI m_GUI;
 

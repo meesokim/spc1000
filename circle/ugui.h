@@ -19,6 +19,7 @@
 
 #include "system.h"
 #include "ugui_config.h"
+#include <string.h>
 
 
 /* -------------------------------------------------------------------------------- */
@@ -101,13 +102,10 @@ typedef struct S_OBJECT                               UG_OBJECT;
 typedef struct S_WINDOW                               UG_WINDOW;
 typedef UG_S8                                         UG_RESULT;
 #ifdef USE_COLOR_RGB888
-//typedef UG_U32                                        UG_COLOR;
+typedef UG_U32                                        UG_COLOR;
 #endif
 #ifdef USE_COLOR_RGB565
 typedef UG_U16                                        UG_COLOR;
-#endif
-#ifdef USE_COLOR_INDEX
-//typedef UG_U8                                         UG_COLOR;
 #endif
 /* -------------------------------------------------------------------------------- */
 /* -- DEFINES                                                                    -- */
@@ -879,14 +877,6 @@ typedef struct
 #define  C_WHITE_SMOKE                0xF5F5F5
 #define  C_WHITE                      0xFFFFFF
 #endif
-#undef USE_COLOR_INDEX
-#ifdef USE_COLOR_INDEX
-#define  C_BLACK					0x0
-#define  C_WHITE					0xff
-#define  C_BLUE						0x3
-#define  C_GRAY						0x5
-
-#endif
 
 /* -------------------------------------------------------------------------------- */
 /* -- PROTOTYPES                                                                 -- */
@@ -907,6 +897,7 @@ void UG_FillCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c );
 void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
 void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
 void UG_PutString( UG_S16 x, UG_S16 y, char* str );
+void UG_PutKorChar( UG_U8 utf8[4], UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc);
 void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc );
 void UG_ConsolePutString( char* str );
 void UG_ConsoleSetArea( UG_S16 xs, UG_S16 ys, UG_S16 xe, UG_S16 ye );

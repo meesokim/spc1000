@@ -2,11 +2,11 @@
 # Makefile
 #
 
-CIRCLEHOME = ../../..
+CIRCLEHOME = ~/circle/
 
 CPPFLAGS += -Wno-write-strings
 
-OBJS	= main.o kernel.o controlwindow.o scopewindow.o scopeconfig.o timeline.o recorder.o sampler.o
+OBJS	= main.o kernel.o controlwindow.o scopewindow.o scopeconfig.o timeline.o recorder.o sampler.o 
 
 LIBS	= ../libugui.a \
 	  $(CIRCLEHOME)/lib/usb/libusb.a \

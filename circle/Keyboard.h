@@ -24,7 +24,7 @@ public:
 		s_pThis = this;
 	}
 	void clearMatrix() {
-		for (int i = 0; i < sizeof(keyMatrix); i++)
+		for (unsigned int i = 0; i < sizeof(keyMatrix); i++)
 			keyMatrix[i] = 0xff;
 		pressed = false;
 		// printf("cleared\n");

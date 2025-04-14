@@ -87,7 +87,7 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
-		m_TouchScreen.Initialize ();
+//		m_TouchScreen.Initialize ();
 
 		bOK = m_GUI.Initialize ();
 	}

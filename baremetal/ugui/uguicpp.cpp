@@ -8,7 +8,7 @@
 
 CUGUI *CUGUI::s_pThis = 0;
 
-CUGUI::CUGUI (CScreenDevice8 *pScreen)
+CUGUI::CUGUI (CScreenDevice *pScreen)
 :	m_pScreen (pScreen),
 	m_pMouseDevice (0),
 	m_pTouchScreen (0),
@@ -64,7 +64,7 @@ boolean CUGUI::Initialize (void)
 	return TRUE;
 }
 
-void CUGUI::Update (void)
+void CUGUI::Update (bool b=false)
 {
 	UG_Update ();
 

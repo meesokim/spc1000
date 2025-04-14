@@ -9,14 +9,14 @@
 
 /* Enable color mode */
 //#define USE_COLOR_RGB888   // RGB = 0xFF,0xFF,0xFF
-#define DEPTH 8
-#if DEPTH == 16
+#define DEPTH 16 
+//#if DEPTH == 16
 #define USE_COLOR_RGB565   // RGB = 0bRRRRRGGGGGGBBBBB
-#elif DEPTH == 8
-#ifndef USE_COLOR_INDEX
-#define USE_COLOR_INDEX
-#endif
-#endif
+//#elif DEPTH == 8
+//#ifndef USE_COLOR_INDEX
+//#define USE_COLOR_INDEX
+//#endif
+//#endif
 
 /* Enable needed fonts here */
 #define  USE_FONT_4X6

@@ -3,5 +3,10 @@ if [ ! -d mmc ]; then
     mkdir mmc
 fi
 sudo mount -t drvfs h: mmc
-cp kernel.img mmc
-sudo umount mmc
+if grep -qs "$PWD/mmc" /proc/mounts; then
+    cp kernel.img mmc
+    sudo umount mmc
+fi
+if [ -d mmc ]; then
+    rmdir mmc
+fi
