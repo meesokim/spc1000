@@ -25,7 +25,7 @@ RASPPI ?= 1
 ifeq ($(strip $(RASPPI)),1)
 TARGET=kernel
 ASFLAGS = --warn -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=$(FLOAT_ABI) 
-CFLAGS += -fpermissive -Wall -O3 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=$(FLOAT_ABI) -fsigned-char -I$(KERNEL) -DRASPPI=$(RASPPI) -w
+CFLAGS += -fpermissive -Wall -O3 -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=$(FLOAT_ABI) -fsigned-char -I$(KERNEL) -DRASPPI=$(RASPPI) -w
 CPPFLAGS = $(CFLAGS) -fno-exceptions -fno-unwind-tables -fno-rtti
 LDFLAGS = -T $(KERNEL)/rpi$(RASPPI).ld -nostartfiles --specs=nosys.specs -fno-exceptions -fno-unwind-tables -fno-rtti -Wl,-Map=$(TARGET).map -o $(TARGET).elf
 else ifeq ($(strip $(RASPPI)),2)

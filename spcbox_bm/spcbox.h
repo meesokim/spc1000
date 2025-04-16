@@ -1,1 +1,0 @@
-/home/msx/spc1000/mame/src/devices/bus/spc1000/spcbox.h

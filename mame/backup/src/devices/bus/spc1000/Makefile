@@ -11,10 +11,10 @@ ifeq ($(TARGET_OS),windows)
 else ifeq ($(TARGET_OS),circle)
 	CC=arm-none-eabi-gcc
 	CXX=arm-none-eabi-g++
-	ZEMMIX_EXT=zxw
+	ZEMMIX_EXT=a
 	LIBINFO=
 	CFLAGS=-fPIC -D__circle__ -DRASPPI=1
-	LDFLAGS=-static-libgcc -static
+	LDFLAGS=-static-libgcc -static -shared
 else ifeq ($(TARGET_OS),linux)
 	CC=gcc
 	ZEMMIX_EXT=zxl
@@ -26,7 +26,7 @@ endif
 CXXFLAGS +=-fPIC -fpermissive
 SOURCES = $(shell find -maxdepth 1 -name "*.c")
 COBJS = $(shell echo $(SOURCES) | sed -r 's/\.s|\.c|\.cpp|.cc/\.o/g') 
-DEBUGFLAGS = -O0 -D _DEBUG -shared ../lib/libbcm2835.a
+#DEBUGFLAGS = -O0 -D _DEBUG -shared ../lib/libbcm2835.a
 RELEASEFLAGS = libbcm2835.a -O2 -D DEBUG -combine -fwhole-program -shared 
 
 ifeq ($(TARGET_OS),circle)

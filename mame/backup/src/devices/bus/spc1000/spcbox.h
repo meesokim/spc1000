@@ -7,6 +7,8 @@
 #include <algorithm>
 #ifndef RASPPI
 #include <dirent.h>
+#else
+#include "ff.h"
 #endif
 #include "miniz.h"
 using std::map;
@@ -91,7 +93,26 @@ public:
             printf("strcasestr:%s\n", ext);
             zipped = true;
             memset(&Zip, 0, sizeof(mz_zip_archive));
-#if 1
+#if RASPPI
+            FIL File;
+            unsigned nBytesRead;
+            unsigned readlen = 2040;
+            int length = 0;
+            FRESULT Result =  f_open (&File, ext, FA_READ | FA_OPEN_EXISTING);
+            if (Result != FR_OK) {
+                return;
+            }
+            while ((Result = f_read (&File, buf+length, length, &nBytesRead)) == FR_OK)
+            {
+                length += nBytesRead;
+                if (nBytesRead <= readlen)		// EOF?
+                {
+                    break;
+                }
+            }
+            f_close(&File);    
+            mz_zip_reader_init_mem(&Zip, buf, length, 0);
+#elif defined(MINIZ_NO_STDIO)
             FILE *f = fopen(ext, "rb");
             fseek(f, 0, SEEK_END);
             int length = ftell(f);
@@ -101,9 +122,7 @@ public:
             fclose(f);
             mz_zip_reader_init_mem(&Zip, buf, length, 0);
 #else
-#ifndef MINIZ_NO_STDIO
             mz_zip_reader_init_file(&Zip, ext, 0);
-#endif
 #endif
             int nums = (int)mz_zip_reader_get_num_files(&Zip);
             for (len = 0; len < nums; len++) {
@@ -115,7 +134,36 @@ public:
         } else {
             printf("else:%s\n", ext);
             zipped = false;
-#ifdef __linux__
+#if RASPPI
+            printf("dir:%s\n", ext);
+            FRESULT fr;     /* Return value */
+            DIR dj;         /* Directory search object */
+            FILINFO fno;    /* File information */
+            FIL File;
+            unsigned nBytesRead;
+            len = 0;
+            /* code */
+            // end = curdir + strlen(curdir)-1;
+            // if (*end == '/')
+            //     *end = 0;
+            fr = f_opendir(&dj, ext);
+            if (fr == FR_OK)
+            {
+                while(FR_OK == f_readdir(&dj, &fno) && fno.fname[0])
+                {
+                    char *fname = new char[2048];
+                    sprintf(fname, "%s/%s", ext, fno.fname);
+                    if (strcasestr(fname, ".tap") || strcasestr(fname, ".cas"))
+                    {
+                        files.insert(map<int, const char *>::value_type(len++, fname));
+                    }
+                }
+                f_closedir(&dj);
+            } else 
+            {
+                files.insert(map<int, const char *>::value_type(len++, exp));
+            }
+#elif defined(__linux__)
             printf("dir:%s\n", ext);
             if (!opendir(ext)) {
                 files.insert(map<int, const char *>::value_type(len++, exp));
@@ -463,14 +511,15 @@ class SpcBox {
         FILE *f;
         int ret;
         fdd[0] = spc1000_bin;
-#ifdef RASSPI
+        string filename = "number.txt";
+#ifdef RASPPI
         FRESULT fr;     /* Return value */
         FILINFO fno;    /* File information */
         int i = 4, j = 0;
         FIL File;
         unsigned nBytesRead;
         char str[256];
-        FRESULT Result =  f_open (&File, filename, FA_READ | FA_OPEN_EXISTING);
+        FRESULT Result =  f_open (&File, filename.c_str(), FA_READ | FA_OPEN_EXISTING);
         if (Result == FR_OK)
         {
             f_read (&File, str, 256, &nBytesRead);
@@ -481,7 +530,7 @@ class SpcBox {
             }
         }
 #else
-        f = fopen("number.txt","r");
+        f = fopen(filename.c_str(),"r");
         if (f) {
             ret = fscanf(f, "%d", &oldnum);
             ret++;

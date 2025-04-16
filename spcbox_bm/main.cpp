@@ -38,8 +38,8 @@ using namespace std;
 // #define THREAD                    
 
 // #define printf(fmt, ...) (0)
-#include "tap.h"
-#include "spcbox.h"
+//#include "tap.h"
+//#include "spcbox.h"
 
 extern "C"
 {
