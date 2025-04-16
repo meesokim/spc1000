@@ -388,3 +388,9 @@ void log_printf (const char *ptr, ...)
 
     va_end(arg);
 }
+
+int _getentropy(void *buffer, size_t length) {
+    // 보안 엔트로피를 제공할 수 없음. 실패 반환
+    errno = ENOSYS; // 기능이 구현되지 않았음을 표시
+    return -1;
+}

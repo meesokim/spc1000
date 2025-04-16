@@ -37,17 +37,18 @@ using namespace std;
 #include <iostream>
 // #define THREAD                    
 
-// #define printf(fmt, ...) (0)
-//#include "tap.h"
-//#include "spcbox.h"
-
+#define printf(fmt, ...) (0)
 extern "C"
 {
-    extern int mount(const char *source);    
-	__attribute__((interrupt("FIQ"))) interrupt_fiq() {
-#if 0
-		volatile register uint32_t a = GPIO_GET();
-        // if (!(GPIO_GET() & RPSPC_EXT))
+}
+#include "spcbox.h"
+SpcBox *sbox;
+extern "C"
+{
+    #include "tap.h"
+    __attribute__((interrupt("FIQ"))) interrupt_fiq() {
+        volatile register uint32_t a = GPIO_GET();
+        if (!(GPIO_GET() & RPSPC_EXT))
         {
             volatile register uint8_t addr = (a >> RPSPC_A0_PIN) & 3;
             if (a & RPSPC_WR) {
@@ -55,13 +56,11 @@ extern "C"
                 GPIO_SET(sbox->read(addr));
             } else {
                 sbox->write(addr, a);
-                sbox->execute();
             }
             while(!(GPIO_GET() & RPSPC_EXT));
         }
         PUT32(ARM_GPIO_GPEDS0, RPSPC_EXT);
-#endif
-    };
+    }
 }
 volatile uint32_t a = 0;
 int main(void) {
@@ -74,58 +73,13 @@ int main(void) {
     GPIO_SEL1(0);
     GPIO_SEL2(0);
     GPIO_CLR(0xff);
-    PUT32(BCM2835_GPIO_PADS, BCM2835_PAD_PASSWRD | BCM2835_PAD_HYSTERESIS_ENABLED | BCM2835_PAD_DRIVE_16mA);
-    // PUT32(ARM_IC_FIQ_CONTROL, 0x80 | ARM_FIQ_GPIO0);
-    // PUT32(ARM_GPIO_GPEDS0, RPSPC_EXT);
-    // PUT32(ARM_GPIO_GPFEN0, RPSPC_EXT);
+    // PUT32(BCM2835_GPIO_PADS, BCM2835_PAD_PASSWRD | BCM2835_PAD_HYSTERESIS_ENABLED | BCM2835_PAD_DRIVE_16mA);
+    PUT32(ARM_IC_FIQ_CONTROL, 0x80 | ARM_FIQ_GPIO0);
+    PUT32(ARM_GPIO_GPEDS0, RPSPC_EXT);
+    PUT32(ARM_GPIO_GPFEN0, RPSPC_EXT);
 	asm("cpsid i");
-	// asm("cpsid f");
-    uint8_t data[4] = {0,1,2,3};
-    GPIO_SEL0(0);
+	asm("cpsid f");
     while(true) {
-#if 1
-        if (!((a = GPIO_GET()) & RPSPC_EXT))
-        {
-            int addr = (a >> RPSPC_A0_PIN) & 3;
-            GPIO_CLR(0xff);
-            if (a & RPSPC_WR) {
-	            GPIO_SEL0(IOSEL0);
-                GPIO_SET(sbox->read(addr));
-            } else {
-            	GPIO_SEL0(0);
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                sbox->write(addr, GPIO_GET());
-                sbox->execute();
-            }
-            while(!(GPIO_GET() & RPSPC_EXT));
-        } 
-        // else if (!(a & RPSPC_RST)) {
-        //     while(!(GPIO_GET() & RPSPC_RST));
-        //     sbox->initialize();
-        // }
-        // while((GPIO_GET() & RPSPC_EXT));
-        // GPIO_CLR(0xff);
-#else
-        if (!((a = GPIO_GET()) & RPSPC_EXT))
-        {
-            int addr = (a >> RPSPC_A0_PIN) & 3;
-            if (a & RPSPC_WR) {
-                GPIO_CLR(0xff);
-	            GPIO_SEL0(IOSEL0);
-                GPIO_SET(data[addr]);
-            } else {
-                GPIO_SEL0(0);
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                a = GPIO_GET();                
-                data[addr] = a;
-            }
-            while(!(GPIO_GET() & RPSPC_EXT));
-        }
-#endif
+        sbox->execute();
     }
 }
