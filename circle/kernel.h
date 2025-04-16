@@ -35,8 +35,10 @@
 #include <circle/usb/usbkeyboard.h>
 #include <circle/string.h>
 #include <circle/util.h>
-#include <SDCard/emmc.h>
-#include <fatfs/ff.h>
+
+#ifdef USE_VCHIQ_SOUND
+	#include <vc4/vchiq/vchiqdevice.h>
+#endif
 
 #include "spc1000.h"
 
@@ -77,7 +79,7 @@ private:
 	// CUSBController		*m_pUSB;
 	// CUSBHCIDevice		m_USBHCI;
 	// CEMMCDevice			m_EMMC;
-	// CKeyboard			m_Keyboard;
+	CKeyboard			m_Keyboard;
 	// CUSBKeyboardDevice *m_pKeyboard;
 	// FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
