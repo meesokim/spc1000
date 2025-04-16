@@ -11,6 +11,7 @@ ifeq ($(TARGET_OS),windows)
 else ifeq ($(TARGET_OS),circle)
 	CC=arm-none-eabi-gcc
 	CXX=arm-none-eabi-g++
+	AR=arm-none-eabi-ar
 	ZEMMIX_EXT=a
 	LIBINFO=
 	CFLAGS=-fPIC -D__circle__ -DRASPPI=1
@@ -53,7 +54,11 @@ example: example.o spc.o
 	$(CC) $(FLAGS) $(CFLAGS) -c -o $@ $<
 
 $(TARGET).$(ZEMMIX_EXT): $(OBJS)
+ifeq ($(TARGET_OS),circle)
+	$(AR) rcs $(TARGET).$(ZEMMIX_EXT) $(OBJS)
+else
 	$(CXX) $(FLAGS) $(DEBUGFLAGS) -o $(TARGET).$(ZEMMIX_EXT) $(OBJS) $(LDFLAGS)
+endif
 
 clean:
 	$(RM) -f $(OBJS) $(TARGET).$(ZEMMIX_EXT) *.o
