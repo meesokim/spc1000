@@ -4,7 +4,7 @@ include common.mk
 
 all: $(TARGET).img 
 
-CFLAGS += -ffunction-sections -Iinclude -Ibaserom -Idsk2rom -Ifatfs -DRASPPI=$(RASPPI)  
+CFLAGS += -ffunction-sections -Iminiz -Ifatfs -DRASPPI=$(RASPPI)  
 SOURCES = $(shell find . -maxdepth 2 -not -path "./sjasmsrc42c/*" -not -path "./include/*" -type f \( -iname "*.c" -o -iname "*.cpp" -o -iname "*.cc" \) -print) 
 ROMS    = 
 ROMOBJS = $(shell echo $(ROMS) | sed -r 's/\.rom|\.mx2|\.bin/\.o/g') 
