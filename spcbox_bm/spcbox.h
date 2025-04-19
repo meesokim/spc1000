@@ -686,7 +686,7 @@ class SpcBox {
     uint8_t read(uint8_t addr) {
         uint8_t ret = 0;
         // static uint8_t d;
-        string cmd[4] = {"", "GETDATA", "STATUS", "DIRECT"};
+        static string cmd[4] = {"", "GETDATA", "STATUS", "DIRECT"};
         switch (addr) {
             case 0:
                 ret = datain;
@@ -704,7 +704,7 @@ class SpcBox {
                 break;
         }
 // #define DEBUG
-#ifdef DEBUG        
+#ifdef DEBUG_ERR        
         if (addr == 2 && d != ret) {
             c = '\n';
             d = ret;
@@ -776,7 +776,7 @@ class SpcBox {
 #ifdef THREAD                    
                     cv.notify_all();
 #else
-                    execute();
+                    // execute();
 #endif
                     dataout = 0;
                 } else if (!data){
