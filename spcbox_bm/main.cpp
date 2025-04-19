@@ -47,17 +47,18 @@ extern "C"
 {
     #include "tap.h"
     __attribute__((interrupt("FIQ"))) interrupt_fiq() {
-        volatile register uint32_t a = GPIO_GET();
-        if (!(GPIO_GET() & RPSPC_EXT))
+        volatile register uint32_t g = GPIO_GET();
+        if (!((g = GPIO_GET()) & RPSPC_EXT))
         {
-            volatile register uint8_t addr = (a >> RPSPC_A0_PIN) & 3;
-            if (a & RPSPC_WR) {
+            volatile register uint8_t addr = (g >> RPSPC_A0_PIN) & 3;
+            if (!(g & RPSPC_WR)) {
+                sbox->write(addr, GPIO_GET());
+            } else {
                 GPIO_CLR(0xff);
                 GPIO_SET(sbox->read(addr));
-            } else {
-                sbox->write(addr, a);
             }
             while(!(GPIO_GET() & RPSPC_EXT));
+            GPIO_SET(0x0);
         }
         PUT32(ARM_GPIO_GPEDS0, RPSPC_EXT);
     }
@@ -66,19 +67,19 @@ volatile uint32_t a = 0;
 int main(void) {
     // // mount("SD:");
 	volatile SpcBox *sbox;
-    TapeFiles *tape = new TapeFiles();
-    tape->initialize((const char*)tap_zip, sizeof(tap_zip));
-    sbox = new SpcBox(tape); 
 	GPIO_SEL0(IOSEL0);
     GPIO_SEL1(0);
     GPIO_SEL2(0);
     GPIO_CLR(0xff);
     // PUT32(BCM2835_GPIO_PADS, BCM2835_PAD_PASSWRD | BCM2835_PAD_HYSTERESIS_ENABLED | BCM2835_PAD_DRIVE_16mA);
     PUT32(ARM_IC_FIQ_CONTROL, 0x80 | ARM_FIQ_GPIO0);
+	asm("cpsid i");
+	asm("cpsie f");
     PUT32(ARM_GPIO_GPEDS0, RPSPC_EXT);
     PUT32(ARM_GPIO_GPFEN0, RPSPC_EXT);
-	asm("cpsid i");
-	asm("cpsid f");
+    TapeFiles *tape = new TapeFiles();
+    tape->initialize((const char*)tap_zip, sizeof(tap_zip));
+    sbox = new SpcBox(tape); 
     while(true) {
         sbox->execute();
     }

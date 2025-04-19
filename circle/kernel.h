@@ -61,7 +61,7 @@ public:
 	static unsigned int GetTicks() 
 	{
 		if (s_pThis) {
-			return s_pThis->m_Timer.GetClockTicks () / 1000;
+			// return s_pThis->m_Timer.GetClockTicks () / 1000;
 		}
 		return 0;
 	}
@@ -79,7 +79,7 @@ private:
 	// CUSBController		*m_pUSB;
 	// CUSBHCIDevice		m_USBHCI;
 	// CEMMCDevice			m_EMMC;
-	CKeyboard			m_Keyboard;
+	// CKeyboard			m_Keyboard;
 	// CUSBKeyboardDevice *m_pKeyboard;
 	// FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;

@@ -44,20 +44,19 @@ CKernel::CKernel (void)
 // #endif
 	// m_USBHCI (&m_Interrupt, &m_Timer, TRUE),		// TRUE: enable plug-and-play
 	// m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
-	// m_pMiniOrgan (0)
 {
-	m_ActLED.Blink (5);	// show we are alive
+//	m_ActLED.Blink (5);	// show we are alive
 	// m_pKeyboard = nullptr;
 }
 
 CKeyboard *CKeyboard::s_pThis = 0;
 CKernel *CKernel::s_pThis = 0;
 
-CMC6847 mc6847;
-CKeyboard kbd;
-CPU cpu;
-AY8910 ay8910;
-Cassette cassette;
+// CMC6847 mc6847;
+// CKeyboard kbd;
+// CPU cpu;
+// AY8910 ay8910;
+// Cassette cassette;
 
 Registers reg;
 TKeyMap spcKeyHash [0x200];
@@ -399,24 +398,24 @@ boolean CKernel::Initialize (void)
 	// if (bOK) { bOK = m_DeviceNameService.Initialize (); }
 	if (bOK) { bOK = m_Screen.Initialize (); }
 	if (bOK) { bOK = m_Logger.Initialize (&m_Screen); }
-	// if (bOK) { bOK = m_Interrupt.Initialize (); }
-	// if (bOK) { bOK = m_Timer.Initialize (); }
+	if (bOK) { bOK = m_Interrupt.Initialize (); }
+	if (bOK) { bOK = m_Timer.Initialize (); }
 	// if (bOK) { bOK = m_I2CMaster.Initialize (); }
 	// if (bOK) { assert (m_pUSB); bOK = m_pUSB->Initialize (); }
 	// if (bOK) { bOK = m_EMMC.Initialize (); }
 	// if (bOK) { bOK = m_USBHCI.Initialize (); }
 	// if (bOK) { m_pMiniOrgan = new CMiniOrgan (&m_Interrupt, &m_I2CMaster); bOK = m_pMiniOrgan->Initialize (); }
 	int num = 0;
-	do {
-		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
-	} while(spcKeyMap[num++].sym != 0);       
+	//do {
+	//	spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
+	//} while(spcKeyMap[num++].sym != 0);       
 	return bOK;
 }
 
 TShutdownMode CKernel::Run (void)
 {
-	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	m_Logger.Write (FromKernel, LogNotice, "SPC-1000");
+	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	// m_Logger.Write (FromKernel, LogNotice, "SPC-1000");
 	// if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
 	// {
 	// 	m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
