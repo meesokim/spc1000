@@ -1,1 +1,1 @@
-/home/msx/spc1000/emu2149/emu2149.h
+../emu2149/emu2149.h
