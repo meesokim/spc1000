@@ -1,9 +1,7 @@
 #ifndef AY8910_H
 #define AY8910_H
 
-extern "C" {
 #include "emu2149.h"
-};
 
 #define PSG_CLOCK_RATE 44100
 #define PSG_QUALITY_HIGH 0

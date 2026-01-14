@@ -1,4 +1,4 @@
-all: wasm bin circle
+all: wasm bin circle target
 
 CXXSOURCES = main.cpp mc6847.cpp keyboard.cpp cpu.cpp cassette.cpp
 CSOURCES = spcall.c emu2149.c ugui.c miniz/miniz.c miniz/miniz_zip.c miniz/miniz_tdef.c miniz/miniz_tinfl.c
@@ -35,10 +35,16 @@ CIRCLE_CXX = arm-none-eabi-g++
 
 WASM_OBJECTS = $(CXXSOURCES:.cpp=.wasm.o) $(CSOURCES:.c=.wasm.o)
 BIN_OBJECTS = $(CXXSOURCES:.cpp=.bin.o) $(CSOURCES:.c=.bin.o)
-CIRCLE_OBJECTS = $(CXXSOURCES:.cpp=.circle.o) $(PSOURCES:.c=.circle.o)
+TARGET_OBJECTS = $(CXXSOURCES:.cpp=.target.o) $(CSOURCES:.c=.target.o)
 
-wasm: $(WASM_OBJECTS)
-	$(WASM_CC) $(WASM_OBJECTS) -DWASM -s WASM=1 -sUSE_WEBGL2=1 -sUSE_SDL=2 -sUSE_BZIP2 -sSTACK_SIZE=8192000 --preload-file $(DIR) -sALLOW_MEMORY_GROWTH -sEXPORTED_FUNCTIONS=_remote,_keydown,_main -sEXPORTED_RUNTIME_METHODS=ccall,cwrap -o index.js 
+%.target.o: %.c
+	$(TARGET_CC) --sysroot=$(SYSROOT) -c $< -o $@ -DDIR=\"$(DIR)\"
+
+%.target.o: %.cpp
+	$(TARGET_CXX) --sysroot=$(SYSROOT) -std=c++17 $(shell $(SDL2_CONFIG) --cflags) -c $< -o $@ -Iminiz -DDIR=\"$(DIR)\"
+
+target: $(TARGET_OBJECTS)
+	$(TARGET_CXX) --sysroot=$(SYSROOT) $(TARGET_OBJECTS) $(shell $(SDL2_CONFIG) --libs) -lSDL2_image -lstdc++ -lbz2 -DSPC1000 -o spc1000
 
 bin: $(BIN_OBJECTS)
 	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2 -lzip
