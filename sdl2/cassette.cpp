@@ -146,7 +146,7 @@ void Cassette::load(const char *name)
         // cout << filename << endl;
         len = loadzip(Buffer, size);
     }
-    printf("%s (%d)\n", loaded_filename.c_str(), len);
+    //printf("%s (%d)\n", loaded_filename.c_str(), len);
 }
 
 void Cassette::load(const char *data, int length, const char *filename)
@@ -218,7 +218,7 @@ void Cassette::loaddir(const char *dirname)
 #else
             files.push_back(file);
 #endif
-            printf("%d. %s\n", file.index, file.c_str());
+            //printf("%d. %s\n", file.index, file.c_str());
         }
     }
 #endif

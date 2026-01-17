@@ -408,7 +408,7 @@ void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single
     kbd.KeyPress(code, shift, ctrl, grp, lock, single);
 }
 const char * remote(int i, int j, const char *data, const char *filename) {
-    printf("remote:%d\n", i);
+    //printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
         case RESET:
