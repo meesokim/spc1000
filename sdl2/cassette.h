@@ -1,7 +1,7 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
-#ifdef __EMSCRIPTEN__
+#ifndef __circle__
 #include <filesystem>
 namespace fs = std::filesystem;
 #endif

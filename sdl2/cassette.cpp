@@ -248,7 +248,7 @@ int Cassette::loadzip(const char *data, int size)
         file.seekg(0, std::ios::beg);
         file.read((char *)compresssed, size);
         file.close();
-        printf("loadzip: %s (%d)\n", zipname, size);
+        printf("loadzip: %s (%d)\n", zipname.c_str(), size);
     }
     else 
     {

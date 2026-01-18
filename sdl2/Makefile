@@ -19,13 +19,13 @@ CIRCLE_CXX = arm-none-eabi-g++
 	$(WASM_CC) -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@
 
 %.wasm.o: %.cpp
-	$(WASM_CXX) -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
+	$(WASM_CXX) -std=c++17 -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
 
 %.bin.o: %.c
 	$(BIN_CC) -I/usr/include/SDL2 -Iminiz -O2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@
 
 %.bin.o: %.cpp
-	$(BIN_CXX) -I/usr/include/SDL2 -Iminiz -O2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
+	$(BIN_CXX) -std=c++17 -I/usr/include/SDL2 -Iminiz -O2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
 
 %.circle.o: %.c
 	$(CIRCLE_CC) -c -Wall -O2 -ffreestanding -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=softfp -fsigned-char -D__circle__ -ISDL2 -I../bzip2 -Iminiz $< -o $@
