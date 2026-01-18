@@ -656,8 +656,8 @@ void  main_loop()
 #include <sys/stat.h>
 int main(int argc, char *argv[]) {
 
-#ifdef DIR
-    #define TAPE DIR
+#ifdef TAPE_DIR
+    #define TAPE TAPE_DIR
 #else
     #define TAPE "taps2"
 #endif
