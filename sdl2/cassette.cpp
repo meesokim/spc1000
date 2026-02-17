@@ -26,6 +26,9 @@ bool in_array(const std::string &value, const std::vector<std::string> &array)
 #define PULSE 14
 char Cassette::read(uint32_t cycles, uint8_t wait) {
     char val = 0;
+    // float interrupt_cycle = 4000000.0f / 60.0f; // cycles per interrupt
+    if (wait == 0 || wait == 0xff)
+        wait = 38;
     int diff = cycles - old_cycles;
     if (diff > 4 * PULSE * 90)
     {
@@ -46,7 +49,6 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
         end_time = cycles + 160 + PULSE * wait * mark;
         // if (pos < 100)
         //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
-            // printf("%d\n", mark);
         if (++pos > len)
         {
             pos = 0;
@@ -55,14 +57,14 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
     }
     if (mark > -1)
     {
-        if (cycles < inv_time)
+        if ((int)(cycles - inv_time) < 0)
             val = 0;
-        else if (cycles < end_time)
+        else if ((int)(cycles - end_time) < 0)
             val = 1;
     }
     // if (pos < 100 && inv_time > 0)
     //     printf("%d(%d)%c\n", val, cycles - old_time, val != mark ? '*' : 0);
-    if (cycles > end_time)
+    if ((int)(cycles - end_time) > 0)
         mark = -1;
     old_cycles = cycles;
     return val;

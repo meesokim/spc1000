@@ -69,7 +69,7 @@ target: prepare_headers $(TARGET_OBJECTS)
 	$(TARGET_CXX) $(TARGET_ARCH) --sysroot=$(SYSROOT) $(TARGET_OBJECTS) $(SDL2_LIBS) -DSPC1000 -o spc1000
 
 bin: $(BIN_OBJECTS)
-	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2 -lzip
+	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2
 
 circle: $(CIRCLE_OBJECTS)
 	$(CIRCLE_CXX) $(CIRCLE_OBJECTS) -T raspberry.ld -nostartfiles -fno-exceptions -fno-unwind-tables -fno-rtti -Wl,-Map=kernel.map bzlib.o crctable.o libkernel.a -lc libSDL2.a -o kernel.elf
