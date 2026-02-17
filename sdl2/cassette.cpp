@@ -27,10 +27,9 @@ bool in_array(const std::string &value, const std::vector<std::string> &array)
 char Cassette::read(uint32_t cycles, uint8_t wait) {
     char val = 0;
     // float interrupt_cycle = 4000000.0f / 60.0f; // cycles per interrupt
-    if (wait == 0 || wait == 0xff)
-        wait = 38;
-    int diff = cycles - old_cycles;
-    if (diff > 4 * PULSE * 90)
+    wait = 38;
+    int diff = (int)(cycles - old_cycles);
+    if ((uint32_t)diff > 4 * PULSE * 90)
     {
         mark = -3;
         inv_time = 0;
@@ -45,8 +44,8 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
         // if (pos < 100)
         //     printf("%d.%d ", mark, pos);
         old_time = cycles;
-        inv_time = cycles + 70;
-        end_time = cycles + 160 + PULSE * wait * mark;
+        inv_time = cycles + 120;
+        end_time = cycles + 1250 + PULSE * wait * mark;
         // if (pos < 100)
         //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
         if (++pos > len)
