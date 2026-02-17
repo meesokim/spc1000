@@ -566,12 +566,28 @@ void  main_loop()
         cassette.get_title(text);
         // setText(text);        
         first_call = false;
+        last_time = SDL_GetTicks();
     }
-    SDL_Delay(1000/60);
-    uint32_t ticks = SDL_GetTicks();
-    execute(ticks - last_time, NULL);
-    last_time = ticks;
+    // Smart Frame Limiter
+    uint32_t now = SDL_GetTicks();
+    const uint32_t frame_duration = 1000/60;
+    uint32_t target_time = last_time + frame_duration;
+    
+    if (now < target_time)
+    {
+        SDL_Delay(target_time - now);
+        now = SDL_GetTicks();
+    }
+    
+    uint32_t ticks_to_run = now - last_time;
+    // Cap simulation step to avoid death spiral if we fall too far behind
+    if (ticks_to_run > 50) ticks_to_run = 50; 
+    
+    execute(ticks_to_run, NULL);
+    last_time = now;
+
     if (SDL_PollEvent(&event)) {
+
         if (event.type == SDL_KEYDOWN)
         {
             if (ProcessSpecialKey(event.key.keysym))

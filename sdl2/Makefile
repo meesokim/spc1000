@@ -71,6 +71,10 @@ target: prepare_headers $(TARGET_OBJECTS)
 bin: $(BIN_OBJECTS)
 	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2
 
+rpi0:
+	$(MAKE) bin BIN_CXX="g++ -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer" BIN_CC="gcc -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer"
+
+
 circle: $(CIRCLE_OBJECTS)
 	$(CIRCLE_CXX) $(CIRCLE_OBJECTS) -T raspberry.ld -nostartfiles -fno-exceptions -fno-unwind-tables -fno-rtti -Wl,-Map=kernel.map bzlib.o crctable.o libkernel.a -lc libSDL2.a -o kernel.elf
 
