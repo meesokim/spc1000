@@ -44,18 +44,10 @@ char Cassette::read(uint32_t cycles, uint8_t wait) {
         // if (pos < 100)
         //     printf("%d.%d ", mark, pos);
         
-        // Phase locking: Sync to previous bit end if close enough
-        uint32_t gap = cycles - end_time;
-        if (end_time > 0 && gap < 2000)
-            old_time = end_time;
-        else 
-            old_time = cycles;
-
+        old_time = cycles;
         inv_time = old_time + 120;
-        // Base 1220 + Pulse 14 * 38 * mark (0 or 532). 
-        // Bit 0: 1220 cycles. Sampled at 1277 -> 57 cycles into next bit's Low (0..120). Read Low.
-        // Bit 1: 1752 cycles. Sampled at 1277 -> Inside High phase. Read High.
-        end_time = old_time + 1220 + PULSE * wait * mark;
+        // Base 1250 (Standard) + Pulse 14 * 38 * mark. 
+        end_time = old_time + 1250 + PULSE * wait * mark;
         // if (pos < 100)
         //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
         if (++pos > len)
