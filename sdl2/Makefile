@@ -72,7 +72,7 @@ bin: $(BIN_OBJECTS)
 	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2
 
 rpi0:
-	$(MAKE) bin BIN_CXX="g++ -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer" BIN_CC="gcc -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer"
+	$(MAKE) bin BIN_CXX="arm-linux-gnueabihf-g++ -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer" BIN_CC="arm-linux-gnueabihf-gcc -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer"
 
 
 circle: $(CIRCLE_OBJECTS)
