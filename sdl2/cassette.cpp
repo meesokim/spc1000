@@ -217,7 +217,7 @@ void Cassette::loaddir(const char *dirname)
         {
             // cout << entry.path() << endl;
 #ifdef __EMSCRIPTEN__
-            files.push_back(file.string());
+            files.push_back(entry.path());
 #else
             files.push_back(file);
 #endif

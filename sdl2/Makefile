@@ -14,12 +14,28 @@ BIN_CXX = g++
 CIRCLE_CC = arm-none-eabi-gcc
 CIRCLE_CXX = arm-none-eabi-g++
 
+# Emscripten SDK setup
+EMSDK_PATH = $(HOME)/emsdk
+SHELL := /bin/bash
+
+# Check if emsdk needs to be installed
+install-emsdk:
+	@if [ ! -d "$(EMSDK_PATH)" ]; then \
+		echo "Installing Emscripten SDK..."; \
+		git clone https://github.com/emscripten-core/emsdk.git $(EMSDK_PATH); \
+		cd $(EMSDK_PATH) && ./emsdk install latest && ./emsdk activate latest; \
+		echo "Emscripten SDK installed successfully!"; \
+		echo "Run: source ~/emsdk/emsdk_env.sh"; \
+	else \
+		echo "Emscripten SDK already installed at $(EMSDK_PATH)"; \
+	fi
+
 # Target specific rules
 %.wasm.o: %.c
-	$(WASM_CC) -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@
+	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CC) -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -xc -c $< -o $@
 
 %.wasm.o: %.cpp
-	$(WASM_CXX) -std=c++17 -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
+	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CXX) -std=c++17 -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
 
 %.bin.o: %.c
 	$(BIN_CC) -I/usr/include/SDL2 -Iminiz -O2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@
@@ -70,6 +86,16 @@ target: prepare_headers $(TARGET_OBJECTS)
 
 bin: $(BIN_OBJECTS)
 	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2
+
+wasm: install-emsdk $(WASM_OBJECTS)
+	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CXX) $(WASM_OBJECTS) \
+	-sUSE_SDL=2 -sUSE_BZIP2 \
+	-sALLOW_MEMORY_GROWTH=1 \
+	-sWASM=1 \
+	-sMODULARIZE=1 \
+	-sEXPORT_NAME="SPC1000Module" \
+	-O2 \
+	-o index.js 
 
 rpi0:
 	$(MAKE) bin BIN_CXX="arm-linux-gnueabihf-g++ -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer" BIN_CC="arm-linux-gnueabihf-gcc -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -O3 -fomit-frame-pointer"

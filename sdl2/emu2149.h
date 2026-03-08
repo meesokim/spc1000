@@ -4,20 +4,18 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #if __EMSCRIPTEN__
-#include <emscripten.h>
-#define VR_EMU_2149_DLLEXPORT EMSCRIPTEN_KEEPALIVE
+#define VR_EMU_2149_DLLEXPORT
 #elif VR_EMU_2149_COMPILING_DLL
 #define VR_EMU_2149_DLLEXPORT __declspec(dllexport)
 #elif defined WIN32 && !defined VR_EMU_2149_STATIC
 #define VR_EMU_2149_DLLEXPORT __declspec(dllimport)
 #else
-#ifdef __cplusplus
-#define VR_EMU_2149_DLLEXPORT extern "C"
-#else
-#define VR_EMU_2149_DLLEXPORT extern
-#endif
+#define VR_EMU_2149_DLLEXPORT
 #endif
 
 #define EMU2149_VOL_DEFAULT 1
@@ -96,6 +94,7 @@
   VR_EMU_2149_DLLEXPORT uint32_t PSG_toggleMask (PSG *, uint32_t mask);
     
 #ifdef __cplusplus
+}
 #endif
 
 #endif
