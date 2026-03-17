@@ -1,8 +1,10 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
+#ifndef __circle__
 #include <filesystem>
 namespace fs = std::filesystem;
+#endif
 #include <string>
 #include <vector>
 using namespace std;

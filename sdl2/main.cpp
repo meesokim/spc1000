@@ -408,7 +408,7 @@ void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single
     kbd.KeyPress(code, shift, ctrl, grp, lock, single);
 }
 const char * remote(int i, int j, const char *data, const char *filename) {
-    printf("remote:%d\n", i);
+    //printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
         case RESET:
@@ -514,10 +514,10 @@ void  main_loop()
         dstrect.w = SCREEN_WIDTH;
         dstrect.h = SCREEN_HEIGHT;
         dstrect.x = dstrect.y = 0;
-        SDL_CreateWindowAndRenderer(w * 2, h * 2, 0, &screen, &renderer);
-        SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+        SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
+        // SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 #ifndef __circle__        
-        SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+        // SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
 #endif
         SDL_RenderGetViewport(renderer, &viewport);
         surface = SDL_CreateRGBSurface(SDL_SWSURFACE, w * 2, h * 2, 32, 0, 0, 0, 0);
@@ -566,12 +566,28 @@ void  main_loop()
         cassette.get_title(text);
         // setText(text);        
         first_call = false;
+        last_time = SDL_GetTicks();
     }
-    SDL_Delay(1000/60);
-    uint32_t ticks = SDL_GetTicks();
-    execute(ticks - last_time, NULL);
-    last_time = ticks;
+    // Smart Frame Limiter
+    uint32_t now = SDL_GetTicks();
+    const uint32_t frame_duration = 1000/60;
+    uint32_t target_time = last_time + frame_duration;
+    
+    if (now < target_time)
+    {
+        SDL_Delay(target_time - now);
+        now = SDL_GetTicks();
+    }
+    
+    uint32_t ticks_to_run = now - last_time;
+    // Cap simulation step to avoid death spiral if we fall too far behind
+    if (ticks_to_run > 50) ticks_to_run = 50; 
+    
+    execute(ticks_to_run, NULL);
+    last_time = now;
+
     if (SDL_PollEvent(&event)) {
+
         if (event.type == SDL_KEYDOWN)
         {
             if (ProcessSpecialKey(event.key.keysym))
@@ -625,8 +641,22 @@ void  main_loop()
             // display_size_changed = true;
         }
 #endif
-        int ret = SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
-        // SDL_RenderClear(renderer);
+        SDL_UpdateTexture(texture, NULL, mc6847.GetBuffer(), w*2);
+        
+        int win_w, win_h;
+        SDL_GetWindowSize(screen, &win_w, &win_h);
+        float aspect = (float)SCREEN_WIDTH / SCREEN_HEIGHT;
+        float scale = (float)win_w / SCREEN_WIDTH;
+        if ((float)win_h / SCREEN_HEIGHT < scale)
+            scale = (float)win_h / SCREEN_HEIGHT;
+        
+        dstrect.w = (int)(SCREEN_WIDTH * scale);
+        dstrect.h = (int)(SCREEN_HEIGHT * scale);
+        dstrect.x = (win_w - dstrect.w) / 2;
+        dstrect.y = (win_h - dstrect.h) / 2;
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, &dstrect);
         if (crt_effect)
             SDL_RenderCopy(renderer, texture_display, NULL, &dstrect); // draws the character
@@ -642,8 +672,8 @@ void  main_loop()
 #include <sys/stat.h>
 int main(int argc, char *argv[]) {
 
-#ifdef DIR
-    #define TAPE DIR
+#ifdef TAPE_DIR
+    #define TAPE TAPE_DIR
 #else
     #define TAPE "taps2"
 #endif
