@@ -69,16 +69,15 @@ public:
 
 private:
 	// do not change this order
-	CScreenDevice8		m_Screen;
 	CMemorySystem		m_Memory;
-	CTimer				m_Timer;
-	CActLED				m_ActLED;
 	CKernelOptions		m_Options;
 	CDeviceNameService	m_DeviceNameService;
-	// CSerialDevice		m_Serial;
 	CExceptionHandler	m_ExceptionHandler;
 	CInterruptSystem    m_Interrupt;
+	CTimer				m_Timer;
 	CLogger				m_Logger;
+	CActLED				m_ActLED;
+	CScreenDevice8		m_Screen;
 // #if RASPPI <= 4
 // 	CI2CMaster          m_I2CMaster;    
 // #endif
@@ -100,6 +99,7 @@ public:
 	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]);
 	//static CKernel *s_pThis;
 	static int printf(const char *format, ...);
+	static int vprintf(const char *format, va_list args);
 };
 
 #endif

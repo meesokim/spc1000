@@ -8,7 +8,7 @@
 
 CUGUI *CUGUI::s_pThis = 0;
 
-CUGUI::CUGUI (CScreenDevice *pScreen)
+CUGUI::CUGUI (CScreenDevice8 *pScreen)
 :	m_pScreen (pScreen),
 	m_pMouseDevice (0),
 	m_pTouchScreen (0),
@@ -64,7 +64,7 @@ boolean CUGUI::Initialize (void)
 	return TRUE;
 }
 
-void CUGUI::Update (bool b=false)
+void CUGUI::Update (bool b)
 {
 	UG_Update ();
 
@@ -89,7 +89,7 @@ void CUGUI::SetPixel (UG_S16 sPosX, UG_S16 sPosY, UG_COLOR Color)
 {
 	assert (s_pThis != 0);
 	assert (s_pThis->m_pScreen != 0);
-	s_pThis->m_pScreen->SetPixel ((unsigned) sPosX, (unsigned) sPosY, (TScreenColor) Color);
+	s_pThis->m_pScreen->SetPixel ((unsigned) sPosX, (unsigned) sPosY, (TScreenColor8) Color);
 }
 
 void CUGUI::MouseEventHandler(TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)

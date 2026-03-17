@@ -14,7 +14,7 @@ extern "C" {
 }
 #endif
 
-#include <circle/screen.h> 
+#include "../screen8.h" 
 #include <circle/usb/usbmouse.h>
 #include <circle/input/touchscreen.h>
 
@@ -27,7 +27,7 @@ extern "C" {
 class CUGUI
 {
 public:
-	CUGUI (CScreenDevice *pScreen);
+	CUGUI (CScreenDevice8 *pScreen);
 	~CUGUI (void);
 
 	boolean Initialize (void);
@@ -47,7 +47,7 @@ private:
 					  unsigned nID, unsigned nPosX, unsigned nPosY);
 
 private:
-	CScreenDevice *m_pScreen;
+	CScreenDevice8 *m_pScreen;
 
 	UG_GUI m_GUI;
 

@@ -9,7 +9,7 @@
 
 /* Enable color mode */
 //#define USE_COLOR_RGB888   // RGB = 0xFF,0xFF,0xFF
-#define DEPTH 16 
+//#define DEPTH 16 
 //#if DEPTH == 16
 #define USE_COLOR_RGB565   // RGB = 0bRRRRRGGGGGGBBBBB
 //#elif DEPTH == 8

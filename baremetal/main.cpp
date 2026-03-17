@@ -19,12 +19,11 @@
 //
 #include "kernel.h"
 #include <circle/startup.h>
-CKernel Kernel;
-
 int main (void)
 {
 	// cannot return here because some destructors used in CKernel are not implemented
 
+	CKernel Kernel;
 	if (!Kernel.Initialize ())
 	{
 		halt ();

@@ -3,8 +3,6 @@
 
 extern "C" {
 #include "emu2149.h"
-};
-
 #define PSG_CLOCK_RATE 44100
 #define PSG_QUALITY_HIGH 0
 
@@ -21,7 +19,7 @@ class AY8910
     int16_t *BUF[2]={bbuf1, bbuf2};
 public:
     uint8_t reg;
-    AY8910(uint32_t clk = 4000000, uint32_t rate = PSG_CLOCK_RATE) 
+    AY8910(uint32_t clk = 2000000, uint32_t rate = PSG_CLOCK_RATE) 
     {
         psg = PSG_new(clk, rate);
         // setVolumeMode(1);

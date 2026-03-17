@@ -82,17 +82,22 @@ enum colorNum {
 	COLOR_RED, COLOR_BUFF, COLOR_CYAN, COLOR_MAGENTA,
 	COLOR_ORANGE, COLOR_CYANBLUE, COLOR_LGREEN, COLOR_DGREEN };
 
-void memset(byte *p, int length, int b);
 int bpp;
 static const char FromKernel[] = "kernel";
 // TKeyMap spcKeyHash[0x200]; 
 unsigned char keyMatrix[10];
 static CKernel *s_pThis;
+
 CKernel::CKernel(void)
-	: m_Screen(320, 240),
-	  m_Memory(TRUE),
+	: m_Memory(TRUE),
+	  m_Options(),
+	  m_DeviceNameService(),
+	  m_ExceptionHandler(),
+	  m_Interrupt(),
 	  m_Timer(&m_Interrupt),
-	  m_Logger(LogPanic, &m_Timer),
+	  m_Logger(m_Options.GetLogLevel(), &m_Timer),
+	  m_ActLED(),
+	  m_Screen(320, 240),
 // #if RASPPI <= 4
 //       m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
 // #endif
@@ -101,8 +106,8 @@ CKernel::CKernel(void)
       m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 #endif
 	//   m_DWHCI(&m_Interrupt, &m_Timer),
-	  m_ShutdownMode(ShutdownNone), 
-	  m_GUI(&m_Screen)
+	  m_GUI(&m_Screen),
+	  m_ShutdownMode(ShutdownNone)
 // ,m_PWMSoundDevice (&m_Interrupt)	
 {
 	//m_PWMSoundDevice.CancelPlayback();
@@ -159,7 +164,7 @@ boolean CKernel::Initialize (void)
 
 	if (bOK)
 	{
-		// bOK = m_Interrupt.Initialize ();
+		bOK = m_Interrupt.Initialize ();
 	}
 	printf("m_Interrupt!!!\n");
 
@@ -169,10 +174,10 @@ boolean CKernel::Initialize (void)
 	// }                       	
 	int num = 0;
 	printf("m_DWHCI!!!\n");	
-	// if (bOK)
-	// {
-	// 	bOK = m_Timer.Initialize ();
-	// }
+	if (bOK)
+	{
+		bOK = m_Timer.Initialize ();
+	}
 	printf("m_Timer!!!\n");	
 // #if RASPPI <= 4
 // 	if (bOK)
@@ -181,10 +186,10 @@ boolean CKernel::Initialize (void)
 // 	}
 // #endif
 
-// 	if (bOK)
-// 	{
-// 			bOK = m_USBHCI.Initialize ();
-// 	}	
+	if (bOK)
+	{
+			bOK = m_USBHCI.Initialize ();
+	}	
 #ifdef USE_VCHIQ_SOUND
 	if (bOK)
 	{
@@ -203,13 +208,15 @@ boolean CKernel::Initialize (void)
 
 void CKernel::reset()
 {
-	memset(spcsys.VRAM, 0x2000, 0x0);
-	memset(keyMatrix, 10, 0xff);
+	::memset(spcsys.VRAM, 0x0, 0x2000);
+	::memset(keyMatrix, 0xff, 10);
 	bpp = m_Screen.GetDepth();
 	spcsys.IPLK = 1;
 	spcsys.GMODE = 0;
 	spcsys.cas.motor = 0;
 	spcsys.cas.button = CAS_PLAY;
+	spcsys.cas.pulse = 0;
+	spcsys.psgRegNum = 0;
 	ay8910.Reset8910(&(spcsys.ay8910), 0);
 	idx = 0;
 	reset_flag = 1;
@@ -249,39 +256,7 @@ TShutdownMode CKernel::Run (void)
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
         // select the sound device
-#if RASPPI <= 4
-	const char *pSoundDevice = m_Options.GetSoundDevice ();
-	if (strcmp (pSoundDevice, "sndpwm") == 0)
-	{
-			m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-	}
-	// else if (strcmp (pSoundDevice, "sndi2s") == 0)
-	// {
-	// 		m_pSound = new CI2SSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE, FALSE,
-	// 											&m_I2CMaster, DAC_I2C_ADDRESS);
-	// }
-	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
-	{
-			m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-	}
-#if RASPPI >= 4
-	else if (strcmp (pSoundDevice, "sndusb") == 0)
-	{
-			m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
-	}
-#endif
-	else
-	{
-#ifdef USE_VCHIQ_SOUND
-			m_pSound = new CVCHIQSoundBaseDevice (&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
-									(TVCHIQSoundDestination) m_Options.GetSoundOption ());
-#else
-			m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-#endif
-	}
-#else
-	m_pSound = new CUSBSoundBaseDevice (SAMPLE_RATE);
-#endif
+		m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
 	//printf("Keyboard Start!\n");	
 //	CCassWindow CassWindow (0, 0);
 	// configure sound device
@@ -339,7 +314,7 @@ TShutdownMode CKernel::Run (void)
 			// ticks = m_Timer.GetClockTicks() - ticks;
 			if (!spcsys.cas.read)
 				// m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
-				R;
+				{}
 			else
 				spcsys.cas.read = 0;
 			//m_Timer.usDelay(ticks);
@@ -348,299 +323,133 @@ TShutdownMode CKernel::Run (void)
 			{
 				//printf ("Address: %04x)", R->PC);
 				//s_pThis->printf("%d, %d\n", spcsys.cycles-cycles, m_Timer.GetClockTicks() - time);
-				cycles = spcsys.cycles;
-				// time = m_Timer.GetClockTicks();
 			}
 		}
 	}
+
 	return ShutdownHalt;
+}
+
+void CKernel::ShutdownHandler (void)
+{
+	//s_pThis->m_ShutdownMode = ShutdownReboot;
 }
 
 void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
-	CString Message;
-	Message.Format ("Key status (modifiers %02X, %s)", (unsigned) ucModifiers, RawKeys);
-	TKeyMap *map;
-	memset(keyMatrix, 10, 0xff);
-	if (ucModifiers != 0)
-	{
-		if ((ucModifiers & 0x10 || ucModifiers & 0x01) & (ucModifiers & 0x40 || ucModifiers & 0x4)) {
-			if (RawKeys[0] == 0x4c)
-				s_pThis->reset();
-		}
-		for(int i = 0; i < 8; i++)
-			if ((ucModifiers & (1 << i)) != 0)
-			{
-				map = &spcKeyHash[0x100 | (1 << i)];
-				if (map != 0)
-					keyMatrix[map->keyMatIdx] &= ~ map->keyMask;
-			}
-	}
-
-	for (unsigned i = 0; i < 6; i++)
-	{
-		if (RawKeys[i] != 0)
-		{
-			map = &spcKeyHash[RawKeys[i]];
-			if (map != 0)
-				keyMatrix[map->keyMatIdx] &= ~ map->keyMask;
-		}
-	}
-	//printf(Message);
 }
 
 int CKernel::printf(const char *format, ...)
 {
-	CString Message;
 	va_list args;
-    va_start(args, format);
+	va_start(args, format);
+	int nResult = vprintf(format, args);
+	va_end(args);
+	return nResult;
+}
+
+int CKernel::vprintf(const char *format, va_list args)
+{
+	if (s_pThis == 0) return 0;
+
+	CString Message;
 	Message.FormatV(format, args);
-	s_pThis->m_Screen.Write (Message, Message.GetLength());
-    va_end(args);	
+
+	s_pThis->m_Logger.Write(FromKernel, LogNotice, Message);
+
 	return 0;
 }
 
-
-int ReadVal(void) 
+extern "C" int printf(const char *format, ...)
 {
-	char c = 0;
-	if (idx % 100 == 0)
-		s_pThis->rotate (0, idx/10);
-	c = tap0[idx++];
-	spcsys.cas.read = 1;
-	if (c == 0)
-		idx = 0;
-	//s_pThis->printf("%d %c\r", idx, c);
-	return c-'0';
+	va_list args;
+	va_start(args, format);
+	int result = CKernel::vprintf(format, args);
+	va_end(args);
+	return result;
 }
 
-void OutZ80(register word Port,register byte Value)
-{
-	//printf("VRAM[%x]=%x\n", Port, Value);
-
-	if ((Port & 0xE000) == 0x0000) // VRAM area
-	{
-		spcsys.VRAM[Port] = Value;
-	}
-	else if ((Port & 0xE000) == 0xA000) // IPLK area
-	{
-		spcsys.IPLK = !spcsys.IPLK;	// flip IPLK switch
-	}
-	else if ((Port & 0xE000) == 0x2000)	// GMODE setting
-	{
-		spcsys.GMODE = Value;
-#ifdef DEBUG_MODE
-		//printf("GMode:%02X\n", Value);
-#endif
-	}
-	else if ((Port & 0xE000) == 0x6000) // SMODE
-	{
-		if (spcsys.cas.button != CAS_STOP)
-		{
-
-			if ((Value & 0x02)) // Motor
-			{
-				if (spcsys.cas.pulse == 0)
-				{
-					spcsys.cas.pulse = 1;
-
-				}
-			}
-			else
-			{
-				if (spcsys.cas.pulse)
-				{
-					spcsys.cas.pulse = 0;
-					if (spcsys.cas.motor)
-					{
-						spcsys.cas.motor = 0;
-					}
-					else
-					{
-						spcsys.cas.motor = 1;
-					}
-				}
-			}
-		}
-
-//		if (spcsys.cas.button == CAS_REC && spcsys.cas.motor)
-//		{
-//			CasWrite(&spcsys.cas, Value & 0x01);
-//		}
-	}
-	else if ((Port & 0xFFFE) == 0x4000) // PSG
-	{
-
-		if (Port & 0x01) // Data
-		{
-		    if (spcsys.psgRegNum == 15) // Line Printer
-			{
-				if (Value != 0)
-				{
-			    //spcsys.prt.bufs[spcsys.prt.length++] = Value;
-				//                    printf("PRT <- %c (%d)\n", Value, Value);
-				//                    printf("%s(%d)\n", spcsys.prt.bufs, spcsys.prt.length);
-				}
-			}
-			s_pThis->ay8910.Write8910(&spcsys.ay8910, (byte) spcsys.psgRegNum, Value);
-		}
-		else // Reg Num
-		{
-			spcsys.psgRegNum = Value;
-			s_pThis->ay8910.WrCtrl8910(&spcsys.ay8910, Value);
-		}
-	}	
-}
-
-byte InZ80(register word Port)
+extern "C" byte InZ80(register word Port)
 {
 	if (Port >= 0x8000 && Port <= 0x8009) // Keyboard Matrix
 	{
-		return keyMatrix[Port&0xf];
+		return keyMatrix[Port-0x8000];
 	}
 	else if ((Port & 0xE000) == 0xA000) // IPLK
 	{
-		spcsys.IPLK = !spcsys.IPLK;
-	} else if ((Port & 0xE000) == 0x2000) // GMODE
+		spcsys.IPLK = (spcsys.IPLK)? 0 : 1;
+	}
+	else if ((Port & 0xE000) == 0x2000) // GMODE
 	{
 		return spcsys.GMODE;
-	} else if ((Port & 0xE000) == 0x0000) // VRAM reading
+	}
+	else if ((Port & 0xE000) == 0x0000) // VRAM reading
 	{
 		return spcsys.VRAM[Port];
-	}	else if ((Port & 0xFFFE) == 0x4000) // PSG
+	}
+	else if ((Port & 0xFFFE) == 0x4000) // PSG
 	{
 		byte retval = 0x1f;
 		if (Port & 0x01) // Data
 		{
 			if (spcsys.psgRegNum == 14)
 			{
-				// 0x80 - cassette data input
-				// 0x40 - motor status
-				// 0x20 - print status
-//				if (spcsys.prt.poweron)
-//                {
-//                    printf("Print Ready Check.\n");
-//                    retval &= 0xcf;
-//                }
-//                else
-//                {
-//                    retval |= 0x20;
-//                }
-				if (1) //(spcsys.cas.button == CAS_PLAY && spcsys.cas.motor)
-				{
-					if (CasRead(&spcsys.cas) == 1)
-							retval |= 0x80; // high
-						else
-							retval &= 0x7f; // low
-				}
 				if (spcsys.cas.motor)
 					retval &= (~(0x40)); // 0 indicates Motor On
 				else
 					retval |= 0x40;
-
 			}
 			else 
 			{
-				int data = s_pThis->ay8910.RdData8910(&spcsys.ay8910);
-				//printf("r(%d,%d)\n", spcsys.psgRegNum, data);
-				return data;
+				if (s_pThis) return s_pThis->ay8910.RdData8910(&spcsys.ay8910);
 			}
-		} else if (Port & 0x02)
-		{
-            retval = (ReadVal() == 1 ? retval | 0x80 : retval & 0x7f);
 		}
 		return retval;
 	}
-	return 0;
+	return 0xff;
 }
 
-//#define STONE (21/48000*4000000) // 21 sample * 48000Hz 1792
-#define STONE (56*32) // 21 sample * 48000Hz 1792
-#define LTONE (STONE*2)
-
-int CasRead(CassetteTape *cas)
+extern "C" void OutZ80(register word Port,register byte Value)
 {
-	int cycles;
-	int bitTime;
-	
-	cycles = spcsys.cycles + (count - spcsys.Z80R.ICount);
-	bitTime = cycles - cas->lastTime;
-
-	if (bitTime >= cas->bitTime)
+	if (Port < 0x2000) // VRAM area
 	{
-		cas->rdVal = ReadVal();
-		cas->lastTime = cycles;
-		cas->bitTime = cas->rdVal ? (LTONE * 0.6) : (STONE * 0.9);
-		s_pThis->printf("%d%\r", idx * 100 / tapsize);		
+		spcsys.VRAM[Port] = Value;
 	}
-
-	switch (cas->rdVal)
+	else if ((Port & 0xE000) == 0xA000) // IPLK area
 	{
-	case 0:
-		if (bitTime < STONE/2)
-			return 1; // high
-		else
-			return 0; // low
-
-	case 1:
-		if (bitTime < STONE)
-			return 1; // high
-		else
-			return 0; // low
+		spcsys.IPLK = (spcsys.IPLK)? 0 : 1;	// flip IPLK switch
 	}
-	return 0; // low for other cases
-}
-
-
-void CasWrite(CassetteTape *cas, int val)
-{
-	Uint32 curTime;
-	int t;
-
-	t = (spcsys.cycles - cas->lastTime) >> 5;
-	if (t > 100)
-		cas->cnt0 = cas->cnt1 = 0;
-	cas->lastTime = spcsys.cycles;
-	if (cas->wrVal == 1)
+	else if ((Port & 0xE000) == 0x2000)	// GMODE setting
 	{
-		if (val == 0)
-			if (t > STONE/2) 
+		spcsys.GMODE = Value;
+	}
+	else if ((Port & 0xE000) == 0x6000) // SMODE
+	{
+		if (spcsys.cas.button != CAS_STOP)
+		{
+			if ((Value & 0x02)) // Motor
 			{
-//				printf("1");
-//				cas->cnt0 = 0;
-//				fputc('1', spconf.wfp);
-			} else {
-				if (cas->cnt0++ < 100)
+				if (spcsys.cas.pulse == 0) spcsys.cas.pulse = 1;
+			}
+			else
+			{
+				if (spcsys.cas.pulse)
 				{
-//					printf("0");
-//					fputc('0', spconf.wfp);
+					spcsys.cas.pulse = 0;
+					spcsys.cas.motor = !spcsys.cas.motor;
 				}
 			}
+		}
 	}
-	cas->wrVal = val;
+	else if ((Port & 0xFFFE) == 0x4000) // PSG
+	{
+		if (s_pThis)
+		{
+			if (Port & 0x01) s_pThis->ay8910.Write8910(&spcsys.ay8910, (byte) spcsys.psgRegNum, Value);
+			else s_pThis->ay8910.WrCtrl8910(&spcsys.ay8910, Value);
+		}
+	}
 }
 
-word LoopZ80(register Z80 *R) {
-	return 0;
-}
-
-void PatchZ80(register Z80 *R) {
-	return;
-}
-
-int printf(const char *format, ...)
-{
-	va_list args;
-	va_start(args,format);
-	CString str;
-	str.FormatV(format, args);
-	va_end(args);
-	//s_pThis->m_Screen.Write (str, str.GetLength());
-	return 1;
-}	
-void memset(byte *p, int length, int b)
-{
-	for (int i=0; i<length; i++)
-		*p++ = b;
-}
-
+extern "C" void PatchZ80(register Z80 *R) {}
+extern "C" word LoopZ80(register Z80 *R) { return INT_NONE; }
