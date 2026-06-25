@@ -259,7 +259,7 @@ UG_COLOR bgcolor;
 
 void SetPixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 {
-    if (pixels && color != bgcolor) {
+    if (pixels && color != bgcolor && x >= 0 && x < w * 2 && y >= 0 && y < h * 2) {
         pixels[x + y * w * 2] = color;
     }
 }

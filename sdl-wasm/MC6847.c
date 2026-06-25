@@ -13,6 +13,13 @@ int ATTR_SEM = 0x4;
 int ATTR_EXT = 0x8;
 #define Color16(a,b,c) (((a&0xf8)<<8)|((b&0xfc)<<3)|(c>>3))
 
+#define XRES 256
+#define YRES 192
+#define SCR_W 320
+#define SCR_H 240
+#define SIZE (SCR_W*SCR_H*sizeof(PIXEL))
+
+
 //static unsigned char *VRAM;	// VRAM pointer. Real storage is located in spcmain.c
 int currentPage = 0;		// current text page
 int XWidth = 0;				// stride for Y+1
@@ -186,13 +193,12 @@ void Update9918(Uint8 gmode, Uint8 *VRAM, Uint8 *pdata, Uint8 *cdata)
 }
 void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 {
-	int pos = 0, i;
 	Uint8 _gm0, _gm1, _ag, _css;
-	Uint16 _page, y, h, x, mask;
-	Uint8 attr, ch, b, cix, c;
+	Uint16 _page, y, h, x;
+	int pos = 0;
+	Uint8 attr, ch, b;
 	_gm0 = BIT(gmode, 2);
 	_gm1 = BIT(gmode, 1);
-	int _gm2 = 1;
 	_ag = BIT(gmode, 3);
 	_css = BIT(gmode, 7);
 	_page = gmode >> 4 & 0x3;
@@ -201,18 +207,24 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 	if (fb != NULL)
 		data = fb;
 	border = cMap[11];
+	b = 0;
 	if (_ag == 0)
     {
 	  FILL(data, rept, border);
       for(y=0; y < 16; y++)
 	  {
+		// Optimize: Pre-compute row offsets outside the 'h' loop.
+		Uint32 row_offset = y * 32 + _page * 0x200;
+		Uint8 *pAttrRow = &VRAM[row_offset + SCREEN_ATTR_START];
+		Uint8 *pCharRow = &VRAM[row_offset + SCREEN_TEXT_START];
+
         for(h=0; h < 12; h++)
         {
 		  FILL(data, repl, border);
           for(x=0; x < 32; x++)
           {
-              attr = VRAM[x + y * 32 + SCREEN_ATTR_START + _page * 0x200];
-              ch = VRAM[x + y * 32 + SCREEN_TEXT_START + _page * 0x200];
+              attr = pAttrRow[x];
+              ch = pCharRow[x];
               if ((attr & ATTR_SEM) != 0)
               {
                 bg = cMap[0];
@@ -224,13 +236,12 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 				else 
                 {
 					fg = cMap[((ch & 0x70)>> 4) + 1];
-					//printf("fg=%d,%d\n", ch, ((ch & 0x70)>> 4) + 1);
 					b = semiGrFont0[(ch & 0x0f) * 12 + h];
                 }
               }
               else // ASCII
               {
-                cix = (attr & ATTR_CSS) >> 1; 
+                Uint8 cix = (attr & ATTR_CSS) >> 1; 
                 if ((attr & ATTR_INV) == 0)
                 {
                   bg = cMap[11 + cix * 2];
@@ -252,7 +263,7 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
                 else if (ch >= 32)
                   b = CGROM[(ch-32)*12+h];
               }
-              for(mask = 0x80; mask != 0; mask >>=1)
+              for(Uint16 mask = 0x80; mask != 0; mask >>=1)
               {
                 *data++ = (((b & mask) != 0) ? fg : bg);
               }
@@ -266,29 +277,30 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
     {
       bg = cMap[0];
       border = fg = (_css ? cMap[10] : cMap[9]);
-      //border = (_css ? cMap[10] : cMap[9]);
 	  FILL(data, rept, border);
       for(y = 0; y < 192; y++)
       {
    	    FILL(data, repl, border);
+		Uint8 *pVramRow = &VRAM[y * 32];
         for(x = 0; x < 32; x++)
         {
-			b = VRAM[y * 32 + x];
+			b = pVramRow[x];
 			if (_gm1)
 			{
 				if (_gm0)
 				{ 
-					for(mask = 0x80; mask != 0; mask >>=1)
+					for(Uint16 mask = 0x80; mask != 0; mask >>=1)
 					{	
 						*data++ = (b & mask) != 0 ? fg : bg;
 					}
 				}
 				else // _gm0 == 0
 				{
-					for(c = 6; c < 8 && c >= 0; c-=2)
+					for(int c = 6; c >= 0; c-=2)
 					{
-						*data++ = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
-						*data++ = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+						PIXEL color = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+						*data++ = color;
+						*data++ = color;
 					}
 				}
 			}
@@ -296,7 +308,7 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 			{
 				if (_gm0)
 				{
-					for(mask = 0x80; mask != 0; mask >>=1)
+					for(Uint16 mask = 0x80; mask != 0; mask >>=1)
 					{	
 						*data++ = (b & mask) != 0 ? fg : bg;
 						*data++ = (b & mask) != 0 ? fg : bg;
@@ -304,21 +316,20 @@ void Update6847(Uint8 gmode, Uint8 *VRAM, PIXEL *fb)
 				}
 				else
 				{
-					for(c = 6; c > 0; c-=2)
+					for(int c = 6; c >= 0; c-=2)
 					{
-					  *(data + 256 + 1) = *(data + 256) = *(data+1) = *data = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+					  PIXEL color = cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)];
+					  // Fix: Stride offset bug - replace 256 with SCR_W
+					  *(data + SCR_W + 1) = *(data + SCR_W) = *(data+1) = *data = color;
 					  data+=2;
 					}
 				}
 			} 
         }
    	    FILL(data, repr, border);
-//		if (_gm1 + _gm0 == 0)
-//			data += 256 + repr + repl;
       }
       FILL(data, repb, border);
     }
-	//printf("bpp=%d\n", screen->format->BytesPerPixel);
 }
 
 int greenMode = 0;
@@ -327,11 +338,6 @@ int greenMode = 0;
  * Initialize 6847 mode, SDL screen, and semigraphic pattern
  * @param in_VRAM pointer to VRAM array, must be preapred by caller
  */
- #define XRES 256
- #define YRES 192
- #define SCR_W 320
- #define SCR_H 240
- #define SIZE (SCR_W*SCR_H*sizeof(PIXEL))
 PIXEL *InitMC6847(void)
 {
 	int i, j;

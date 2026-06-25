@@ -2,7 +2,7 @@ all: wasm bin
 SOURCE = main.c MC6847.c z80_zazu.c cassette.c AY8910.c Debug.c keyboard.c
 EMCC_DEBUG=1
 wasm: $(SOURCE)
-	emcc $(SOURCE) \
+	./run-emcc.sh $(SOURCE) \
 	-O1 \
 	-DWASM \
 	-s WASM=1 \

@@ -32,10 +32,10 @@ install-emsdk:
 
 # Target specific rules
 %.wasm.o: %.c
-	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CC) -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -xc -c $< -o $@
+	./run-emcc.sh emcc -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -xc -c $< -o $@
 
 %.wasm.o: %.cpp
-	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CXX) -std=c++17 -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
+	./run-emcc.sh em++ -std=c++17 -O2 -sUSE_SDL=2 -sUSE_BZIP2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@ -Iminiz
 
 %.bin.o: %.c
 	$(BIN_CC) -I/usr/include/SDL2 -Iminiz -O2 -DTAPE_DIR=\"$(TAPE_DIR)\" -c $< -o $@
@@ -87,8 +87,8 @@ target: prepare_headers $(TARGET_OBJECTS)
 bin: $(BIN_OBJECTS)
 	$(BIN_CXX) $(BIN_OBJECTS) -o main -lc -lSDL2 -lstdc++ -lbz2
 
-wasm: install-emsdk $(WASM_OBJECTS)
-	. $(EMSDK_PATH)/emsdk_env.sh && $(WASM_CXX) $(WASM_OBJECTS) \
+wasm: $(WASM_OBJECTS)
+	./run-emcc.sh em++ $(WASM_OBJECTS) \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
 	-sALLOW_MEMORY_GROWTH=1 \
 	-sWASM=1 \

@@ -10,9 +10,9 @@ class AY8910
 {
     PSG *psg;
     static const int BUFFMASK = 0x1fff;
-    int16_t buf[BUFFMASK];
-    int16_t bbuf1[BUFFMASK];
-    int16_t bbuf2[BUFFMASK];
+    int16_t buf[BUFFMASK + 1];
+    int16_t bbuf1[BUFFMASK + 1];
+    int16_t bbuf2[BUFFMASK + 1];
     int pos = 0;
     int cpos = 0;
     int prev = 0;
