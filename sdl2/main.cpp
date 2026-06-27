@@ -402,12 +402,12 @@ enum {
     TURBO,
     SCANLINE
 };
-void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
+EMSCRIPTEN_KEEPALIVE void keydown(char *code, bool shift, bool ctrl, bool grp, bool lock, bool single)
 {
     // printf("keydown:%s,%d,%d,%d,%d,%d\n", code, shift, ctrl, grp, lock, single);
     kbd.KeyPress(code, shift, ctrl, grp, lock, single);
 }
-const char * remote(int i, int j, const char *data, const char *filename) {
+EMSCRIPTEN_KEEPALIVE const char * remote(int i, int j, const char *data, const char *filename) {
     //printf("remote:%d\n", i);
     SDL_Event event = {};
     switch (i) {
@@ -514,7 +514,7 @@ void  main_loop()
         dstrect.w = SCREEN_WIDTH;
         dstrect.h = SCREEN_HEIGHT;
         dstrect.x = dstrect.y = 0;
-        SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_FULLSCREEN_DESKTOP, &screen, &renderer);
+        SDL_CreateWindowAndRenderer(w * 2, h * 2, SDL_WINDOW_BORDERLESS, &screen, &renderer);
         // SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 #ifndef __circle__        
         // SDL_RenderSetIntegerScale(renderer, SDL_TRUE);

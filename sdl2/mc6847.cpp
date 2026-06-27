@@ -35,10 +35,8 @@ CMC6847::~CMC6847 (void)
 	delete[] m_pBuffer0;
 }
 
-// really ((green) & 0x3F) << 5, but to have a 0-31 range for all colors
-#define COLOR16(red, green, blue)	  (((red>>3) & 0x1F) << 11 \
-					| ((green>>2) & 0x3F) << 6 \
-					| ((blue>>3) & 0x1F))
+// Corrected to standard RGB565 layout (matching C version Color16)
+#define COLOR16(red, green, blue) ((((red) & 0xf8) << 8) | (((green) & 0xfc) << 3) | ((blue) >> 3))
 
 // BGRA (was RGBA with older firmware)
 #define COLOR32(red, green, blue, alpha)  (((red) & 0xFF)       \

@@ -91,9 +91,14 @@ wasm: $(WASM_OBJECTS)
 	./run-emcc.sh em++ $(WASM_OBJECTS) \
 	-sUSE_SDL=2 -sUSE_BZIP2 \
 	-sALLOW_MEMORY_GROWTH=1 \
+	-sSTACK_SIZE=16777216 \
+	-sINITIAL_MEMORY=134217728 \
+	-sALLOW_TABLE_GROWTH=1 \
+	-sEXPORTED_FUNCTIONS="['_main','_remote','_keydown']" \
 	-sWASM=1 \
-	-sMODULARIZE=1 \
-	-sEXPORT_NAME="SPC1000Module" \
+	-sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
+	-sMAX_WEBGL_VERSION=2 \
+	--preload-file ../tape/taps@/taps \
 	-O2 \
 	-o index.js 
 

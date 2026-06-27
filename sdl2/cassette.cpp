@@ -82,9 +82,13 @@ void Cassette::load(const char *name)
     len = 0;
     string file;
     int size = 0;
-    char Buffer[TAPE_SIZE];
     if (!name)
     {
+        if (files.empty())
+        {
+            printf("load: files is empty, nothing to load\n");
+            return;
+        }
 #ifdef __EMSCRIPTEN__
         file = files[file_index].string();
 #else
@@ -93,12 +97,13 @@ void Cassette::load(const char *name)
     } else {
         file = name;
     }        
+    char *Buffer = new char[TAPE_SIZE];
 #ifdef __circle__
     FIL File;
     unsigned int nBytesRead = 0;
     FRESULT Result = f_open (&File, file.c_str(), FA_READ | FA_OPEN_EXISTING);
     if (Result == FR_OK) {
-        f_read (&File, Buffer, sizeof Buffer, &nBytesRead);
+        f_read (&File, Buffer, TAPE_SIZE, &nBytesRead);
         f_close (&File);
     }
     size = nBytesRead;
@@ -150,6 +155,7 @@ void Cassette::load(const char *name)
         // cout << filename << endl;
         len = loadzip(Buffer, size);
     }
+    delete[] Buffer;
     //printf("%s (%d)\n", loaded_filename.c_str(), len);
 }
 
@@ -173,7 +179,11 @@ void Cassette::load(const char *data, int length, const char *filename)
 void Cassette::setfile(const char *filename)
 {
     struct stat sb;
-    stat(filename, &sb);
+    if (stat(filename, &sb) != 0)
+    {
+        printf("setfile: %s not found\n", filename);
+        return;
+    }
     string ext = lower(filename);
     if (S_ISDIR(sb.st_mode))
     {
@@ -236,8 +246,10 @@ int Cassette::loadzip(const char *data, int size)
     size_t uncomp_size, len; 
     mz_zip_archive zip;
     mz_zip_archive_file_stat file_stat;
-    uint8_t compresssed[1024*1024*1];
-    uint8_t uncompressed[1024*1024*4];
+    const size_t comp_buf_size = 1024*1024*1;
+    const size_t uncomp_buf_size = 1024*1024*4;
+    uint8_t *compresssed = new uint8_t[comp_buf_size];
+    uint8_t *uncompressed = new uint8_t[uncomp_buf_size];
     char unzipfile[1024];
     memset(tape, 0, sizeof tape);
     memset(&zip, 0, sizeof(zip));
@@ -280,11 +292,13 @@ int Cassette::loadzip(const char *data, int size)
             string ext = lower(file.extension()); 
             if (!ext.compare(".tap"))
             {
-                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, sizeof uncompressed, 0);
+                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, uncomp_buf_size, 0);
                 // printf("%x,%s extracted\n", p, unzipfile);
                 if (!ret)
                 {
                     printf("fatal error\n");
+                    delete[] compresssed;
+                    delete[] uncompressed;
                     exit(0);
                 }
                 memcpy(tape+len, uncompressed, uncomp_size);
@@ -292,11 +306,13 @@ int Cassette::loadzip(const char *data, int size)
             } 
             else if (!ext.compare(".cas"))
             {
-                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, sizeof uncompressed, 0);
+                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, uncomp_buf_size, 0);
                 // printf("%x,%s extracted\n", p, unzipfile);
                 if (!ret)
                 {
                     printf("fatal error\n");
+                    delete[] compresssed;
+                    delete[] uncompressed;
                     exit(0);
                 }
                 for(int i = 0; i < uncomp_size; i++)
@@ -317,5 +333,7 @@ int Cassette::loadzip(const char *data, int size)
         }
     }
     mz_zip_reader_end(&zip);
+    delete[] compresssed;
+    delete[] uncompressed;
     return len;
 }
