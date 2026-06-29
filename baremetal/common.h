@@ -150,7 +150,7 @@ typedef union PC
 typedef struct
 {
     unsigned int length;
-    byte bufs[1024*1024];
+    byte bufs[1024];
     byte poweron;
 } Printer;
 

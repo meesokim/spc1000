@@ -48,6 +48,8 @@
 //  Oct 11, 2014  V0.1  First release.
 /* -------------------------------------------------------------------------------- */
 #include "ugui.h"
+#define PROGMEM
+#include "hangul-dkby-dinaru-2.png.h"
 
 /* Static functions */
  UG_RESULT _UG_WindowDrawTitle( UG_WINDOW* wnd );
@@ -4581,9 +4583,6 @@ UG_S16 UG_Init( UG_GUI* g, void (*p)(UG_S16,UG_S16,UG_COLOR), UG_S16 x, UG_S16 y
    #ifdef USE_COLOR_RGB565
    g->desktop_color = 0x5C5D;
    #endif
-   #ifdef USB_COLOR_INDEX
-   g->desktop_color = 0x5C;
-   #endif
    g->fore_color = C_WHITE;
    g->back_color = C_BLACK;
    g->next_window = NULL;
@@ -4943,34 +4942,128 @@ void UG_PutString( UG_S16 x, UG_S16 y, char* str )
 {
    UG_S16 xp,yp;
    UG_U8 cw;
-   char chr;
 
    xp=x;
    yp=y;
 
    while ( *str != 0 )
    {
-      chr = *str++;
-	  if (chr < gui->font.start_char || chr > gui->font.end_char) continue;
+      UG_U8 chr = (UG_U8) *str++;
       if ( chr == '\n' )
-      {
-         xp = gui->x_dim;
-         continue;
-      }
-	  cw = gui->font.widths ? gui->font.widths[chr - gui->font.start_char] : gui->font.char_width;
-
-      if ( xp + cw > gui->x_dim - 1 )
       {
          xp = x;
          yp += gui->font.char_height+gui->char_v_space;
+         continue;
       }
 
-      UG_PutChar(chr, xp, yp, gui->fore_color, gui->back_color);
-
-      xp += cw + gui->char_h_space;
+      if (chr <= 127)
+      {
+         if (chr < gui->font.start_char || chr > gui->font.end_char) continue;
+         cw = gui->font.widths ? gui->font.widths[chr - gui->font.start_char] : gui->font.char_width;
+         if ( xp + cw > gui->x_dim - 1 )
+         {
+            xp = x;
+            yp += gui->font.char_height+gui->char_v_space;
+         }
+         UG_PutChar(chr, xp, yp, gui->fore_color, gui->back_color);
+         xp += cw + gui->char_h_space;
+      }
+      else if ((chr & 0xF0) == 0xE0 &&
+               (str[0] & 0xC0) == 0x80 &&
+               (str[1] & 0xC0) == 0x80)
+      {
+         UG_U8 utf8[4];
+         utf8[0] = chr;
+         utf8[1] = (UG_U8) *str++;
+         utf8[2] = (UG_U8) *str++;
+         utf8[3] = 0;
+         UG_PutKorChar(utf8, xp, yp, gui->fore_color, gui->back_color);
+         xp += 16 + gui->char_h_space;
+      }
+      else
+      {
+         if ('?' < gui->font.start_char || '?' > gui->font.end_char) continue;
+         cw = gui->font.widths ? gui->font.widths['?' - gui->font.start_char] : gui->font.char_width;
+         if ( xp + cw > gui->x_dim - 1 )
+         {
+            xp = x;
+            yp += gui->font.char_height+gui->char_v_space;
+         }
+         UG_PutChar('?', xp, yp, gui->fore_color, gui->back_color);
+         xp += cw + gui->char_h_space;
+      }
    }
 }
 
+typedef UG_U8 byte;
+#define bitRead(x, y) ((x>>y)&1)
+void UG_PutKorChar( UG_U8 utf8[4], UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
+{
+   UG_U8 cho1[22] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 1, 2, 4, 4, 4, 2, 1, 3, 0 };
+   UG_U8 cho2[22] = { 0, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 7, 7, 6, 6, 7, 7, 7, 6, 6, 7, 5 };
+   UG_U8 jong[22] = { 0, 0, 2, 0, 2, 1, 2, 1, 2, 3, 0, 2, 1, 3, 3, 1, 2, 1, 3, 3, 1, 1 }; 
+   UG_U8 first=0, mid=0, last=0;
+   UG_U8 firstType=0, midType=0, lastType=0;
+   UG_U16 i, j, k, m;
+   UG_U16 unicode, value, f0, f1, f2;
+   UG_U8 buf[ 32 ], font[ 32 ];
+   // https://hubbleconstant.tistory.com/6
+   // UTF8을 UNICODE로
+   unicode  = utf8[ 0 ] & 0x0F; 
+   unicode <<= 6;
+   unicode |= utf8[ 1 ] & 0x3F; 
+   unicode <<= 6;
+   unicode |= utf8[ 2 ] & 0x3F;
+
+   if (unicode < 0xAC00 || unicode > 0xD7A3)
+   {
+      return;
+   }
+
+   // UNICODE에서 초성 중성 종성 분리  
+   // 초성(20) : 없음ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ
+   // 중성(22) : 없음ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ
+   // 종성(28) : 없음ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ
+   //              가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛
+
+   unicode -= 0xAC00;    // 0xAC00='가' ~  0xD7A3='힣' 11,172글자
+   last = unicode % 28;  // 종성
+   unicode /= 28;
+   first = unicode / 21 + 1;  // 초성
+   mid   = unicode % 21 + 1;  // 중성  
+   //  
+   if ( last == 0 ) {  //받침 없는 경우
+      firstType = cho1[mid];
+      if(first == 1 || first == 24) midType = 0;
+      else midType = 1;
+   }
+   else {       //받침 있는 경우
+      firstType = cho2[mid];
+      if(first == 1 || first == 24) midType = 2;
+      else midType = 3;
+      lastType = jong[mid];
+   }
+   //초성(0~159)
+   f0 = firstType * 20 + first;
+   //중성(160~247)
+   f1 = 160 + midType * 22 + mid;
+   //종성
+   f2 = (last ? 248 + lastType * 28 + last : 0);
+   for(i=0; i<32; i++)
+   {
+      buf[ i ] = K_font[f0][i] | K_font[f1][i] | (last ? K_font[f2][i] : 0);
+      // for(j=0;j<8;j++)
+      // {
+      //    gui->pset(x+j+(i<16?0:8),y+(i % 16),bitRead( buf[ i ], j % 8 ) ? fc : bc);
+      //    printf("x:%d,y:%d\n", j+(i<16?0:8), (i % 16));
+      // }
+   }
+   for(i = 0; i < 16; i++) {
+      for(j = 0; j < 16; j++) {
+         gui->pset(x+j,y+i,bitRead( buf[ j + ( i < 8 ? 0 : 16 ) ], i % 8 ) ? fc : bc);
+      }
+   }        
+}
 void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
 {
 	_UG_PutChar(chr,x,y,fc,bc,&gui->font);
@@ -5251,97 +5344,7 @@ const UG_COLOR pal_checkbox_released[] =
 };
 #endif
 
-#ifdef USE_COLOR_INDEX
-const UG_COLOR pal_window[] =
-{
-   0x63,
-   0x63,
-   0x63,
-   0x63,
 
-   0xFF,
-   0xFF,
-   0x6B,
-   0x6B,
-
-   0xE7,
-   0xE7,
-   0x9D,
-   0x9D,
-};
-
-const UG_COLOR pal_button_pressed[] =
-{
-    0x63,
-    0x63,
-    0x63,
-    0x63,
-
-    0x9D,
-    0x9D,
-    0x9D,
-    0x9D,
-
-    0xEF,
-    0xEF,
-    0xEF,
-    0xEF,
-};
-
-const UG_COLOR pal_button_released[] =
-{
-    0x63,
-    0x63,
-    0x63,
-    0x63,
-
-    0xFF,
-    0xFF,
-    0x6B,
-    0x6B,
-
-    0xE7,
-    0xE7,
-    0x9D,
-    0x9D,
-};
-
-const UG_COLOR pal_checkbox_pressed[] =
-{
-    0x63,
-    0x63,
-    0x63,
-    0x63,
-
-    0x9D,
-    0x9D,
-    0x9D,
-    0x9D,
-
-    0xEF,
-    0xEF,
-    0xEF,
-    0xEF,
-};
-
-const UG_COLOR pal_checkbox_released[] =
-{
-    0x63,
-    0x63,
-    0x63,
-    0x63,
-
-    0xFF,
-    0xFF,
-    0x6B,
-    0x6B,
-
-    0xE7,
-    0xE7,
-    0x9D,
-    0x9D,
-};
-#endif
 
 /* -------------------------------------------------------------------------------- */
 /* -- INTERNAL FUNCTIONS                                                         -- */
@@ -5358,14 +5361,14 @@ void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, const 
 
    switch ( bt )
    {
-      case 0xF6: bt = 0x94; break; // �
-      case 0xD6: bt = 0x99; break; // �
-      case 0xFC: bt = 0x81; break; // �
-      case 0xDC: bt = 0x9A; break; // �
-      case 0xE4: bt = 0x84; break; // �
-      case 0xC4: bt = 0x8E; break; // �
-      case 0xB5: bt = 0xE6; break; // �
-      case 0xB0: bt = 0xF8; break; // �
+      case 0xF6: bt = 0x94; break; // �
+      case 0xD6: bt = 0x99; break; // �
+      case 0xFC: bt = 0x81; break; // �
+      case 0xDC: bt = 0x9A; break; // �
+      case 0xE4: bt = 0x84; break; // �
+      case 0xC4: bt = 0x8E; break; // �
+      case 0xB5: bt = 0xE6; break; // �
+      case 0xB0: bt = 0xF8; break; // �
    }
 
    if (bt < font->start_char || bt > font->end_char) return;
@@ -5416,9 +5419,9 @@ void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, const 
 			  for( i=0;i<actual_char_width;i++ )
 			  {
 				 b = font->p[index++];
-				 color = ((((fc & 0xFF) * b + (bc & 0xFF) * (256 - b)) >> 8) & 0xFF) |//Blue component
-				         ((((fc & 0xFF00) * b + (bc & 0xFF00) * (256 - b)) >> 8) & 0xFF00) |//Green component
-				         ((((fc & 0xFF0000) * b + (bc & 0xFF0000) * (256 - b)) >> 8) & 0xFF0000); //Red component
+				 color = (unsigned short)((((fc & 0xFF) * b + (bc & 0xFF) * (256 - b)) >> 8)         &     0xFF) |//Blue component
+                     (unsigned short)((((fc & 0xFF00) * b + (bc & 0xFF00) * (256 - b)) >> 8)     &   0xFF00) |//Green component
+				         (unsigned short)((((fc & 0xFF0000) * b + (bc & 0xFF0000) * (256 - b)) >> 8) & 0xFF0000) ; //Red component
 				 push_pixel(color);
 			  }
 			  index += font->char_width - actual_char_width;
@@ -5465,9 +5468,9 @@ void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, const 
             for( i=0;i<actual_char_width;i++ )
             {
                b = font->p[index++];
-               color = ((((fc & 0xFF) * b + (bc & 0xFF) * (256 - b)) >> 8) & 0xFF) |//Blue component
-                       ((((fc & 0xFF00) * b + (bc & 0xFF00) * (256 - b)) >> 8) & 0xFF00) |//Green component
-                       ((((fc & 0xFF0000) * b + (bc & 0xFF0000) * (256 - b)) >> 8) & 0xFF0000); //Red component
+               color = (((fc & 0xFF) * b + (bc & 0xFF) * (256 - b)) >> 8) & 0xFF |//Blue component
+                       (((fc & 0xFF00) * b + (bc & 0xFF00) * (256 - b)) >> 8)  & 0xFF00|//Green component
+                       (((fc & 0xFF0000) * b + (bc & 0xFF0000) * (256 - b)) >> 8) & 0xFF0000; //Red component
                gui->pset(xo,yo,color);
                xo++;
             }
@@ -8326,5 +8329,4 @@ void _UG_ImageUpdate(UG_WINDOW* wnd, UG_OBJECT* obj)
       obj->state &= ~OBJ_STATE_UPDATE;
    }
 }
-
 
