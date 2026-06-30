@@ -410,7 +410,7 @@ TShutdownMode CKernel::Run (void)
 
 			if (frame % 16 == 0)
 			{
-				if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
+				if (R->IFF & IFF_1)	// if interrupt enabled, call Z-80 interrupt routine
 				{
 					R->IFF |= IFF_IM1 | IFF_1;
 					IntZ80(R, 0);

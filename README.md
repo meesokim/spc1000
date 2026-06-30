@@ -27,6 +27,11 @@ SPC-1000은 1982년 삼성전자에서 출시한 최초의 8비트 개인용 컴
 *   **🔌 [spc1000_circle](file:///home/msx/spc1000/spc1000_circle) & [baremetal](file:///home/msx/spc1000/baremetal) - 라즈베리 파이 베어메탈 에뮬레이터**:
     *   OS 없이 라즈베리 파이(RPi 1, Zero 등)에서 직접 부팅하는 **Bare-metal** 펌웨어(`kernel.img`) 빌드 지원
     *   Circle 프레임워크 기반으로 USB 키보드 입력, MC6847 비디오 렌더링, PWM/I2S 사운드(3.5mm 잭 또는 external DAC) 고속 출력 지원
+    *   **최근 개선 사항**:
+        *   **메모리 배치 크래시 해결**: `KERNEL_MAX_SIZE`를 4MB(`0x400000`)로 확장해 BSS 영역이 커널 스택(0x228000에서 하향) 영역과 충돌하여 부팅 시 무지개 화면에서 멈추던 스택 오버랩 버그 수정.
+        *   **Z80 인터럽트 수정**: 60Hz 비디오 싱크 인터럽트 검사 조건을 EI 명령어 직후 한시적인 `IFF_EI` 플래그 대신 실제 인터럽트 활성화 상태인 `IFF_1` 플래그로 변경하여 BIOS 타이머 프리징(녹색 화면 멈춤) 해결.
+        *   **IPL ROM 및 32KB ROM 완성**: 0바이트로 빌드되던 `spc-1000_ipl.bin` 파일을 정상 컴파일 및 병합하여 32KB 규격의 완전한 `spcall.rom` 이미지를 복구하고 BIOS 기동 시의 메모리 영역 크래시 제거.
+        *   **뮤텍스 영역 안정성 확보**: `sound_mutex`가 `NULL` 포인터인 상태로 원자적 락킹(`LDREX`/`STREX`)을 수행해 CPU 예외 벡터 테이블(`0x00000000`)을 오염시키던 문제를 실제 RAM 주소를 가리키는 `int`형 전역 변수로 수정하여 시스템 안전성 확보.
 
 ### 2. 라즈베리 파이 확장 박스 (Extension Box) & FDD 에뮬레이션
 *   **📦 [spcbox_bm](file:///home/msx/spc1000/spcbox_bm) / [rpibox](file:///home/msx/spc1000/rpibox) - SPCBox GPIO 베어메탈 드라이버**:

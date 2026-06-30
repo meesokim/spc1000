@@ -1,1 +1,1 @@
-extern unsigned char  ROM[31488];
+extern unsigned char  ROM[32768];
