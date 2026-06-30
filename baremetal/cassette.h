@@ -58,6 +58,7 @@ public:
     int pos = 0;
     Cassette();
     ~Cassette();
+    void alloc_tape();
     void initTick(unsigned int tick) { old_cycles = tick; }
     void load(const char *name = NULL);
     void load(const char *data, unsigned int length, const char *filename);

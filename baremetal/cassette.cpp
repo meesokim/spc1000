@@ -23,7 +23,7 @@ bool in_array(const std::string &value, const std::vector<std::string> &array)
 
 Cassette::Cassette()
 {
-    tape = new char[TAPE_SIZE];
+    tape = nullptr;
     old_cycles = 0;
     len = 0;
     type = TYPE_CHARBIN;
@@ -38,11 +38,20 @@ Cassette::Cassette()
 
 Cassette::~Cassette()
 {
-    delete[] tape;
+    if (tape) delete[] tape;
+}
+
+void Cassette::alloc_tape()
+{
+    if (!tape) {
+        tape = new char[TAPE_SIZE];
+        memset(tape, 0, TAPE_SIZE);
+    }
 }
 
 #define PULSE 14
 char Cassette::read(unsigned int cycles, unsigned char wait) {
+    alloc_tape();
     char val = 0;
     int diff = cycles - old_cycles;
     if (diff > 4 * PULSE * 90)
@@ -93,6 +102,7 @@ void Cassette::write(char ch)
 
 void Cassette::load(const char *name) 
 {
+    alloc_tape();
     pos = 0;
     len = 0;
     string file;
@@ -178,6 +188,7 @@ void Cassette::load(const char *name)
 
 void Cassette::load(const char *data, unsigned int length, const char *filename)
 {
+    alloc_tape();
     if (data[0] == 'P' && data[1] == 'K')
     {
         loadzip(data, length);
@@ -262,6 +273,7 @@ void Cassette::loaddir(const char *dirname)
 
 int Cassette::loadzip(const char *data, int size)
 {
+    alloc_tape();
     size_t uncomp_size, len; 
     mz_zip_archive zip;
     mz_zip_archive_file_stat file_stat;
