@@ -21,7 +21,7 @@ else ifeq ($(strip $(RASPPI)),4)
 TARGET = kernel7l
 endif
 
-USE_VCHIQ_SOUND=1
+USE_VCHIQ_SOUND=0
 
 INCLUDE = -I$(CIRCLEHOME)/addon
 TAP_FILE = apple.tap
@@ -38,11 +38,14 @@ CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 CPPFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 endif
 
-OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o 
+OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o cassette.o globals.o
 
 LIBS += ugui/libugui$(RASPPI).a \
+	   $(CIRCLEHOME)/lib/sched/libsched.a \
 	   $(CIRCLEHOME)/lib/usb/libusb.a \
 	   $(CIRCLEHOME)/lib/fs/libfs.a \
+	   $(CIRCLEHOME)/lib/fs/fat/libfatfs.a \
+	   $(CIRCLEHOME)/addon/SDCard/libsdcard.a \
 	   $(CIRCLEHOME)/lib/input/libinput.a \
 	   $(CIRCLEHOME)/lib/sound/libsound.a \
 	   $(CIRCLEHOME)/addon/fatfs/libfatfs.a \

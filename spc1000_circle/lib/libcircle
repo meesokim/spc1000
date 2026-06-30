@@ -1,5 +1,5 @@
 #!/bin/bash
-ar x ~/circle/lib/libcircle.a
+ar x ../circle/lib/libcircle.a
 rm util.o
 ar rcs libcircle.a *.o
 rm *.o

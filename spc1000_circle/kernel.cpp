@@ -35,28 +35,21 @@ static const char FromKernel[] = "kernel";
 CKernel::CKernel (void)
 :	m_Screen (640, 480),
 	m_Timer (&m_Interrupt),
-	m_Logger (m_Options.GetLogLevel (), &m_Timer)
-	// m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
-// #ifndef USB_GADGET_MODE
-// 	m_pUSB (new CUSBHCIDevice (&m_Interrupt, &m_Timer, TRUE)), // TRUE: enable plug-and-play
-// #else
-// 	m_pUSB (new CUSBMIDIGadget (&m_Interrupt)),
-// #endif
-	// m_USBHCI (&m_Interrupt, &m_Timer, TRUE),		// TRUE: enable plug-and-play
-	// m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
+	m_Logger (m_Options.GetLogLevel (), &m_Timer),
+	m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
+	m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED)
 {
-//	m_ActLED.Blink (5);	// show we are alive
-	// m_pKeyboard = nullptr;
+	m_pKeyboard = nullptr;
 }
 
 CKeyboard *CKeyboard::s_pThis = 0;
 CKernel *CKernel::s_pThis = 0;
 
-// CMC6847 mc6847;
-// CKeyboard kbd;
-// CPU cpu;
-// AY8910 ay8910;
-// Cassette cassette;
+CMC6847 mc6847;
+CKeyboard kbd;
+CPU cpu;
+AY8910 ay8910;
+Cassette cassette;
 
 Registers reg;
 TKeyMap spcKeyHash [0x200];
@@ -275,14 +268,15 @@ unsigned int execute(uint32_t interval, void* name)
 	{
         mc6847.Update();
 		UG_U16 * buffer = mc6847.GetBuffer();
-		memcpy(pixels, crtbuf, SCREEN_WIDTH * SCREEN_HEIGHT * 2);
+		UG_COLOR *pDst = pixels;
+		memcpy(pDst, crtbuf, SCREEN_WIDTH * SCREEN_HEIGHT * 2);
 		for(int y = 0; y < BUFFER_HEIGHT; y++)
 		{
 			for(int x = 0; x < BUFFER_WIDTH; x++)
 			{
-				pixels[x*2] = pixels[x*2+1] = buffer[x];
+				pDst[x*2] = pDst[x*2+1] = buffer[x];
 			}
-			pixels += SCREEN_WIDTH * 2;
+			pDst += SCREEN_WIDTH * 2;
 		}
 		drawText();
 	}
@@ -298,7 +292,7 @@ UG_COLOR bgcolor;
 
 void SetPixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 {
-    if (pixels && color != bgcolor) {
+    if (pixels && color != bgcolor && x >= 0 && x < w * 2 && y >= 0 && y < h * 2) {
         pixels[x + y * w * 2] = color;
     }
 }
@@ -395,15 +389,14 @@ CKernel::~CKernel (void)
 boolean CKernel::Initialize (void)
 {
 	boolean bOK = TRUE;
-	// if (bOK) { bOK = m_DeviceNameService.Initialize (); }
 	if (bOK) { bOK = m_Screen.Initialize (); }
 	if (bOK) { bOK = m_Logger.Initialize (&m_Screen); }
 	if (bOK) { bOK = m_Interrupt.Initialize (); }
 	if (bOK) { bOK = m_Timer.Initialize (); }
 	// if (bOK) { bOK = m_I2CMaster.Initialize (); }
 	// if (bOK) { assert (m_pUSB); bOK = m_pUSB->Initialize (); }
-	// if (bOK) { bOK = m_EMMC.Initialize (); }
-	// if (bOK) { bOK = m_USBHCI.Initialize (); }
+	if (bOK) { bOK = m_EMMC.Initialize (); }
+	if (bOK) { bOK = m_USBHCI.Initialize (); }
 	// if (bOK) { m_pMiniOrgan = new CMiniOrgan (&m_Interrupt, &m_I2CMaster); bOK = m_pMiniOrgan->Initialize (); }
 	int num = 0;
 	//do {
@@ -414,58 +407,51 @@ boolean CKernel::Initialize (void)
 
 TShutdownMode CKernel::Run (void)
 {
-	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	// m_Logger.Write (FromKernel, LogNotice, "SPC-1000");
-	// if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
-	// {
-	// 	m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
-	// }
+	m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
+	m_Logger.Write (FromKernel, LogNotice, "SPC-1000");
+	if (f_mount (&m_FileSystem, DRIVE, 1) != FR_OK)
+	{
+		m_Logger.Write (FromKernel, LogPanic, "Cannot mount drive: %s", DRIVE);
+	}
 	int ncount = 0;
-	// reset();
+	reset();
 	w = 320; h = 240;
-// 	UG_Init(&ug, SetPixel, SCREEN_WIDTH, SCREEN_HEIGHT);
-// 	UG_FontSelect(&FONT_12X20);
-// 	for(int i = 0; i < SCREEN_HEIGHT; i++)
-// 	{
-// 		int color = i%2 ? 0x00000000 : 0x40000000;
-// 		for(int j = 0; j < SCREEN_WIDTH; j++)
-// 		{
-// 			crtbuf[i*640+j] = color;
-// 		}
-// 	}
-// 	pixels = (UG_COLOR *) m_Screen.GetFrameBuffer()->GetBuffer();
-// 	UG_SetBackcolor(C_BLACK);
-// 	ptime = m_Timer.GetClockTicks();
-// 	ay8910.initTick(ptime);
-// 	cpu.initTick(ptime);
-// 	cassette.initTick(ptime);
-// 	cassette.get_title(text);
-// 	unsigned int frames = 0;
+	UG_Init(&ug, SetPixel, SCREEN_WIDTH, SCREEN_HEIGHT);
+	UG_FontSelect(&FONT_12X20);
+	for(int i = 0; i < SCREEN_HEIGHT; i++)
+	{
+		int color = i%2 ? 0x00000000 : 0x40000000;
+		for(int j = 0; j < SCREEN_WIDTH; j++)
+		{
+			crtbuf[i*640+j] = color;
+		}
+	}
+	pixels = (UG_COLOR *) m_Screen.GetFrameBuffer()->GetBuffer();
+	UG_SetBackcolor(C_BLACK);
+	ptime = m_Timer.GetClockTicks();
+	ay8910.initTick(ptime);
+	cpu.initTick(ptime);
+	cassette.initTick(ptime);
+	cassette.get_title(text);
 	while(true)
 	{
-// 		boolean bUpdated = m_USBHCI.UpdatePlugAndPlay ();
-// 		if (  bUpdated && m_pKeyboard == nullptr)
-// 		{
-// 			m_pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
-// 			if (m_pKeyboard != nullptr)
-// 			{
-// 				m_pKeyboard->RegisterRemovedHandler (KeyboardRemovedHandler);
+		boolean bUpdated = m_USBHCI.UpdatePlugAndPlay ();
+		if (  bUpdated && m_pKeyboard == nullptr)
+		{
+			m_pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+			if (m_pKeyboard != nullptr)
+			{
+				m_pKeyboard->RegisterRemovedHandler (KeyboardRemovedHandler);
 
-// #if 0	// set to 0 to test raw mode
-// 				m_pKeyboard->RegisterShutdownHandler (ShutdownHandler);
-// 				m_pKeyboard->RegisterKeyPressedHandler (KeyPressedHandler);
-// #else
-// 				m_pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw);
-// #endif
-// 				m_Logger.Write (FromKernel, LogNotice, "Just type something!");			
-// 			}
-// 		}
-// 		assert (m_pUSB);
-// 		m_Screen.Rotor (0, ncount++);
-// 		unsigned int time = m_Timer.GetClockTicks();
-// 		if (time > ptime + 1000/60) {
-// 			execute(time - ptime, 0);
-// 		}
+				m_pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw);
+				m_Logger.Write (FromKernel, LogNotice, "Just type something!");			
+			}
+		}
+		m_Screen.Rotor (0, ncount++);
+		unsigned int time = m_Timer.GetClockTicks();
+		if (time > ptime + 1000/60) {
+			execute(time - ptime, 0);
+		}
 	}
 	return ShutdownHalt;
 }
@@ -510,5 +496,30 @@ void CKernel::KeyboardRemovedHandler (CDevice *pDevice, void *pContext)
 	assert (s_pThis != nullptr);
 	CLogger::Get ()->Write (FromKernel, LogDebug, "Keyboard removed");
 	// s_pThis->m_pKeyboard = 0;
+}
+
+u32 ether_crc (size_t nLength, const unsigned char *pData)
+{
+	u32 nCRC = ~0;
+	while (nLength--)
+	{
+		nCRC ^= *pData++;
+
+		for (unsigned i = 0; i < 8; i++)
+		{
+			nCRC = (nCRC >> 1) ^ ((nCRC & 1) ? 0xEDB88320 : 0);
+		}
+	}
+
+	// reverse bits
+	u32 nCRC_BE = 0;
+	unsigned i;
+	for (i = 0; nCRC; i++, nCRC >>= 1)
+	{
+		nCRC_BE <<= 1;
+		nCRC_BE |= nCRC & 1;
+	}
+
+	return nCRC_BE << (32 - i);
 }
 

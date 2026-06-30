@@ -1,8 +1,10 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
+#ifndef __circle__
 #include <filesystem>
 namespace fs = std::filesystem;
+#endif
 #include <string>
 #include <vector>
 using namespace std;
@@ -57,11 +59,12 @@ public:
     char read(uint32_t, uint8_t);
     char read1() { return 0;}
     void write(char);
-    void next() { if (++file_index >= files.size()) file_index = 0; load(); }
-    void get_title(char *buf) { strcpy(buf, loaded_filename.c_str()); };
-    void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
+    void next() { if (files.empty()) return; if (++file_index >= files.size()) file_index = 0; load(); }
+    void get_title(char *buf) { if (loaded_filename.empty()) { buf[0] = 0; } else { strcpy(buf, loaded_filename.c_str()); } };
+    void prev() { if (files.empty()) return; if (--file_index < 0) file_index = files.size() - 1; load();}
     void settape(unsigned int i) 
     {
+        if (files.empty()) return;
         if ( i >= files.size() )
             file_index = files.size() - 1; 
         else 

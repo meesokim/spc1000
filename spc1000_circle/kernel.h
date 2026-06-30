@@ -41,6 +41,8 @@
 #endif
 
 #include "spc1000.h"
+#include <SDCard/emmc.h>
+#include <fatfs/ff.h>
 
 enum TShutdownMode
 {
@@ -77,11 +79,11 @@ private:
 	CLogger				m_Logger;
 	// CI2CMaster			m_I2CMaster;
 	// CUSBController		*m_pUSB;
-	// CUSBHCIDevice		m_USBHCI;
-	// CEMMCDevice			m_EMMC;
+	CUSBHCIDevice		m_USBHCI;
+	CEMMCDevice			m_EMMC;
 	// CKeyboard			m_Keyboard;
-	// CUSBKeyboardDevice *m_pKeyboard;
-	// FATFS				m_FileSystem;
+	CUSBKeyboardDevice *m_pKeyboard;
+	FATFS				m_FileSystem;
 	// CMiniOrgan		*m_pMiniOrgan;
 	static void KeyboardRemovedHandler (CDevice *pDevice, void *pContext);
 	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]);

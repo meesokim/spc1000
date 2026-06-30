@@ -2,7 +2,7 @@
 # Makefile
 #
 
-CIRCLEHOME = ~/circle
+CIRCLEHOME = circle
 
 USE_VCHIQ_SOUND=1
 STDLIB_SUPPORT=3

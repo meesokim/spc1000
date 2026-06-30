@@ -1,20 +1,26 @@
 #include "z80.h"
-#include <set>
 #define CPU_FREQ 4000000
-typedef std::set<uint16_t> SET_INT;
 class CPU {
         uint32_t cycles = 0;
         uint32_t prev = 0;
         bool turbo = false;
         uint32_t turbo_off_time = -1;
-        SET_INT bp;
+        bool bp[65536];
     public:
         z80 *r;
 
-        CPU() { r = new z80(); }
+        CPU() { 
+            r = nullptr; 
+            for (int i = 0; i < 65536; i++) bp[i] = false;
+        }
         void initTick(uint32_t clk) { prev = clk; }
         uint32_t getCycles() { return cycles; }
-        void init() { z80_init(r); r->interrupt_mode = 1; turbo = false;}
+        void init() { 
+            if (!r) r = new z80();
+            z80_init(r); 
+            r->interrupt_mode = 1; 
+            turbo = false;
+        }
         void reset() { z80_reset(r); cycles = 0; }
         void set_turbo(int b, int ms = 200) { 
             // if (b != turbo) {
@@ -27,7 +33,7 @@ class CPU {
             turbo = b; 
         }
         bool checK(uint16_t addr) {
-            return (bp.find(addr) != bp.end());
+            return bp[addr];
         }
         void set_pc(uint16_t pc) { r->pc = pc;}
         void set_sp(uint16_t sp) { r->sp = sp;}
@@ -55,7 +61,7 @@ class CPU {
             cycles += c;
             return c;
         }
-        int  exec(int ms) 
+        int  exec(uint32_t ms) 
         { 
             if (turbo && turbo_off_time < prev) 
                 set_turbo(0);
@@ -74,7 +80,7 @@ class CPU {
             return cyc;
         }
         void breakpoint(uint16_t addr) {
-            bp.insert(addr);
+            bp[addr] = true;
         }
         void debug() { z80_debug_output(r);}
         void assert_nmi() { z80_assert_nmi(r);}
@@ -94,7 +100,7 @@ class CPU {
             r->port_out = write;
         }
         void set_breakpoint(uint16_t addr) {
-            bp.insert(addr);
+            bp[addr] = true;
             printf("breakpoint:%04x added\n", addr);
         }
 };

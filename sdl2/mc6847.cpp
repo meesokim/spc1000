@@ -23,20 +23,20 @@
 
 
 CMC6847::CMC6847 (void)
-:	m_pBuffer (0)
+:	m_pBuffer0 (0),
+	m_pBuffer (0)
 {
 	GMODE = 0;
 }
 
 CMC6847::~CMC6847 (void)
 {
-	delete m_pBuffer;
+	delete[] m_pBuffer;
+	delete[] m_pBuffer0;
 }
 
-// really ((green) & 0x3F) << 5, but to have a 0-31 range for all colors
-#define COLOR16(red, green, blue)	  (((red>>3) & 0x1F) << 11 \
-					| ((green>>2) & 0x3F) << 6 \
-					| ((blue>>3) & 0x1F))
+// Corrected to standard RGB565 layout (matching C version Color16)
+#define COLOR16(red, green, blue) ((((red) & 0xf8) << 8) | (((green) & 0xfc) << 3) | ((blue) >> 3))
 
 // BGRA (was RGBA with older firmware)
 #define COLOR32(red, green, blue, alpha)  (((red) & 0xFF)       \
@@ -148,105 +148,118 @@ void CMC6847::Update ()
 	u8 gmode = GMODE;
 	u16 *data = (u16 *)m_pBuffer;
 	u8 _gm0, _gm1, _ag, _css;
-	u16 _page, y, h, x, mask;
-	u8 attr, ch, b, cix, c;
+	u16 _page, y, h, x;
 	_gm0 = _BIT(gmode, 2);
 	_gm1 = _BIT(gmode, 1);
-	//int _gm2 = 1;
 	_ag = _BIT(gmode, 3);
 	_css = _BIT(gmode, 7);
 	_page = gmode >> 4 & 0x3;
 	PIXEL bg, fg, border;
 	border = cMap[0];
-	b = 0;
+	u8 b = 0;
 	if (_ag == 0)
-    {
-		FILL(data, REPT, border);
+	{
+		FILL(data, REPT, palette[border]);
 		for(y=0; y < 16; y++)
 		{
+			// Optimize: Pre-compute row offset pointers outside the 'h' loop.
+			u32 row_offset = y * 32 + _page * 0x200;
+			u8 *pAttrRow = &VRAM[row_offset + SCREEN_ATTR_START];
+			u8 *pCharRow = &VRAM[row_offset + SCREEN_TEXT_START];
+
 			for(h=0; h < 12; h++)
 			{
-			FILL(data, REPL, border);
-			for(x=0; x < 32; x++)
-			{
-				attr = VRAM[x + y * 32 + SCREEN_ATTR_START + _page * 0x200];
-				ch = VRAM[x + y * 32 + SCREEN_TEXT_START + _page * 0x200];
-				if ((attr & ATTR_SEM) != 0)
+				FILL(data, REPL, palette[border]);
+				for(x=0; x < 32; x++)
 				{
-					bg = cMap[0];
-					if ((attr & ATTR_EXT) != 0)
+					u8 attr = pAttrRow[x];
+					u8 ch = pCharRow[x];
+					if ((attr & ATTR_SEM) != 0)
 					{
-						fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
-						b = semiGrFont1[(ch & 0x3f) * 12 + h];	
-					} 
-					else 
+						bg = cMap[0];
+						if ((attr & ATTR_EXT) != 0)
+						{
+							fg = cMap[(((attr & ATTR_CSS) << 1) | ((ch & 0xc0) >> 6)) + 1];
+							b = semiGrFont1[(ch & 0x3f) * 12 + h];	
+						} 
+						else 
+						{
+							fg = cMap[((ch & 0x70)>> 4) + 1];
+							b = semiGrFont0[(ch & 0x0f) * 12 + h];
+						}
+					}
+					else // ASCII
 					{
-						fg = cMap[((ch & 0x70)>> 4) + 1];
-						//printf("fg=%d,%d\n", ch, ((ch & 0x70)>> 4) + 1);
-						b = semiGrFont0[(ch & 0x0f) * 12 + h];
+						u8 cix = (attr & ATTR_CSS) >> 1; 
+						if ((attr & ATTR_INV) == 0)
+						{
+							bg = cMap[11 + cix * 2];
+							fg = cMap[11 + cix * 2 + 1];
+						}
+						else
+						{
+							fg = cMap[11 + cix * 2];
+							bg = cMap[11 + cix * 2 + 1];
+						}
+						if (ch < 32 && ((attr & ATTR_EXT) == 0))
+							ch = 32;	
+						if (((attr & ATTR_EXT) != 0) && (ch < 96))
+							ch += 128;
+						if (ch >= 96 && ch < 128)
+							b = VRAM[0x1600+(ch-96)*16+h];
+						else if (ch >= 128 && ch < 224)
+							b = VRAM[0x1000+(ch-128)*16+h];
+						else if (ch >= 32)
+							b = CGROM[(ch-32)*12+h];
+					}
+					// Optimize: Cache fg_color and bg_color to avoid palette array lookups in the inner loop
+					u16 fg_color = palette[fg];
+					u16 bg_color = palette[bg];
+					for(u16 mask = 0x80; mask != 0; mask >>=1)
+					{
+						*data++ = ((b & mask) != 0) ? fg_color : bg_color;
 					}
 				}
-				else // ASCII
-				{
-					cix = (attr & ATTR_CSS) >> 1; 
-					if ((attr & ATTR_INV) == 0)
-					{
-						bg = cMap[11 + cix * 2];
-						fg = cMap[11 + cix * 2 + 1];
-					}
-					else
-					{
-						fg = cMap[11 + cix * 2];
-						bg = cMap[11 + cix * 2 + 1];
-					}
-					if (ch < 32 && ((attr & ATTR_EXT) == 0))
-						ch = 32;	
-					if (((attr & ATTR_EXT) != 0) && (ch < 96))
-						ch += 128;
-					if (ch >= 96 && ch < 128)
-						b = VRAM[0x1600+(ch-96)*16+h];
-					else if (ch >= 128 && ch < 224)
-						b = VRAM[0x1000+(ch-128)*16+h];
-					else if (ch >= 32)
-						b = CGROM[(ch-32)*12+h];
-				}
-				for(mask = 0x80; mask != 0; mask >>=1)
-				{
-					*data++ = palette[(((b & mask) != 0) ? fg : bg)];
-				}
-			}
-			FILL(data, REPR, border);
+				FILL(data, REPR, palette[border]);
 			}
 		}
-		FILL(data, REPB, border);
-    }
-    else
-    {
+		FILL(data, REPB, palette[border]);
+	}
+	else
+	{
 		bg = cMap[0];
 		border = fg = (_css ? cMap[10] : cMap[9]);
-		//border = (_css ? cMap[10] : cMap[9]);
-		FILL(data, REPT, border);
+		
+		// Optimize: Cache fg_color, bg_color and border_color outside the row loops
+		u16 fg_color = palette[fg];
+		u16 bg_color = palette[bg];
+		u16 border_color = palette[border];
+
+		FILL(data, REPT, border_color);
 		for(y = 0; y < 192; y++)
 		{
-			FILL(data, REPL, border);
+			FILL(data, REPL, border_color);
+			u8 *pVramRow = &VRAM[y * 32];
 			for(x = 0; x < 32; x++)
 			{
-				b = VRAM[y * 32 + x];
+				b = pVramRow[x];
 				if (_gm1)
 				{
 					if (_gm0)
 					{ 
-						for(mask = 0x80; mask != 0; mask >>=1)
+						for(u16 mask = 0x80; mask != 0; mask >>=1)
 						{	
-							*data++ = palette[(b & mask) != 0 ? fg : bg];
+							*data++ = (b & mask) != 0 ? fg_color : bg_color;
 						}
 					}
 					else // _gm0 == 0
 					{
-						for(c = 6; c < 8 && c >= 0; c-=2)
+						for(int c = 6; c >= 0; c-=2)
 						{
-							*data++ = palette[cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)]];
-							*data++ = palette[cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)]];
+							// Optimize: Cache lookup to call palette[cMap[...]] only once
+							u16 color = palette[cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)]];
+							*data++ = color;
+							*data++ = color;
 						}
 					}
 				}
@@ -254,26 +267,29 @@ void CMC6847::Update ()
 				{
 					if (_gm0)
 					{
-						for(mask = 0x80; mask != 0; mask >>=1)
+						for(u16 mask = 0x80; mask != 0; mask >>=1)
 						{	
-							*data++ = palette[(b & mask) != 0 ? fg : bg];
-							*data++ = palette[(b & mask) != 0 ? fg : bg];
+							*data++ = (b & mask) != 0 ? fg_color : bg_color;
+							*data++ = (b & mask) != 0 ? fg_color : bg_color;
 						}
 					}
 					else
 					{
-						for(c = 6; c > 0; c-=2)
+						for(int c = 6; c >= 0; c-=2)
 						{
-							*(data + 256 + 1) = *(data + 256) = *(data+1) = *data = palette[cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)]];
+							// Optimize: Cache lookup to call palette[cMap[...]] only once
+							u16 color = palette[cMap[((b & (0x3 << c)) >> c) + (_css ? 5 : 1)]];
+							// Fix: Stride offset bug - replace 256 with SCREEN_WIDTH
+							*(data + SCREEN_WIDTH + 1) = *(data + SCREEN_WIDTH) = *(data+1) = *data = color;
 							data+=2;
 						}
 					}
 				} 
 			}
-			FILL(data, REPR, border);
-	    }
-      	FILL(data, REPB, border);
-    }
+			FILL(data, REPR, border_color);
+		}
+		FILL(data, REPB, border_color);
+	}
 	memcpy(m_pBuffer0, m_pBuffer, FBSIZE*2);
 }
 

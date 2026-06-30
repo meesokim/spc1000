@@ -89,10 +89,11 @@ void Cassette::load(const char *name)
     }        
 #ifdef __circle__
     FIL File;
-    unsigned int nBytesRead;
-    FRESULT Result = f_open (&File, file.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
-    if (Result != FR_OK) {
+    unsigned int nBytesRead = 0;
+    FRESULT Result = f_open (&File, file.c_str(), FA_READ | FA_OPEN_EXISTING);
+    if (Result == FR_OK) {
         f_read (&File, Buffer, sizeof Buffer, &nBytesRead);
+        f_close (&File);
     }
     size = nBytesRead;
 #else        
@@ -240,10 +241,11 @@ int Cassette::loadzip(const char *data, int size)
 #ifdef __circle__
         string zipname(data);
         FIL File;
-        unsigned int nBytesRead;
-        FRESULT Result = f_open (&File, zipname.c_str(), FA_READ);
-        if (Result != FR_OK) {
+        unsigned int nBytesRead = 0;
+        FRESULT Result = f_open (&File, zipname.c_str(), FA_READ | FA_OPEN_EXISTING);
+        if (Result == FR_OK) {
             f_read (&File, compresssed, sizeof compresssed, &nBytesRead);
+            f_close (&File);
         }
         size = nBytesRead;
 #else

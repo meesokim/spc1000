@@ -42,6 +42,8 @@ int printf(const char *format, ...);
 #include "config.h"
 #include "AY8910.h"
 #include "casswindow.h"
+#include "cassette.h"
+Cassette cassette;
 #include <assert.h>
 #ifdef USE_VCHIQ_SOUND
         #include <vc4/sound/vchiqsoundbasedevice.h>
@@ -101,12 +103,16 @@ CKernel::CKernel(void)
 // #if RASPPI <= 4
 //       m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
 // #endif
-      m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
+      m_USBHCI (&m_Interrupt, &m_Timer, TRUE),	  
+	//   m_Scheduler(),
 #ifdef USE_VCHIQ_SOUND
       m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 #endif
 	//   m_DWHCI(&m_Interrupt, &m_Timer),
+	  m_pKeyboard (0),
 	  m_GUI(&m_Screen),
+	  m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
+	  m_pSound(0),
 	  m_ShutdownMode(ShutdownNone)
 // ,m_PWMSoundDevice (&m_Interrupt)	
 {
@@ -147,6 +153,7 @@ boolean CKernel::Initialize (void)
 		m_Screen.SetPalette(0xff,(u32)COLOR32(0xff, 0xff, 0xff, 0xff));
 		m_Screen.SetPalette(0x46,(u32)COLOR32(0xff, 0x00, 0x00, 0xff));
 		m_Screen.UpdatePalette();
+		m_Screen.Write ("\x1b[?25l", 6);
 	}
 	// memcpy(m_Screen.GetBuffer(), samsung_bmp_c, 320*240);
 	if (bOK)
@@ -201,6 +208,22 @@ boolean CKernel::Initialize (void)
 	} while(spcKeyMap[num++].sym != 0);
 	printf("spcKeyMap!!!\n");	
 	
+	if (bOK)
+	{
+		bOK = m_EMMC.Initialize ();
+	}
+
+	if (bOK)
+	{
+		extern CFATFileSystem *g_pFileSystem;
+		g_pFileSystem = &m_FileSystem;
+	}
+
+	if (bOK)
+	{
+		bOK = m_GUI.Initialize ();
+	}
+	
 	reset();
 	printf("reset!!!\n");	
 	return bOK;
@@ -229,6 +252,42 @@ void CKernel::rotate(int i, int idx)
 	m_Screen.Rotor(i, idx);
 }
 
+static char osd_text[64] = "";
+static u64 osd_timeout = 0;
+
+void CKernel::draw_osd_text()
+{
+	UG_FillFrame(0, 0, 319, 22, 0x00); // Black background
+	UG_DrawLine(0, 22, 319, 22, 0x46);  // Red border line
+	UG_SetBackcolor(0x00);
+	
+	UG_FontSelect(&FONT_12X20);
+
+	// Shadow
+	UG_SetForecolor(0x00);
+	UG_PutString(11, 3, osd_text);
+
+	// Foreground
+	UG_SetForecolor(0xff);
+	UG_PutString(10, 2, osd_text);
+}
+
+void CKernel::show_osd(const char *s, int keep_time_ms)
+{
+	strncpy(osd_text, s, sizeof(osd_text) - 1);
+	osd_text[sizeof(osd_text) - 1] = 0;
+	osd_timeout = CTimer::GetClockTicks64() + (u64)keep_time_ms * 1000;
+	draw_osd_text();
+}
+
+void CKernel::SoundNeedDataCallback(void *pParam)
+{
+	CKernel *pKernel = (CKernel *)pParam;
+	static u32 buffer[3840];
+	pKernel->dspcallback(buffer, 3840);
+	pKernel->m_pSound->Write(buffer, 3840 * sizeof(u32));
+}
+
 int CKernel::dspcallback(u32 *stream, int len) 
 {
 	static unsigned int nCount = 0;
@@ -255,28 +314,66 @@ TShutdownMode CKernel::Run (void)
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-        // select the sound device
+	/* HDMI 사운드 비활성화 테스트 시작 */
+	/*
+    	// 사운드 장치를 선택합니다.
+	#ifdef USE_VCHIQ_SOUND
 		m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-	//printf("Keyboard Start!\n");	
-//	CCassWindow CassWindow (0, 0);
-	// configure sound device
-	if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
+		m_Logger.Write(FromKernel, LogNotice, "HDMI sound device selected.");
+	#else
+		// HDMI 사운드를 사용하려면 VCHIQ가 필요합니다. 정의되지 않은 경우 사운드는 초기화되지 않습니다.
+		// 이는 시스템 멈춤을 방지합니다. 컴파일러 옵션에 -DUSE_VCHIQ_SOUND를 추가하세요.
+		m_Logger.Write(FromKernel, LogWarning, "HDMI sound disabled. Define USE_VCHIQ_SOUND to enable.");
+	#endif
+		//printf("Keyboard Start!\n");	
+	//	CCassWindow CassWindow (0, 0);
+		// 사운드 장치를 설정합니다.
+		if (m_pSound)
+		{
+			if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
+			{
+				// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
+			}
+			m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
+			m_pSound->RegisterNeedDataCallback (SoundNeedDataCallback, this);
+			m_pSound->Start();
+		}
+	*/
+	/* HDMI 사운드 비활성화 테스트 끝 */
+	// Mount SD card partition
+	CDevice *pPartition = nullptr;
+	m_Logger.Write (FromKernel, LogNotice, "Waiting for SD card partition...");
+	for (unsigned i = 0; i < 30; i++)
 	{
-			// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
+		pPartition = m_DeviceNameService.GetDevice ("emmc1-1", TRUE);
+		if (pPartition == nullptr)
+		{
+			pPartition = m_DeviceNameService.GetDevice ("emmc1", TRUE);
+		}
+		if (pPartition != nullptr)
+		{
+			break;
+		}
+		m_Timer.MsDelay (100);
 	}
-	m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
 
-#if 0
-	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
-	if (pKeyboard == 0)
+	if (pPartition == nullptr)
 	{
-	//	m_Logger.Write (FromKernel, LogError, "Keyboard not found");
-	} 
-	else
-	{
-		pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw); 		
+		m_Logger.Write (FromKernel, LogPanic, "Partition not found (tried emmc1-1 and emmc1)");
 	}
-#endif	
+	else if (!m_FileSystem.Mount (pPartition))
+	{
+		m_Logger.Write (FromKernel, LogPanic, "Cannot mount partition");
+	}
+
+	// Load cassette files from SD card root directory
+	cassette.loaddir("SD:/");
+	{
+		char title[64];
+		cassette.get_title(title);
+		show_osd(title);
+	}
+
 	Z80 *R = &spcsys.Z80R;	
 	reset_flag = 1;
 	while(1)
@@ -284,7 +381,7 @@ TShutdownMode CKernel::Run (void)
 		if (reset_flag) {
 			ResetZ80(R);
 			R->ICount = I_PERIOD;
-			// pticks = ticks = m_Timer.GetClockTicks();
+			ticks = m_Timer.GetClockTicks();
 			spcsys.cycles = 0;	
 			reset_flag = 0;
 		}
@@ -296,6 +393,21 @@ TShutdownMode CKernel::Run (void)
 			frame++;
 			spcsys.tick++;		// advance spc tick by 1 msec
 			R->ICount += I_PERIOD;	// re-init counter (including compensation)
+
+			// Poll USB plug-and-play periodically (approx. once per second) to detect keyboard
+			if (frame % 60 == 0)
+			{
+				m_USBHCI.UpdatePlugAndPlay ();
+				if (m_pKeyboard == 0)
+				{
+					m_pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+					if (m_pKeyboard != 0)
+					{
+						m_pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw);
+					}
+				}
+			}
+
 			if (frame % 16 == 0)
 			{
 				if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
@@ -307,23 +419,32 @@ TShutdownMode CKernel::Run (void)
 			if (frame%33 == 0)
 			{
 				Update6847(spcsys.GMODE);
-				// m_GUI.Update();
+				if (osd_timeout != 0)
+				{
+					if (CTimer::GetClockTicks64() < osd_timeout)
+					{
+						draw_osd_text();
+					}
+					else
+					{
+						osd_timeout = 0;
+					}
+				}
 				R->ICount -= 20;
 			}
 			ay8910.Loop8910(&spcsys.ay8910, 1);
-			// ticks = m_Timer.GetClockTicks() - ticks;
+
+			// System Timer Frame Delay to maintain correct virtual Z80 execution speed
+			ticks = m_Timer.GetClockTicks() - ticks;
 			if (!spcsys.cas.read)
-				// m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
-				{}
-			else
-				spcsys.cas.read = 0;
-			//m_Timer.usDelay(ticks);
-			// ticks = m_Timer.GetClockTicks();
-			if (frame%1000  == 0)
 			{
-				//printf ("Address: %04x)", R->PC);
-				//s_pThis->printf("%d, %d\n", spcsys.cycles-cycles, m_Timer.GetClockTicks() - time);
+				m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
 			}
+			else
+			{
+				spcsys.cas.read = 0;
+			}
+			ticks = m_Timer.GetClockTicks();
 		}
 	}
 
@@ -337,6 +458,83 @@ void CKernel::ShutdownHandler (void)
 
 void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
+	// Detect ALT + LEFT/RIGHT cassette tape controls
+	bool alt_pressed = (ucModifiers & 0x44) != 0; // Left Alt (0x04) or Right Alt (0x40)
+	if (alt_pressed)
+	{
+		bool left_pressed = false;
+		bool right_pressed = false;
+		for (int r = 0; r < 6; r++)
+		{
+			if (RawKeys[r] == 0x50) left_pressed = true; // CRLK_LEFT
+			if (RawKeys[r] == 0x4f) right_pressed = true; // CRLK_RIGHT
+		}
+
+		static bool left_was_pressed = false;
+		static bool right_was_pressed = false;
+
+		if (left_pressed && !left_was_pressed)
+		{
+			cassette.prev();
+			if (s_pThis)
+			{
+				char title[64];
+				cassette.get_title(title);
+				s_pThis->show_osd(title);
+			}
+		}
+		if (right_pressed && !right_was_pressed)
+		{
+			cassette.next();
+			if (s_pThis)
+			{
+				char title[64];
+				cassette.get_title(title);
+				s_pThis->show_osd(title);
+			}
+		}
+
+		left_was_pressed = left_pressed;
+		right_was_pressed = right_pressed;
+
+		// Consume keypress so it is not forwarded to Z80
+		if (left_pressed || right_pressed)
+		{
+			return;
+		}
+	}
+
+	// Reset entire keyMatrix to all 0xFF (not pressed)
+	::memset(keyMatrix, 0xff, 10);
+
+	// Map modifier bits (Shift, Ctrl, Alt/Graph)
+	for (int i = 0; spcKeyMap[i].keyMatIdx != -1; i++)
+	{
+		if (spcKeyMap[i].sym & 0x100) // Modifier key syms have 0x100 ORed
+		{
+			unsigned char mod_bit = spcKeyMap[i].sym & 0xFF;
+			if (ucModifiers & mod_bit)
+			{
+				keyMatrix[spcKeyMap[i].keyMatIdx] &= ~spcKeyMap[i].keyMask;
+			}
+		}
+	}
+
+	// Map raw keys (up to 6 keys pressed simultaneously)
+	for (int r = 0; r < 6; r++)
+	{
+		unsigned char k = RawKeys[r];
+		if (k == 0) continue;
+
+		for (int i = 0; spcKeyMap[i].keyMatIdx != -1; i++)
+		{
+			if (!(spcKeyMap[i].sym & 0x100) && spcKeyMap[i].sym == k)
+			{
+				keyMatrix[spcKeyMap[i].keyMatIdx] &= ~spcKeyMap[i].keyMask;
+				break;
+			}
+		}
+	}
 }
 
 int CKernel::printf(const char *format, ...)
@@ -369,7 +567,7 @@ extern "C" int printf(const char *format, ...)
 	return result;
 }
 
-extern "C" byte InZ80(register word Port)
+extern "C" byte InZ80(word Port)
 {
 	if (Port >= 0x8000 && Port <= 0x8009) // Keyboard Matrix
 	{
@@ -394,10 +592,19 @@ extern "C" byte InZ80(register word Port)
 		{
 			if (spcsys.psgRegNum == 14)
 			{
-				if (spcsys.cas.motor)
+				cassette.motor = spcsys.cas.motor;
+				if (cassette.motor)
+				{
 					retval &= (~(0x40)); // 0 indicates Motor On
+					if (cassette.read(spcsys.cycles, 38) == 1)
+						retval |= 0x80;
+					else
+						retval &= 0x7f;
+				}
 				else
+				{
 					retval |= 0x40;
+				}
 			}
 			else 
 			{
@@ -409,7 +616,7 @@ extern "C" byte InZ80(register word Port)
 	return 0xff;
 }
 
-extern "C" void OutZ80(register word Port,register byte Value)
+extern "C" void OutZ80(word Port,byte Value)
 {
 	if (Port < 0x2000) // VRAM area
 	{
@@ -437,6 +644,7 @@ extern "C" void OutZ80(register word Port,register byte Value)
 				{
 					spcsys.cas.pulse = 0;
 					spcsys.cas.motor = !spcsys.cas.motor;
+					cassette.motor = spcsys.cas.motor;
 				}
 			}
 		}
@@ -451,5 +659,5 @@ extern "C" void OutZ80(register word Port,register byte Value)
 	}
 }
 
-extern "C" void PatchZ80(register Z80 *R) {}
-extern "C" word LoopZ80(register Z80 *R) { return INT_NONE; }
+extern "C" void PatchZ80( Z80 *R) {}
+extern "C" word LoopZ80( Z80 *R) { return INT_NONE; }
