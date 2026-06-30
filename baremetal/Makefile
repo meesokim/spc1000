@@ -2,8 +2,14 @@
 # Makefile
 #
 
-CIRCLEHOME ?= ../circle
+CIRCLEHOME ?= ~/circle
 RASPPI ?= 1
+
+# The kernel image + BSS requires ~2.2MB, exceeding the default KERNEL_MAX_SIZE (2MB).
+# This causes BSS to overlap the stack region, crashing at boot (rainbow screen hang).
+# Increase to 4MB so the stack is placed safely beyond BSS.
+KERNEL_MAX_SIZE = 0x400000
+DEFINE += -DKERNEL_MAX_SIZE=$(KERNEL_MAX_SIZE)
 
 ifeq ($(strip $(RASPPI)),1)
 TARGET = kernel
