@@ -1,0 +1,83 @@
+#ifndef CASSETTE_H_
+#define CASSETTE_H_
+
+#ifndef __circle__
+typedef unsigned int uint32_t;
+typedef unsigned char uint8_t;
+#endif
+
+#include <string.h>
+// #include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+// #include <fstream>
+#include <algorithm>
+// #include <filesystem>
+
+#include <string>
+enum castype {TYPE_CHARBIN, TYPE_BINARY};
+
+class ZFile {
+public:
+    std::string fname;
+    int index;
+    ZFile(std::string f, int i=0) { fname = f; index = i;};
+    bool operator<(const ZFile& other) {
+        return fname < other.fname;
+    }
+    std::string operator=(const char *name) {
+        return name;
+    }
+    operator std::string() {
+        return fname;
+    }
+    std::string filename() { return fname; }
+    std::string extension() { return fname.substr(fname.find_last_of(".")); }
+    const char *c_str() { return fname.c_str(); }
+};
+
+#define TAPE_SIZE (1024 * 1024 * 6)
+class Cassette {
+    unsigned int old_cycles;
+    char tape[TAPE_SIZE];
+    int len = 0;
+    char type = TYPE_CHARBIN;
+    char mark = -1;
+    unsigned int inv_time, end_time, old_time;
+#ifdef __EMSCRIPTEN__    
+    std::vector<filesystem::path> files;
+#else
+    std::vector<ZFile> files;
+#endif
+    unsigned int file_index = 0;
+    std::string m_dirname;
+    std::string loaded_filename;
+    std::vector<std::string> exts {".tap",".cas",".zip",".bz2"};
+public:
+    char motor;
+    int pos = 0;
+    Cassette() {}
+    void initTick(unsigned int tick) { old_cycles = tick; }
+    void load(const char *name = NULL);
+    void load(const char *data, unsigned int length, const char *filename);
+    void save(const char *name);
+    char read(unsigned int, unsigned char);
+    char read1() { return 0;}
+    void write(char);
+    void next() { if (++file_index >= files.size()) file_index = 0; load(); }
+    void get_title(char *buf) { strcpy(buf, loaded_filename.c_str()); };
+    void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
+    void settape(unsigned int i) 
+    {
+        if ( i >= files.size() )
+            file_index = files.size() - 1; 
+        else 
+            file_index = i; 
+        load(); 
+    };
+    void setfile(const char *);
+    void loaddir(const char *);
+    int loadzip(const char *, int len = 0);
+};
+
+#endif

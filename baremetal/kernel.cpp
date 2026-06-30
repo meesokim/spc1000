@@ -314,32 +314,43 @@ TShutdownMode CKernel::Run (void)
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	/* HDMI 사운드 비활성화 테스트 시작 */
-	/*
-    	// 사운드 장치를 선택합니다.
-	#ifdef USE_VCHIQ_SOUND
+	// 사운드 장치를 선택합니다.
+	const char *pSoundDevice = m_Options.GetSoundDevice ();
+	if (strcmp (pSoundDevice, "sndpwm") == 0)
+	{
+		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+		m_Logger.Write(FromKernel, LogNotice, "PWM sound device selected.");
+	}
+	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
+	{
 		m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-		m_Logger.Write(FromKernel, LogNotice, "HDMI sound device selected.");
-	#else
-		// HDMI 사운드를 사용하려면 VCHIQ가 필요합니다. 정의되지 않은 경우 사운드는 초기화되지 않습니다.
-		// 이는 시스템 멈춤을 방지합니다. 컴파일러 옵션에 -DUSE_VCHIQ_SOUND를 추가하세요.
-		m_Logger.Write(FromKernel, LogWarning, "HDMI sound disabled. Define USE_VCHIQ_SOUND to enable.");
-	#endif
-		//printf("Keyboard Start!\n");	
-	//	CCassWindow CassWindow (0, 0);
-		// 사운드 장치를 설정합니다.
-		if (m_pSound)
+		m_Logger.Write(FromKernel, LogNotice, "HDMI sound device selected (without VCHIQ).");
+	}
+	else
+	{
+#ifdef USE_VCHIQ_SOUND
+		m_pSound = new CVCHIQSoundBaseDevice (&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
+					(TVCHIQSoundDestination) m_Options.GetSoundOption ());
+		m_Logger.Write(FromKernel, LogNotice, "VCHIQ sound device selected.");
+#else
+		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
+		m_Logger.Write(FromKernel, LogNotice, "PWM sound device selected (default).");
+#endif
+	}
+	//printf("Keyboard Start!\n");	
+//	CCassWindow CassWindow (0, 0);
+	// 사운드 장치를 설정합니다.
+	if (m_pSound)
+	{
+		if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
 		{
-			if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
-			{
-				// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
-			}
-			m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
-			m_pSound->RegisterNeedDataCallback (SoundNeedDataCallback, this);
-			m_pSound->Start();
+			// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
 		}
-	*/
-	/* HDMI 사운드 비활성화 테스트 끝 */
+		m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
+		m_pSound->RegisterNeedDataCallback (SoundNeedDataCallback, this);
+		m_pSound->Start();
+	}
+
 	// Mount SD card partition
 	CDevice *pPartition = nullptr;
 	m_Logger.Write (FromKernel, LogNotice, "Waiting for SD card partition...");
@@ -366,8 +377,8 @@ TShutdownMode CKernel::Run (void)
 		m_Logger.Write (FromKernel, LogPanic, "Cannot mount partition");
 	}
 
-	// Load cassette files from SD card root directory
-	cassette.loaddir("SD:/");
+	// Load cassette files from SD card taps directory
+	cassette.loaddir("SD:/taps");
 	{
 		char title[64];
 		cassette.get_title(title);
@@ -410,7 +421,7 @@ TShutdownMode CKernel::Run (void)
 
 			if (frame % 16 == 0)
 			{
-				if (R->IFF & IFF_1)	// if interrupt enabled, call Z-80 interrupt routine
+				if (R->IFF & IFF_EI)	// if interrupt enabled, call Z-80 interrupt routine
 				{
 					R->IFF |= IFF_IM1 | IFF_1;
 					IntZ80(R, 0);

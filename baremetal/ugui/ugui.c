@@ -4942,55 +4942,44 @@ void UG_PutString( UG_S16 x, UG_S16 y, char* str )
 {
    UG_S16 xp,yp;
    UG_U8 cw;
+   UG_U8 chr;
 
    xp=x;
    yp=y;
 
+   int len = strlen(str);
+   int pos = 0;
+   UG_U8 utf8[4];
    while ( *str != 0 )
    {
-      UG_U8 chr = (UG_U8) *str++;
+      chr = (UG_U8) *str++;
+      if (chr < gui->font.start_char || chr > gui->font.end_char) continue;
       if ( chr == '\n' )
+      {
+         xp = gui->x_dim;
+         continue;
+      }
+      cw = gui->font.widths ? gui->font.widths[chr - gui->font.start_char] : gui->font.char_width;
+      if ( xp + cw > gui->x_dim - 1 )
       {
          xp = x;
          yp += gui->font.char_height+gui->char_v_space;
-         continue;
       }
-
       if (chr <= 127)
       {
-         if (chr < gui->font.start_char || chr > gui->font.end_char) continue;
-         cw = gui->font.widths ? gui->font.widths[chr - gui->font.start_char] : gui->font.char_width;
-         if ( xp + cw > gui->x_dim - 1 )
-         {
-            xp = x;
-            yp += gui->font.char_height+gui->char_v_space;
-         }
+         pos++;
          UG_PutChar(chr, xp, yp, gui->fore_color, gui->back_color);
          xp += cw + gui->char_h_space;
       }
-      else if ((chr & 0xF0) == 0xE0 &&
-               (str[0] & 0xC0) == 0x80 &&
-               (str[1] & 0xC0) == 0x80)
+      else if (pos <= len - 3)
       {
-         UG_U8 utf8[4];
+         pos+=3;
          utf8[0] = chr;
-         utf8[1] = (UG_U8) *str++;
-         utf8[2] = (UG_U8) *str++;
+         utf8[1] = *str++;
+         utf8[2] = *str++;
          utf8[3] = 0;
-         UG_PutKorChar(utf8, xp, yp, gui->fore_color, gui->back_color);
+         UG_PutKorChar(utf8, xp, yp+2, gui->fore_color, gui->back_color);
          xp += 16 + gui->char_h_space;
-      }
-      else
-      {
-         if ('?' < gui->font.start_char || '?' > gui->font.end_char) continue;
-         cw = gui->font.widths ? gui->font.widths['?' - gui->font.start_char] : gui->font.char_width;
-         if ( xp + cw > gui->x_dim - 1 )
-         {
-            xp = x;
-            yp += gui->font.char_height+gui->char_v_space;
-         }
-         UG_PutChar('?', xp, yp, gui->fore_color, gui->back_color);
-         xp += cw + gui->char_h_space;
       }
    }
 }
@@ -5009,17 +4998,11 @@ void UG_PutKorChar( UG_U8 utf8[4], UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
    UG_U8 buf[ 32 ], font[ 32 ];
    // https://hubbleconstant.tistory.com/6
    // UTF8을 UNICODE로
-   unicode  = utf8[ 0 ] & 0x0F; 
+   unicode  = utf8[ 0 ] & 0b00001111; 
    unicode <<= 6;
-   unicode |= utf8[ 1 ] & 0x3F; 
+   unicode |= utf8[ 1 ] & 0b00111111; 
    unicode <<= 6;
-   unicode |= utf8[ 2 ] & 0x3F;
-
-   if (unicode < 0xAC00 || unicode > 0xD7A3)
-   {
-      return;
-   }
-
+   unicode |= utf8[ 2 ] & 0b00111111;
    // UNICODE에서 초성 중성 종성 분리  
    // 초성(20) : 없음ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ
    // 중성(22) : 없음ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ
@@ -8329,4 +8312,5 @@ void _UG_ImageUpdate(UG_WINDOW* wnd, UG_OBJECT* obj)
       obj->state &= ~OBJ_STATE_UPDATE;
    }
 }
+
 
