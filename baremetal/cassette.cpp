@@ -21,6 +21,26 @@ bool in_array(const std::string &value, const std::vector<std::string> &array)
     return std::find(array.begin(), array.end(), value) != array.end();
 }
 
+Cassette::Cassette()
+{
+    tape = new char[TAPE_SIZE];
+    old_cycles = 0;
+    len = 0;
+    type = TYPE_CHARBIN;
+    mark = -1;
+    inv_time = 0;
+    end_time = 0;
+    old_time = 0;
+    file_index = 0;
+    motor = 0;
+    pos = 0;
+}
+
+Cassette::~Cassette()
+{
+    delete[] tape;
+}
+
 #define PULSE 14
 char Cassette::read(unsigned int cycles, unsigned char wait) {
     char val = 0;
@@ -107,7 +127,7 @@ void Cassette::load(const char *name)
     }
     size = nBytesRead;
 #else        
-    memset(tape, 0, sizeof tape);
+    memset(tape, 0, TAPE_SIZE);
     ifstream f(path);
     f.seekg(0, std::ios::end);
     size = f.tellg();
@@ -164,8 +184,8 @@ void Cassette::load(const char *data, unsigned int length, const char *filename)
     }
     else
     {
-        memset(tape, 0, sizeof tape);
-        len = length > sizeof tape ? sizeof tape : length;
+        memset(tape, 0, TAPE_SIZE);
+        len = length > TAPE_SIZE ? TAPE_SIZE : length;
         memcpy(tape, data, len);
         // printf("load:%s (%d)\n", tape, len);
         loaded_filename = filename;
@@ -254,7 +274,7 @@ int Cassette::loadzip(const char *data, int size)
         return 0;
     }
     char unzipfile[1024];
-    memset(tape, 0, sizeof tape);
+    memset(tape, 0, TAPE_SIZE);
     memset(&zip, 0, sizeof(zip));
     len = 0;
     if (!size)

@@ -39,7 +39,7 @@ public:
 #define TAPE_SIZE (1024 * 1024 * 6)
 class Cassette {
     unsigned int old_cycles;
-    char tape[TAPE_SIZE];
+    char *tape;
     int len = 0;
     char type = TYPE_CHARBIN;
     char mark = -1;
@@ -56,7 +56,8 @@ class Cassette {
 public:
     char motor;
     int pos = 0;
-    Cassette() {}
+    Cassette();
+    ~Cassette();
     void initTick(unsigned int tick) { old_cycles = tick; }
     void load(const char *name = NULL);
     void load(const char *data, unsigned int length, const char *filename);
