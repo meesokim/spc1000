@@ -34,20 +34,13 @@ int printf(const char *format, ...);
 #include <circle/string.h>
 #include <circle/screen.h>
 #include <circle/debug.h>
-#include <circle/sound/pwmsoundbasedevice.h>
-#include <circle/sound/i2ssoundbasedevice.h>
-#include <circle/sound/hdmisoundbasedevice.h>
-#include <circle/sound/usbsoundbasedevice.h>
-#include <circle/util.h>
+
 #include "config.h"
 #include "AY8910.h"
 #include "casswindow.h"
-#include "cassette.h"
-Cassette cassette;
 #include <assert.h>
-#ifdef USE_VCHIQ_SOUND
-        #include <vc4/sound/vchiqsoundbasedevice.h>
-#endif
+#include <circle/util.h>
+
 //#define SOUND_SAMPLES		(sizeof Sound / sizeof Sound[0] / SOUND_CHANNELS)
 
 #if WRITE_FORMAT == 0
@@ -103,16 +96,13 @@ CKernel::CKernel(void)
 // #if RASPPI <= 4
 //       m_I2CMaster (CMachineInfo::Get ()->GetDevice (DeviceI2CMaster), TRUE),
 // #endif
-      m_USBHCI (&m_Interrupt, &m_Timer, TRUE),	  
-	//   m_Scheduler(),
+      m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
 #ifdef USE_VCHIQ_SOUND
       m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 #endif
 	//   m_DWHCI(&m_Interrupt, &m_Timer),
 	  m_pKeyboard (0),
 	  m_GUI(&m_Screen),
-	  m_EMMC (&m_Interrupt, &m_Timer, &m_ActLED),
-	  m_pSound(0),
 	  m_ShutdownMode(ShutdownNone)
 // ,m_PWMSoundDevice (&m_Interrupt)	
 {
@@ -155,7 +145,7 @@ boolean CKernel::Initialize (void)
 		m_Screen.UpdatePalette();
 		m_Screen.Write ("\x1b[?25l", 6);
 	}
-	// memcpy(m_Screen.GetBuffer(), samsung_bmp_c, 320*240);
+//	memcpy(m_Screen.GetBuffer(), samsung_bmp_c, 320*240);
 	if (bOK)
 	{
 		CDevice *pTarget = m_DeviceNameService.GetDevice (m_Options.GetLogDevice (), FALSE);
@@ -164,7 +154,7 @@ boolean CKernel::Initialize (void)
 			pTarget = &m_Screen;
 		}
 
-		bOK = m_Logger.Initialize (pTarget);
+//		bOK = m_Logger.Initialize (pTarget);
 	}
 	// memset(m_Screen.GetBuffer(), 0xff, 320*240);
 	printf("Screen!!!\n");
@@ -208,22 +198,6 @@ boolean CKernel::Initialize (void)
 	} while(spcKeyMap[num++].sym != 0);
 	printf("spcKeyMap!!!\n");	
 	
-	if (bOK)
-	{
-		bOK = m_EMMC.Initialize ();
-	}
-
-	if (bOK)
-	{
-		extern CFATFileSystem *g_pFileSystem;
-		g_pFileSystem = &m_FileSystem;
-	}
-
-	if (bOK)
-	{
-		bOK = m_GUI.Initialize ();
-	}
-	
 	reset();
 	printf("reset!!!\n");	
 	return bOK;
@@ -252,42 +226,6 @@ void CKernel::rotate(int i, int idx)
 	m_Screen.Rotor(i, idx);
 }
 
-static char osd_text[64] = "";
-static u64 osd_timeout = 0;
-
-void CKernel::draw_osd_text()
-{
-	UG_FillFrame(0, 0, 319, 22, 0x00); // Black background
-	UG_DrawLine(0, 22, 319, 22, 0x46);  // Red border line
-	UG_SetBackcolor(0x00);
-	
-	UG_FontSelect(&FONT_12X20);
-
-	// Shadow
-	UG_SetForecolor(0x00);
-	UG_PutString(11, 3, osd_text);
-
-	// Foreground
-	UG_SetForecolor(0xff);
-	UG_PutString(10, 2, osd_text);
-}
-
-void CKernel::show_osd(const char *s, int keep_time_ms)
-{
-	strncpy(osd_text, s, sizeof(osd_text) - 1);
-	osd_text[sizeof(osd_text) - 1] = 0;
-	osd_timeout = CTimer::GetClockTicks64() + (u64)keep_time_ms * 1000;
-	draw_osd_text();
-}
-
-void CKernel::SoundNeedDataCallback(void *pParam)
-{
-	CKernel *pKernel = (CKernel *)pParam;
-	static u32 buffer[3840];
-	pKernel->dspcallback(buffer, 3840);
-	pKernel->m_pSound->Write(buffer, 3840 * sizeof(u32));
-}
-
 int CKernel::dspcallback(u32 *stream, int len) 
 {
 	static unsigned int nCount = 0;
@@ -314,77 +252,19 @@ TShutdownMode CKernel::Run (void)
 	InitMC6847(m_Screen.GetBuffer(), &spcsys.VRAM[0], 256,192);	
 	//m_PWMSound.Playback (Sound, SOUND_SAMPLES, SOUND_CHANNELS, SOUND_BITS);
 	// m_Logger.Write (FromKernel, LogNotice, "Compile time: " __DATE__ " " __TIME__);
-	// 사운드 장치를 선택합니다.
-	const char *pSoundDevice = m_Options.GetSoundDevice ();
-	if (strcmp (pSoundDevice, "sndpwm") == 0)
+        // Sound device disabled
+
+#if 0
+	CUSBKeyboardDevice *pKeyboard = (CUSBKeyboardDevice *) m_DeviceNameService.GetDevice ("ukbd1", FALSE);
+	if (pKeyboard == 0)
 	{
-		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-		m_Logger.Write(FromKernel, LogNotice, "PWM sound device selected.");
-	}
-	else if (strcmp (pSoundDevice, "sndhdmi") == 0)
-	{
-		m_pSound = new CHDMISoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-		m_Logger.Write(FromKernel, LogNotice, "HDMI sound device selected (without VCHIQ).");
-	}
+	//	m_Logger.Write (FromKernel, LogError, "Keyboard not found");
+	} 
 	else
 	{
-#ifdef USE_VCHIQ_SOUND
-		m_pSound = new CVCHIQSoundBaseDevice (&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
-					(TVCHIQSoundDestination) m_Options.GetSoundOption ());
-		m_Logger.Write(FromKernel, LogNotice, "VCHIQ sound device selected.");
-#else
-		m_pSound = new CPWMSoundBaseDevice (&m_Interrupt, SAMPLE_RATE, CHUNK_SIZE);
-		m_Logger.Write(FromKernel, LogNotice, "PWM sound device selected (default).");
-#endif
+		pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw); 		
 	}
-	//printf("Keyboard Start!\n");	
-//	CCassWindow CassWindow (0, 0);
-	// 사운드 장치를 설정합니다.
-	if (m_pSound)
-	{
-		if (!m_pSound->AllocateQueue (QUEUE_SIZE_MSECS))
-		{
-			// m_Logger.Write (FromKernel, LogPanic, "Cannot allocate sound queue");
-		}
-		m_pSound->SetWriteFormat (FORMAT, WRITE_CHANNELS);
-		m_pSound->RegisterNeedDataCallback (SoundNeedDataCallback, this);
-		m_pSound->Start();
-	}
-
-	// Mount SD card partition
-	CDevice *pPartition = nullptr;
-	m_Logger.Write (FromKernel, LogNotice, "Waiting for SD card partition...");
-	for (unsigned i = 0; i < 30; i++)
-	{
-		pPartition = m_DeviceNameService.GetDevice ("emmc1-1", TRUE);
-		if (pPartition == nullptr)
-		{
-			pPartition = m_DeviceNameService.GetDevice ("emmc1", TRUE);
-		}
-		if (pPartition != nullptr)
-		{
-			break;
-		}
-		m_Timer.MsDelay (100);
-	}
-
-	if (pPartition == nullptr)
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Partition not found (tried emmc1-1 and emmc1)");
-	}
-	else if (!m_FileSystem.Mount (pPartition))
-	{
-		m_Logger.Write (FromKernel, LogPanic, "Cannot mount partition");
-	}
-
-	// Load cassette files from SD card taps directory
-	cassette.loaddir("SD:/taps");
-	{
-		char title[64];
-		cassette.get_title(title);
-		show_osd(title);
-	}
-
+#endif	
 	Z80 *R = &spcsys.Z80R;	
 	reset_flag = 1;
 	while(1)
@@ -430,17 +310,7 @@ TShutdownMode CKernel::Run (void)
 			if (frame%33 == 0)
 			{
 				Update6847(spcsys.GMODE);
-				if (osd_timeout != 0)
-				{
-					if (CTimer::GetClockTicks64() < osd_timeout)
-					{
-						draw_osd_text();
-					}
-					else
-					{
-						osd_timeout = 0;
-					}
-				}
+				// m_GUI.Update();
 				R->ICount -= 20;
 			}
 			ay8910.Loop8910(&spcsys.ay8910, 1);
@@ -452,8 +322,13 @@ TShutdownMode CKernel::Run (void)
 				m_Timer.usDelay(WAITTIME - (ticks < WAITTIME ? ticks : WAITTIME));
 			}
 			else
-			{
 				spcsys.cas.read = 0;
+			//m_Timer.usDelay(ticks);
+			// ticks = m_Timer.GetClockTicks();
+			if (frame%1000  == 0)
+			{
+				//printf ("Address: %04x)", R->PC);
+				//s_pThis->printf("%d, %d\n", spcsys.cycles-cycles, m_Timer.GetClockTicks() - time);
 			}
 			ticks = m_Timer.GetClockTicks();
 		}
@@ -484,6 +359,7 @@ void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned cha
 		static bool left_was_pressed = false;
 		static bool right_was_pressed = false;
 
+#if 0
 		if (left_pressed && !left_was_pressed)
 		{
 			cassette.prev();
@@ -504,7 +380,7 @@ void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned cha
 				s_pThis->show_osd(title);
 			}
 		}
-
+#endif
 		left_was_pressed = left_pressed;
 		right_was_pressed = right_pressed;
 
@@ -603,19 +479,10 @@ extern "C" byte InZ80(word Port)
 		{
 			if (spcsys.psgRegNum == 14)
 			{
-				cassette.motor = spcsys.cas.motor;
-				if (cassette.motor)
-				{
+				if (spcsys.cas.motor)
 					retval &= (~(0x40)); // 0 indicates Motor On
-					if (cassette.read(spcsys.cycles, 38) == 1)
-						retval |= 0x80;
-					else
-						retval &= 0x7f;
-				}
 				else
-				{
 					retval |= 0x40;
-				}
 			}
 			else 
 			{
@@ -655,7 +522,6 @@ extern "C" void OutZ80(word Port,byte Value)
 				{
 					spcsys.cas.pulse = 0;
 					spcsys.cas.motor = !spcsys.cas.motor;
-					cassette.motor = spcsys.cas.motor;
 				}
 			}
 		}

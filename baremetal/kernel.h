@@ -35,11 +35,8 @@ class CKernel;
 #include <circle/types.h>
 #include <circle/sched/scheduler.h>
 // #include <circle/pwmsounddevice.h>
-#include <circle/sound/pwmsoundbasedevice.h>
-#include <circle/sound/i2ssoundbasedevice.h>
-#include <circle/sound/hdmisoundbasedevice.h>
-#include <circle/sound/usbsoundbasedevice.h>
 #include <circle/usb/usbhcidevice.h>
+
 #include <circle/pwmoutput.h>
 #include <circle/usb/usbkeyboard.h>
 #include <circle/usb/dwhcidevice.h>
@@ -84,15 +81,13 @@ private:
 // #if RASPPI <= 4
 // 	CI2CMaster          m_I2CMaster;    
 // #endif
-	CUSBHCIDevice      	m_USBHCI; 
+	CUSBHCIDevice      	m_USBHCI;
 	// CDWHCIDevice 		m_DWHCI;
 	CScheduler			m_Scheduler;
-	CEMMCDevice			m_EMMC;
-	CFATFileSystem		m_FileSystem;
 #ifdef USE_VCHIQ_SOUND
 	CVCHIQDevice        m_VCHIQ;
 #endif
-	CSoundBaseDevice    *m_pSound;
+	//CSoundBaseDevice    *m_pSound; // Sound disabled
 	CUSBKeyboardDevice  *m_pKeyboard;
 	CUGUI				m_GUI;
 	volatile TShutdownMode m_ShutdownMode;	
@@ -102,11 +97,8 @@ public:
 	CAY8910				ay8910;
 	int dspcallback(unsigned *stream, int len);
 	void rotate(int i, int idx);
-	void draw_osd_text();
-	void show_osd(const char *s, int keep_time_ms = 3000);
 	static void ShutdownHandler (void);
 	static void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6]);
-	static void SoundNeedDataCallback (void *pParam);
 	//static CKernel *s_pThis;
 	static int printf(const char *format, ...);
 	static int vprintf(const char *format, va_list args);
