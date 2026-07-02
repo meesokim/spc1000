@@ -20,8 +20,26 @@
 #include "kernel.h"
 #include <circle/startup.h>
 
+static void DebugPutc(char c)
+{
+	volatile unsigned int *const uart = reinterpret_cast<volatile unsigned int *>(0x20201000);
+	while ((uart[5] & 0x20) == 0)
+	{
+	}
+	uart[0] = (unsigned int) c;
+}
+
+static void DebugPuts(const char *s)
+{
+	while (*s != '\0')
+	{
+		DebugPutc(*s++);
+	}
+}
+
 int main (void)
 {
+	DebugPuts("main\n");
 	// cannot return here because some destructors used in CKernel are not implemented
 
 	CKernel Kernel;

@@ -24,6 +24,7 @@
 #include <circle/koptions.h>
 #include <circle/devicenameservice.h>
 #include <circle/screen.h>
+#include <circle/serial.h>
 #include <circle/exceptionhandler.h>
 #include <circle/interrupt.h>
 #include <circle/timer.h>
@@ -63,7 +64,7 @@ public:
 	static unsigned int GetTicks() 
 	{
 		if (s_pThis) {
-			// return s_pThis->m_Timer.GetClockTicks () / 1000;
+			return s_pThis->m_Timer.GetClockTicks ();
 		}
 		return 0;
 	}
@@ -77,6 +78,7 @@ private:
 	CInterruptSystem	m_Interrupt;
 	CTimer				m_Timer;
 	CLogger				m_Logger;
+	CSerialDevice		m_Serial;
 	// CI2CMaster			m_I2CMaster;
 	// CUSBController		*m_pUSB;
 	CUSBHCIDevice		m_USBHCI;

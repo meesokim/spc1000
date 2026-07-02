@@ -37,7 +37,7 @@ int printf(const char *format, ...);
 
 #include "config.h"
 #include "AY8910.h"
-#include "casswindow.h"
+//#include "casswindow.h"
 #include <assert.h>
 #include <circle/util.h>
 
@@ -107,7 +107,7 @@ CKernel::CKernel(void)
 // ,m_PWMSoundDevice (&m_Interrupt)	
 {
 	//m_PWMSoundDevice.CancelPlayback();
-	m_ActLED.Blink (5);	// show we are alive
+	m_ActLED.Blink (1);	// Constructor reached
 	s_pThis = this;
 }
 
@@ -118,6 +118,8 @@ CKernel::~CKernel (void)
 boolean CKernel::Initialize (void)
 {
 	boolean bOK = TRUE;
+	
+	m_ActLED.Blink (20, 200, 200); // Initialize reached
 
 	if (bOK)
 	{

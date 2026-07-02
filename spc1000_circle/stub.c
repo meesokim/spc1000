@@ -95,3 +95,13 @@ int _getentropy(void *buffer, size_t length) {
     errno = ENOSYS; // 기능이 구현되지 않았음을 표시
     return -1;
 }
+
+int _kill(int pid, int sig) {
+    (void)pid;
+    (void)sig;
+    return -1;
+}
+
+int _getpid(void) {
+    return 1;
+}
