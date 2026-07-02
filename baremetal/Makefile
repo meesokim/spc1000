@@ -21,7 +21,8 @@ else ifeq ($(strip $(RASPPI)),4)
 TARGET = kernel7l
 endif
 
-USE_VCHIQ_SOUND=1
+# USE_VCHIQ_SOUND=1
+USE_VCHIQ_SOUND=0
 STDLIB_SUPPORT=3
 CPPFLAGS += -fno-exceptions -fno-rtti
 
@@ -40,7 +41,7 @@ CFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 CPPFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 endif
 
-OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o casswindow.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o cassette.o globals.o miniz/miniz.o miniz/miniz_zip.o miniz/miniz_tdef.o miniz/miniz_tinfl.o bzip2/crctable.o bzip2/decompress.o bzip2/huffman.o bzip2/randtable.o bzip2/bzlib.o bzip2/compress.o bzip2/blocksort.o stub.o
+OBJS = main.o kernel.o Z80SPC.o MC6847.o AY8910.o screen8.o mutex.o spcall.o tap.o samsung.bmp.o cassette.o globals.o miniz/miniz.o miniz/miniz_zip.o miniz/miniz_tdef.o miniz/miniz_tinfl.o bzip2/crctable.o bzip2/decompress.o bzip2/huffman.o bzip2/randtable.o bzip2/bzlib.o bzip2/compress.o bzip2/blocksort.o stub.o
 
 LIBS += ugui/libugui$(RASPPI).a \
 	   $(CIRCLEHOME)/lib/sched/libsched.a \
