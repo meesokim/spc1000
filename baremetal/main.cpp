@@ -23,10 +23,6 @@ int main (void)
 {
 	// cannot return here because some destructors used in CKernel are not implemented
 
-	#include <circle/actled.h>
-	CActLED ActLED;
-	ActLED.Blink(20, 200, 200);
-
 	CKernel Kernel;
 	if (!Kernel.Initialize ())
 	{
