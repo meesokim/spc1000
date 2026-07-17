@@ -1,5 +1,7 @@
 arm_64bit=0
 enable_uart=1
 hdmi_force_hotplug=1
+hdmi_drive=2
+hdmi_force_edid_audio=1
 overscan_left=-10
 overscan_right=-10

@@ -1,1 +1,1 @@
-logdev=ttyS1 loglevel=4
+sounddev=sndvchiq soundopt=0 logdev=ttyS1 loglevel=4

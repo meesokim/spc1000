@@ -14,6 +14,13 @@
 #include <circle/usb/usbhcidevice.h>
 #include <circle/usb/usbkeyboard.h>
 #include <circle/sched/scheduler.h>
+#include <circle/sound/soundbasedevice.h>
+#include <vc4/vchiq/vchiqdevice.h>
+#include <vc4/sound/vchiqsoundbasedevice.h>
+
+extern "C" {
+#include "emu2149.h"
+}
 
 enum TShutdownMode
 {
@@ -43,9 +50,14 @@ private:
 	CLogger			m_Logger;
 	CActLED			m_ActLED;
 	CScreenDevice		m_Screen;
+	CVCHIQDevice		m_VCHIQ;
 	CUSBHCIDevice		m_USBHCI;
 	CScheduler		m_Scheduler;
 	CUSBKeyboardDevice	*m_pKeyboard;
+
+public:
+	CSoundBaseDevice	*m_pSound;
+	PSG			*m_pPSG;
 };
 
 #endif

@@ -2,6 +2,7 @@
 #include <circle/timer.h>
 #include <circle/bcmframebuffer.h>
 #include <circle/util.h>
+#include <stdlib.h>
 
 extern "C" {
 #include "Z80.h"
@@ -11,35 +12,38 @@ extern "C" {
 #include "spckey.h"
 }
 
-// 8bpp intermediate buffer (320x240) - MC6847 output
+// 8bpp intermediate buffer for MC6847
 static u8 mc6847_buf[320*240];
-// Palette: 8bpp index -> 16bpp RGB565
 static u16 pal565[256];
 
-// SPC-1000 system state
 SPCSystem spcsys;
 extern unsigned char ROM[32768];
 
-// Key mapping
 TKeyMap spcKeyHash[0x200];
 unsigned char keyMatrix[10];
 static CKernel *s_pThis;
 
-// Stubs needed by MC6847.c
 int bpp = 16;
 char samsung_bmp_c[] = "";
 
 #define RGB565(r,g,b) (((r)&0x1F)<<11 | ((g)&0x3F)<<5 | ((b)&0x1F))
 #define I_PERIOD 4000
-#define WAITTIME 983
+#define SAMPLE_RATE   44100
+#define CHUNK_SIZE    4000
+#define QUEUE_SIZE_MS 200
+// AY-3-8910 clock: AY8910_BASE * 16 = 111861 * 16 = 1789776
+#define PSG_CLOCK    1789776
 
 CKernel::CKernel (void)
 :	m_Memory (TRUE),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
 	m_Screen (320, 240),
+	m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 	m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
-	m_pKeyboard (0)
+	m_pKeyboard (0),
+	m_pSound (0),
+	m_pPSG (0)
 {
 	m_ActLED.Blink (5);
 	s_pThis = this;
@@ -47,6 +51,8 @@ CKernel::CKernel (void)
 
 CKernel::~CKernel (void)
 {
+	delete m_pSound;
+	if (m_pPSG) PSG_delete(m_pPSG);
 }
 
 boolean CKernel::Initialize (void)
@@ -56,14 +62,9 @@ boolean CKernel::Initialize (void)
 	bOK = m_Screen.Initialize ();
 	if (!bOK) return FALSE;
 
-	if (bOK)
-		bOK = m_Interrupt.Initialize ();
-
-	if (bOK)
-		bOK = m_Timer.Initialize ();
-
-	if (bOK)
-		bOK = m_USBHCI.Initialize ();
+	if (bOK) bOK = m_Interrupt.Initialize ();
+	if (bOK) bOK = m_Timer.Initialize ();
+	if (bOK) bOK = m_USBHCI.Initialize ();
 
 	if (bOK)
 	{
@@ -80,28 +81,66 @@ boolean CKernel::Initialize (void)
 	pal565[5]  = RGB565(0xff>>3, 0xff>>2, 0xff>>3);
 	pal565[6]  = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);
 	pal565[7]  = RGB565(0xff>>3, 0x1c>>2, 0xff>>3);
-	pal565[8]  = RGB565(0xff>>3, 0x80>>2, 0x00>>3);   // ORANGE
-	pal565[9]  = RGB565(0x3b>>3, 0x08>>2, 0xff>>3);   // CYANBLUE
-	pal565[10] = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);   // LGREEN
-	pal565[11] = RGB565(0x00>>3, 0x00>>2, 0x00>>3);   // text bg CSS=0: BLACK
-	pal565[12] = RGB565(0x07>>3, 0xff>>2, 0x00>>3);   // text fg CSS=0: GREEN
-	pal565[13] = RGB565(0xcc>>3, 0x00>>2, 0x3b>>3);   // text bg CSS=1: RED
-	pal565[14] = RGB565(0xff>>3, 0x80>>2, 0x00>>3);   // text fg CSS=1: ORANGE
-	pal565[15] = RGB565(0xff>>3, 0xff>>2, 0x00>>3);   // YELLOW
-	for (int i = 16; i < 256; i++)
-		pal565[i] = pal565[i % 16];
+	pal565[8]  = RGB565(0xff>>3, 0x80>>2, 0x00>>3);
+	pal565[9]  = RGB565(0x3b>>3, 0x08>>2, 0xff>>3);
+	pal565[10] = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);
+	pal565[11] = RGB565(0x00>>3, 0x00>>2, 0x00>>3);
+	pal565[12] = RGB565(0x07>>3, 0xff>>2, 0x00>>3);
+	pal565[13] = RGB565(0xcc>>3, 0x00>>2, 0x3b>>3);
+	pal565[14] = RGB565(0xff>>3, 0x80>>2, 0x00>>3);
+	pal565[15] = RGB565(0xff>>3, 0xff>>2, 0x00>>3);
+	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
 
-	// Copy ROM
 	memcpy(spcsys.ROM, ROM, 0x8000);
-
-	// Reset SPC state
 	spcsys.IPLK = 1;
 	spcsys.GMODE = 0;
 	memset(spcsys.VRAM, 0, 0x2000);
 	memset(spcsys.RAM, 0, 0x10000);
 	memset(keyMatrix, 0xff, 10);
+	spcsys.psgRegNum = 0;
 
-	// Build key hash table
+	// Create emu2149 PSG (AY-3-8910)
+	m_pPSG = PSG_new(PSG_CLOCK, SAMPLE_RATE);
+	if (m_pPSG)
+	{
+		PSG_setVolumeMode(m_pPSG, EMU2149_VOL_AY_3_8910);
+		PSG_set_quality(m_pPSG, 0);
+		PSG_reset(m_pPSG);
+	}
+
+	// VCHIQ init
+	if (bOK)
+	{
+		bOK = m_VCHIQ.Initialize();
+		for (int i = 0; i < 10; i++)
+			m_Scheduler.Yield();
+	}
+
+	// VCHIQ sound device
+	m_pSound = new CVCHIQSoundBaseDevice(&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
+				(TVCHIQSoundDestination) m_Options.GetSoundOption());
+
+	if (m_pSound)
+	{
+		m_pSound->AllocateQueue(QUEUE_SIZE_MS);
+		m_pSound->SetWriteFormat(SoundFormatSigned16, 2);
+
+		// Pre-fill queue with silence
+		unsigned nQueueFrames = m_pSound->GetQueueSizeFrames();
+		s16 silBuf[1024];
+		unsigned filled = 0;
+		while (filled < nQueueFrames)
+		{
+			unsigned n = nQueueFrames - filled;
+			if (n > 256) n = 256;
+			memset(silBuf, 0, n * 2 * sizeof(s16));
+			m_pSound->Write(silBuf, n * 2 * sizeof(s16));
+			filled += n;
+		}
+		m_pSound->Start();
+	}
+
+	// Key hash
 	int num = 0;
 	do {
 		spcKeyHash[spcKeyMap[num].sym] = spcKeyMap[num];
@@ -127,7 +166,6 @@ TShutdownMode CKernel::Run (void)
 	R->ICount = I_PERIOD;
 
 	int frame = 0;
-	unsigned ticks = m_Timer.GetClockTicks();
 
 	while (1)
 	{
@@ -141,7 +179,6 @@ TShutdownMode CKernel::Run (void)
 			spcsys.tick++;
 			R->ICount += I_PERIOD;
 
-			// Poll USB plug-and-play (~1/sec)
 			if (frame % 60 == 0)
 			{
 				m_USBHCI.UpdatePlugAndPlay();
@@ -154,7 +191,6 @@ TShutdownMode CKernel::Run (void)
 				}
 			}
 
-			// Z80 interrupt every 16 frames
 			if (frame % 16 == 0)
 			{
 				if (R->IFF & IFF_EI)
@@ -164,7 +200,6 @@ TShutdownMode CKernel::Run (void)
 				}
 			}
 
-			// Update screen every 33 frames
 			if (frame % 33 == 0)
 			{
 				Update6847(spcsys.GMODE);
@@ -178,11 +213,26 @@ TShutdownMode CKernel::Run (void)
 				R->ICount -= 20;
 			}
 
-			// Frame timing
-			unsigned elapsed = m_Timer.GetClockTicks() - ticks;
-			if (elapsed < WAITTIME)
-				m_Timer.usDelay(WAITTIME - elapsed);
-			ticks = m_Timer.GetClockTicks();
+			// Generate PSG samples and write to sound queue
+			if (m_pSound && m_pSound->IsActive() && m_pPSG)
+			{
+				unsigned avail = m_pSound->GetQueueFramesAvail();
+				if (avail > 32)
+				{
+					unsigned nFrames = avail < 512 ? avail : 512;
+					s16 soundBuf[1024];
+					for (unsigned i = 0; i < nFrames; i++)
+					{
+						s16 val = PSG_calc(m_pPSG);
+						soundBuf[i*2]   = val;
+						soundBuf[i*2+1] = val;
+					}
+					m_pSound->Write(soundBuf, nFrames * 2 * sizeof(s16));
+				}
+			}
+
+			// VCHIQ needs scheduler time
+			m_Scheduler.MsSleep(1);
 		}
 	}
 
@@ -191,21 +241,15 @@ TShutdownMode CKernel::Run (void)
 
 void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
-	// Reset key matrix
 	memset(keyMatrix, 0xff, 10);
-
-	// Map modifier keys
 	for (int i = 0; spcKeyMap[i].keyMatIdx != -1; i++)
 	{
 		if (spcKeyMap[i].sym & 0x100)
 		{
-			unsigned char mod_bit = spcKeyMap[i].sym & 0xFF;
-			if (ucModifiers & mod_bit)
+			if (ucModifiers & (spcKeyMap[i].sym & 0xFF))
 				keyMatrix[spcKeyMap[i].keyMatIdx] &= ~spcKeyMap[i].keyMask;
 		}
 	}
-
-	// Map raw keys
 	for (int r = 0; r < 6; r++)
 	{
 		unsigned char k = RawKeys[r];
@@ -237,6 +281,22 @@ byte InZ80(word Port)
 		return spcsys.GMODE;
 	else if ((Port & 0xE000) == 0x0000)
 		return spcsys.VRAM[Port];
+	else if ((Port & 0xFFFE) == 0x4000) // PSG
+	{
+		if (Port & 0x01)
+		{
+			if (spcsys.psgRegNum == 14)
+			{
+				byte r = 0x1f;
+				if (spcsys.cas.motor) r &= ~0x40;
+				else r |= 0x40;
+				return r;
+			}
+			if (s_pThis && s_pThis->m_pPSG)
+				return PSG_readIO(s_pThis->m_pPSG);
+		}
+		return 0x1f;
+	}
 	return 0xff;
 }
 
@@ -248,6 +308,39 @@ void OutZ80(word Port, byte Value)
 		spcsys.IPLK = spcsys.IPLK ? 0 : 1;
 	else if ((Port & 0xE000) == 0x2000)
 		spcsys.GMODE = Value;
+	else if ((Port & 0xE000) == 0x6000) // cassette motor
+	{
+		if (spcsys.cas.button != 0)
+		{
+			if (Value & 0x02)
+			{
+				if (spcsys.cas.pulse == 0) spcsys.cas.pulse = 1;
+			}
+			else
+			{
+				if (spcsys.cas.pulse)
+				{
+					spcsys.cas.pulse = 0;
+					spcsys.cas.motor = !spcsys.cas.motor;
+				}
+			}
+		}
+	}
+	else if ((Port & 0xFFFE) == 0x4000) // PSG
+	{
+		if (Port & 0x01)
+		{
+			spcsys.psgRegNum = spcsys.psgRegNum; // already set by WrCtrl
+			if (s_pThis && s_pThis->m_pPSG)
+				PSG_writeIO(s_pThis->m_pPSG, 1, Value);
+		}
+		else
+		{
+			spcsys.psgRegNum = Value & 0x1f;
+			if (s_pThis && s_pThis->m_pPSG)
+				PSG_writeIO(s_pThis->m_pPSG, 0, Value);
+		}
+	}
 }
 
 int printf(const char *format, ...) { return 0; }
