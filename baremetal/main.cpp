@@ -19,6 +19,7 @@
 //
 #include "kernel.h"
 #include <circle/startup.h>
+
 int main (void)
 {
 	// cannot return here because some destructors used in CKernel are not implemented
@@ -44,4 +45,3 @@ int main (void)
 		return EXIT_HALT;
 	}
 }
-
