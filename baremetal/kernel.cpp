@@ -29,10 +29,23 @@ char samsung_bmp_c[] = "";
 #define RGB565(r,g,b) (((r)&0x1F)<<11 | ((g)&0x3F)<<5 | ((b)&0x1F))
 #define I_PERIOD 4000
 #define SAMPLE_RATE   44100
-#define CHUNK_SIZE    4000
-#define QUEUE_SIZE_MS 200
-// AY-3-8910 clock: AY8910_BASE * 16 = 111861 * 16 = 1789776
 #define PSG_CLOCK    1789776
+
+// CSPCSoundDevice: generate PSG samples directly, no queue needed
+unsigned CSPCSoundDevice::GetChunk (s16 *pBuffer, unsigned nChunkSize)
+{
+	PSG *psg = *m_ppPSG;
+	if (!psg) return 0;
+
+	// nChunkSize is number of s16 words; stereo = 2 per frame
+	for (unsigned i = 0; i < nChunkSize; i += 2)
+	{
+		s16 val = PSG_calc(psg);
+		pBuffer[i]     = val;  // L
+		pBuffer[i + 1] = val;  // R (mono)
+	}
+	return nChunkSize;
+}
 
 CKernel::CKernel (void)
 :	m_Memory (TRUE),
@@ -62,14 +75,17 @@ boolean CKernel::Initialize (void)
 	bOK = m_Screen.Initialize ();
 	if (!bOK) return FALSE;
 
+	// Hide cursor and set text color to black (invisible on black bg)
+	m_Screen.Write ("\x1b[?25l", 6);
+
 	if (bOK) bOK = m_Interrupt.Initialize ();
 	if (bOK) bOK = m_Timer.Initialize ();
 	if (bOK) bOK = m_USBHCI.Initialize ();
 
 	if (bOK)
 	{
-		CDevice *pTarget = &m_Screen;
-		bOK = m_Logger.Initialize (pTarget);
+		// Logger not connected to screen - no boot text/cursor
+		m_Logger.Initialize (0);
 	}
 
 	// Palette
@@ -99,7 +115,7 @@ boolean CKernel::Initialize (void)
 	memset(keyMatrix, 0xff, 10);
 	spcsys.psgRegNum = 0;
 
-	// Create emu2149 PSG (AY-3-8910)
+	// Create emu2149 PSG
 	m_pPSG = PSG_new(PSG_CLOCK, SAMPLE_RATE);
 	if (m_pPSG)
 	{
@@ -116,28 +132,13 @@ boolean CKernel::Initialize (void)
 			m_Scheduler.Yield();
 	}
 
-	// VCHIQ sound device
-	m_pSound = new CVCHIQSoundBaseDevice(&m_VCHIQ, SAMPLE_RATE, CHUNK_SIZE,
-				(TVCHIQSoundDestination) m_Options.GetSoundOption());
-
+	// VCHIQ sound with direct GetChunk
+	m_pSound = new CSPCSoundDevice(&m_VCHIQ, &m_pPSG, SAMPLE_RATE);
 	if (m_pSound)
 	{
-		m_pSound->AllocateQueue(QUEUE_SIZE_MS);
-		m_pSound->SetWriteFormat(SoundFormatSigned16, 2);
-
-		// Pre-fill queue with silence
-		unsigned nQueueFrames = m_pSound->GetQueueSizeFrames();
-		s16 silBuf[1024];
-		unsigned filled = 0;
-		while (filled < nQueueFrames)
-		{
-			unsigned n = nQueueFrames - filled;
-			if (n > 256) n = 256;
-			memset(silBuf, 0, n * 2 * sizeof(s16));
-			m_pSound->Write(silBuf, n * 2 * sizeof(s16));
-			filled += n;
-		}
 		m_pSound->Start();
+		for (int i = 0; i < 20; i++)
+			m_Scheduler.MsSleep(1);
 	}
 
 	// Key hash
@@ -213,25 +214,7 @@ TShutdownMode CKernel::Run (void)
 				R->ICount -= 20;
 			}
 
-			// Generate PSG samples and write to sound queue
-			if (m_pSound && m_pSound->IsActive() && m_pPSG)
-			{
-				unsigned avail = m_pSound->GetQueueFramesAvail();
-				if (avail > 32)
-				{
-					unsigned nFrames = avail < 512 ? avail : 512;
-					s16 soundBuf[1024];
-					for (unsigned i = 0; i < nFrames; i++)
-					{
-						s16 val = PSG_calc(m_pPSG);
-						soundBuf[i*2]   = val;
-						soundBuf[i*2+1] = val;
-					}
-					m_pSound->Write(soundBuf, nFrames * 2 * sizeof(s16));
-				}
-			}
-
-			// VCHIQ needs scheduler time
+			// VCHIQ needs scheduler time to call GetChunk
 			m_Scheduler.MsSleep(1);
 		}
 	}
@@ -328,18 +311,10 @@ void OutZ80(word Port, byte Value)
 	}
 	else if ((Port & 0xFFFE) == 0x4000) // PSG
 	{
-		if (Port & 0x01)
-		{
-			spcsys.psgRegNum = spcsys.psgRegNum; // already set by WrCtrl
-			if (s_pThis && s_pThis->m_pPSG)
-				PSG_writeIO(s_pThis->m_pPSG, 1, Value);
-		}
-		else
-		{
+		if (s_pThis && s_pThis->m_pPSG)
+			PSG_writeIO(s_pThis->m_pPSG, Port & 1, Value);
+		if (!(Port & 0x01))
 			spcsys.psgRegNum = Value & 0x1f;
-			if (s_pThis && s_pThis->m_pPSG)
-				PSG_writeIO(s_pThis->m_pPSG, 0, Value);
-		}
 	}
 }
 

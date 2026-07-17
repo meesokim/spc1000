@@ -29,6 +29,20 @@ enum TShutdownMode
 	ShutdownReboot
 };
 
+// VCHIQ sound device that generates PSG samples directly via GetChunk
+class CSPCSoundDevice : public CVCHIQSoundBaseDevice
+{
+public:
+	CSPCSoundDevice (CVCHIQDevice *pVCHIQ, PSG **ppPSG, unsigned nRate)
+	:	CVCHIQSoundBaseDevice (pVCHIQ, nRate, 4000, VCHIQSoundDestinationAuto),
+		m_ppPSG (ppPSG) {}
+
+	unsigned GetChunk (s16 *pBuffer, unsigned nChunkSize) override;
+
+private:
+	PSG **m_ppPSG;
+};
+
 class CKernel
 {
 public:
@@ -56,7 +70,7 @@ private:
 	CUSBKeyboardDevice	*m_pKeyboard;
 
 public:
-	CSoundBaseDevice	*m_pSound;
+	CSPCSoundDevice		*m_pSound;
 	PSG			*m_pPSG;
 };
 
