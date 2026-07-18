@@ -1,0 +1,34 @@
+#
+# Makefile.host - Linux native host build using SDL2
+#
+
+CXX = g++
+CC = gcc
+
+CFLAGS = -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. `sdl2-config --cflags`
+CXXFLAGS = -std=c++17 -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. `sdl2-config --cflags`
+LDFLAGS = `sdl2-config --libs`
+
+SRCS = main.cpp kernel.cpp MC6847.c Z80SPC.c spcall.c emu2149.c tap.c tape_loader.c \
+       host_circle/screen.cpp host_circle/sound.cpp host_circle/scheduler.cpp host_circle/fatfs.cpp
+
+OBJS = main.host.o kernel.host.o MC6847.host.o Z80SPC.host.o spcall.host.o \
+       emu2149.host.o tap.host.o tape_loader.host.o \
+       host_circle/screen.host.o host_circle/sound.host.o \
+       host_circle/scheduler.host.o host_circle/fatfs.host.o
+
+TARGET = spc1000.host
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(OBJS) $(LDFLAGS) -o $(TARGET)
+
+%.host.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.host.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)

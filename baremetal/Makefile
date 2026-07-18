@@ -34,4 +34,10 @@ tap.c: sharkkiller.tap
 	@tail -n 1 $< | tr -d '\r\n' >> $@
 	@echo '"};' >> $@
 
+host:
+	$(MAKE) -f Makefile.host
+
+host-clean:
+	$(MAKE) -f Makefile.host clean
+
 include $(CIRCLEHOME)/Rules.mk
