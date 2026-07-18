@@ -25,4 +25,13 @@ LIBS = $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
 
 INCLUDE = -I$(CIRCLEHOME)/addon -I.
 
+tap.o: tap.c
+
+tap.c: sharkkiller.tap
+	@echo "Generating tap.c from $<..."
+	@echo 'char tap0[] = {' > $@
+	@echo -n '"' >> $@
+	@tail -n 1 $< | tr -d '\r\n' >> $@
+	@echo '"};' >> $@
+
 include $(CIRCLEHOME)/Rules.mk
