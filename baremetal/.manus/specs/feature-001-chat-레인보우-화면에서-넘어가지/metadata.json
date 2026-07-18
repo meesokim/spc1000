@@ -1,0 +1,10 @@
+{
+  "feature_number": 1,
+  "short_name": "chat-\ub808\uc778\ubcf4\uc6b0-\ud654\uba74\uc5d0\uc11c-\ub118\uc5b4\uac00\uc9c0",
+  "feature_name": "feature-001-chat-\ub808\uc778\ubcf4\uc6b0-\ud654\uba74\uc5d0\uc11c-\ub118\uc5b4\uac00\uc9c0",
+  "description": "chat \"\ub808\uc778\ubcf4\uc6b0 \ud654\uba74\uc5d0\uc11c \ub118\uc5b4\uac00\uc9c0 \uc54a\uc544. \ub77c\uc988\ubca0\ub9ac\ud30c\uc774 \ubca0\uc5b4\uba54\ud0c8 \ucf54\ub4dc \uc218\uc815\ud574\uc918' --role developer",
+  "role": "assistant",
+  "created_at": "2026-07-01T00:17:54.198914",
+  "phase": "specification",
+  "status": "in_progress"
+}

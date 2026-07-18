@@ -1,0 +1,92 @@
+QEMU
+
+Circle applications can run inside the QEMU processor emulator in 32- and 64-bit
+mode. Not all Raspberry Pi hardware devices are supported by QEMU, so there may
+be restrictions, but a number of Circle samples will run. In the past there was
+no USB and networking support for the Raspberry Pi in the official QEMU, but now
+it provides USB and TCP/IP networking support. For running Circle applications
+with TCP/IP networking in QEMU is still a patch needed, which is provided in
+this repository (commit 62b39b2):
+
+	https://codeberg.org/larchcone/qemu
+
+To get and build the QEMU source code for Circle enter the following commands:
+
+	git clone https://codeberg.org/larchcone/qemu.git	# with patch
+	git clone https://gitlab.com/qemu-project/qemu.git	# or latest version
+
+	cd qemu
+
+	mkdir build
+	cd build
+	../configure --target-list=arm-softmmu,aarch64-softmmu [ --enable-slirp ]
+	make
+
+The option --enable-slirp is necessary for networking support. This requires
+the libslirp[0] package installed on your machine.
+
+There is an option --qemu supported by the Circle configure tool, which should
+be applied, when building Circle programs to run in QEMU.
+
+When you have build a Circle sample (e.g. sample/17-fractal) for the Raspberry
+Pi 3 (AArch64), you can run it in QEMU as follows:
+
+	./qemu-system-aarch64 -M raspi3b -kernel /path_to_circle/sample/17-fractal/kernel8.img
+
+Please note, that in 32-bit mode the option -bios is used instead of -kernel to
+specify the kernel image! This has been successfully tested with the Raspberry
+Pi Zero emulation only:
+
+	./qemu-system-arm -M raspi0 -bios kernel.img
+
+These options enable specific features of QEMU:
+
+-global bcm2835-fb.xres=1024 -global bcm2835-fb.yres=768 (set screen resolution)
+-serial stdio		(write serial output to stdout)
+-d guest_errors,unimp	(write unimplemented feature calls to stdout)
+-drive file=filename,if=sd,format=raw
+			(enable SD card access to the disk image filename)
+-device usb-kbd		(enable USB keyboard support)
+-device usb-mouse	(enable USB mouse support, but mouse cursor not working)
+-semihosting		(enable semihosting support)
+-append option		(append option to the kernel options command line)
+
+With the last option the possibility to automatically exit QEMU, requested by a
+Circle program, is enabled. This requires the system option LEAVE_QEMU_ON_HALT to
+be defined in include/circle/sysconfig.h. Furthermore with this option a Circle
+program can access files in the file system of the host system. This may cause
+security issues, so be careful!
+
+
+NETWORKING
+
+For running Circle applications with TCP/IP networking in QEMU is still a patch
+needed (see above). Setting up QEMU for networking may be not that easy. The
+following configuration has been tested:
+
+With sample/21-webserver:
+
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img \
+		-netdev user,id=net0,hostfwd=tcp::8080-:80 -device usb-net,netdev=net0
+
+Open http://localhost:8080 in your web browser on your host system! Port 8080 on
+the host will be forwarded to port 80 on the guest system.
+
+
+DEBUG
+
+Circle applications running in QEMU can be debugged using the GNU debugger (GDB)
+with ARM support. You have to add the options -s (enable GDB support) and -S
+(wait for GDB connect) to the QEMU command line to do this. Inside GDB use the
+following commands:
+
+	file kernel8.elf
+	target remote :1234
+	cont
+
+
+LINKS
+
+Have a look at these URLs for further information:
+
+* https://www.qemu.org/

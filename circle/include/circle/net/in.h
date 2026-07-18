@@ -1,0 +1,15 @@
+//
+/// \file in.h
+//
+#ifndef _circle_net_in_h
+#define _circle_net_in_h
+
+#define IPPROTO_ICMP	1
+#define IPPROTO_IGMP	2
+#define IPPROTO_TCP	6
+#define IPPROTO_UDP	17
+
+#define MSG_DONTWAIT	0x40		///< Non-blocking I/O
+#define MSG_MORE	0x8000		///< Sender will send more
+
+#endif

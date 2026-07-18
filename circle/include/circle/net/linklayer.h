@@ -1,0 +1,104 @@
+//
+// linklayer.h
+//
+// Circle - A C++ bare metal environment for Raspberry Pi
+// Copyright (C) 2015-2025  R. Stange <rsta2@gmx.net>
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+#ifndef _circle_net_linklayer_h
+#define _circle_net_linklayer_h
+
+#include <circle/net/netconfig.h>
+#include <circle/net/netdevlayer.h>
+#include <circle/net/arphandler.h>
+#include <circle/net/ipaddress.h>
+#include <circle/macaddress.h>
+#include <circle/net/netbufferqueue.h>
+#include <circle/net/sizes.h>
+#include <circle/macros.h>
+#include <circle/types.h>
+
+#define MAX_MULTICAST_GROUPS	8
+
+struct TEthernetHeader
+{
+	u8	MACReceiver[MAC_ADDRESS_SIZE];
+	u8	MACSender[MAC_ADDRESS_SIZE];
+	u16	nProtocolType;
+#define ETH_PROT_IP		0x800
+#define ETH_PROT_ARP		0x806
+}
+PACKED;
+
+ASSERT_STATIC (sizeof (TEthernetHeader) == ETH_HEADER_LEN);
+
+class CNetworkLayer;
+
+class CLinkLayer
+{
+public:
+	CLinkLayer (CNetConfig *pNetConfig, CNetDeviceLayer *pNetDevLayer);
+	~CLinkLayer (void);
+
+	boolean Initialize (void);
+
+	// we need a back way to the network layer for notification
+	void AttachLayer (CNetworkLayer *pNetworkLayer);
+
+	void Process (void);
+
+	boolean Send (const CIPAddress &rReceiver, CNetBuffer *pIPPacket);
+
+	CNetBuffer *Receive (void);
+
+public:
+	boolean SendRaw (const void *pFrame, unsigned nLength);
+
+	// pBuffer must have size FRAME_BUFFER_SIZE
+	boolean ReceiveRaw (void *pBuffer, unsigned *pResultLength, CMACAddress *pSender = 0);
+
+	// nProtocolType is in host byte order
+	boolean EnableReceiveRaw (u16 nProtocolType);
+
+	boolean IsRunning (void) const;
+
+	boolean JoinLocalGroup (const CIPAddress &rGroupAddress);
+	boolean LeaveLocalGroup (const CIPAddress &rGroupAddress);
+
+private:
+	boolean UpdateMulticastFilter (void);
+
+	// return IP packet to the network layer for notification
+	void ResolveFailed (CNetBuffer *pReturnedFrame);
+	friend class CARPHandler;
+
+private:
+	CNetConfig *m_pNetConfig;
+	CNetDeviceLayer *m_pNetDevLayer;
+	CNetworkLayer *m_pNetworkLayer;
+	CARPHandler *m_pARPHandler;
+
+	CNetBufferQueue m_ARPRxQueue;
+	CNetBufferQueue m_IPRxQueue;
+
+	CNetBufferQueue m_RawRxQueue;
+	u16 m_nRawProtocolType;
+
+	static const unsigned MaxGroups = MAX_MULTICAST_GROUPS;
+	CMACAddress m_MulticastGroup[MaxGroups];
+	unsigned m_nMulticastUseCounter[MaxGroups];
+};
+
+#endif

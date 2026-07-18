@@ -1,0 +1,91 @@
+README
+
+In this directory you can download the Raspberry Pi firmware files, which are
+required to boot a Circle kernel image on a Raspberry Pi computer.
+
+It is now always recommended to copy the file config32.txt (for 32-bit
+operation, AArch32) or config64.txt (for 64-bit operation, AArch64) from this
+directory to the SD card and to rename it to config.txt there.
+
+If you want to use the FIQ on a Raspberry Pi 4, you need an additional
+Circle-specific ARM stub file, which will be loaded by the firmware. This ARM
+stub can be built in this directory.
+
+FIRMWARE
+
+To download the Raspberry Pi firmware files just enter in this directory:
+
+	make
+
+This will provide the following files:
+
+	bootcode.bin		boot loader (not used on Raspberry Pi 4-5)
+	start.elf		firmware executable for  Raspberry Pi 1-3
+	start4.elf		firmware executable for  Raspberry Pi 4
+	fixup.dat		relocation information for start.elf
+	fixup4.dat		relocation information for start4.elf
+	bcm2711-rpi-4-b.dtb	device tree binary needed for Raspberry Pi 4
+	bcm2711-rpi-400.dtb	device tree binary needed for Raspberry Pi 400
+	bcm2711-rpi-cm4.dtb	device tree binary needed for Compute Module 4
+	bcm2712-rpi-5-b.dtb	device tree binary needed for Raspberry Pi 5
+	bcm2712d0-rpi-5-b.dtb	device tree binary needed for Raspberry Pi 5
+	bcm2710-rpi-zero-2-w.dtb device tree binary needed for Raspberry Pi Zero 2 W
+	bcm2712d0.dtbo		device tree overlay needed for Raspberry Pi 5
+	LICENCE.broadcom	firmware license
+	COPYING.linux		license for the device tree binaries
+	start_cd.elf		cut-down firmware for Raspberry Pi 1-3 (option)
+	start4cd.elf		cut-down firmware for Raspberry Pi 4 (option)
+	fixup_cd.dat		relocation information for start_cd.elf (option)
+	fixup4cd.dat		relocation information for start4cd.elf (option)
+
+The cut-down version of the firmware is used, when the option "gpu_mem=16" is
+specified in config.txt. It does not support codecs and 3D, but is smaller and
+loads quicker. Without this option specified, the last four files are not
+needed.
+
+In any case you have to copy these files onto the first FAT partition on a SD
+card along with the kernel*.img file of your Circle application.
+
+The device tree overlay bcm2712d0.dtbo must be copied into the directory
+overlays/ on the SD card.
+
+FIQ SUPPORT ON RASPBERRY PI 4, 400, CM4
+
+FIQ (fast interrupt request) support on the Raspberry Pi 4, 400 and CM4 requires
+an additional Circle-specific ARM stub file armstub7-rpi4.bin (AArch32) or
+armstub8-rpi4.bin (AArch64). These files will be built when you enter the
+following commands in this directory:
+
+	make armstub		# armstub7-rpi4.bin for AArch32
+	make armstub64		# armstub8-rpi4.bin for AArch64
+
+The build process uses the same toolchain, which is used to build Circle kernel
+images. The toolchain prefix (PREFIX= or PREFIX64=) can be configured in the
+file Config.mk in the Circle root directory. You have to copy the created file
+armstub?-rpi4.bin to the SD card together with the other files (see above).
+
+RASPBERRY PI 5
+
+The Raspberry Pi 5 has an EEPROM, which contains the firmware. Therefore only
+these additional files are required on the SD card (beside kernel*.img):
+
+	bcm2712-rpi-5-b.dtb
+	overlays/bcm2712d0.dtbo
+	config.txt		(copied from config64.txt)
+
+QUICK INSTALL
+
+If you have defined the path to the mount point of your SD card as follows in
+the file Config.mk or Config2.mk, you can quickly create a boot-able SD card
+with all required files and the serial bootloader:
+
+	SDCARD = /path/to/your/sd/card
+
+Enter one of the following commands to create the SD card. The SD card must
+contain a FAT partition as first partition, which should be empty.
+
+	make install		# for 32 and 64 bit operation
+	make install32		# for 32 bit operation only
+	make install64		# for 64 bit operation only
+
+For "make install" both toolchains (32- and 64-bit) must be available.

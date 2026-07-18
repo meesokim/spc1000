@@ -1,0 +1,130 @@
+WINDOWS BUILD
+
+This file describes, how Circle-based applications can be built on Windows.  There's two
+ways to do this:
+
+1. Using Windows based toolchains
+2. Using the "Windows SubSystem for Linux"
+
+
+Windows Based Toolchains
+-------------------------
+
+First you have to download and install the following software:
+
+* Git for Windows (Complete package, with bash support)
+  from: https://gitforwindows.org
+* GNU make for Windows (Complete package, except sources, Setup)
+  from: http://gnuwin32.sourceforge.net/packages/make.htm
+* Toolchain
+  from: https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads/
+	Windows (mingw-w64-i686) hosted cross toolchains .exe installer for
+		AArch32 bare-metal target (arm-none-eabi)
+		AArch64 bare-metal target (aarch64-none-elf)
+
+Then create a file \Users\Your Name\.bash_profile with this contents:
+
+	export "PATH=$PATH:/c/Program Files (x86)/GnuWin32/bin"
+	export "PATH=$PATH:/c/Program Files (x86)/path/to/toolchain/bin"
+
+Insert the path to the toolchain in the second line. Now open "Git Bash" from
+the Windows start menu and enter:
+
+	cd ~/Documents
+	git clone https://github.com/rsta2/circle.git
+	cd circle
+	echo "RASPPI = 3" > Config.mk
+	./makeall -j
+	cd sample/21-webserver
+	make
+
+This clones the Circle project and builds the sample/21-webserver for the
+Raspberry Pi 3.
+
+The cFlashy tool can be used on Windows (including WSL), like it is described in
+the file bootloader.txt. The serial port must be named like COM3 or /dev/ttyS3
+here.
+
+
+Windows Sub-System for Linux
+----------------------------
+
+Windows 10 includes support for the Windows Sub-System for Linux (WSL) which lets you run 
+various Linux distributions on top of windows.  
+
+This is similar to using a virtual machine but more efficient and better intergrated. It 
+provides an excellent development environment for Circle-based projects because you can
+use a full Linux environment for building and a Windows based IDE for editing.
+
+This approach is known to work well with WSL v1.0, Ubuntu 20.04 from the Windows Store and 
+the recommended Circle tool chain as per the [main readme file](/readme.md). 
+
+For instructions on installing WSL and a Linux distro, see here: 
+
+	https://docs.microsoft.com/en-us/windows/wsl/install-win10
+
+If you want to use a serial port to communicate with the Pi, you must use WSL v1 as serial 
+ports currently aren't supported with WSL v2. In the above linked article you can ignore 
+everything about installing v2.  If you have a WSL v2 distro installed you can easily revert 
+it to v1 as described here:
+
+	https://github.com/MicrosoftDocs/WSL/issues/590
+
+To access the serial ports from within the Linux machine use the device name `/dev/ttyS<n>` where
+`<n>` is the COM port number.  eg: COM3 is available as `/dev/ttyS3`.
+
+To access an SD card attached to the Windows machine (ie: to copy kernel images to it), from the 
+Linux machine first create a mount point for it:
+
+	sudo mkdir /mnt/sdcard
+
+You can then mount the card and copy to it: (replace d: with the Windows drive letter of the card)
+
+	sudo mount -t drvfs d: /mnt/sdcard
+	cp kernel7.img /mnt/sdcard
+	sudo umount /mnt/sdcard
+
+Alternatively instead of accessing Windows from the Linux side you can do the reverse.  Files on 
+the Linux machine are accessible via a network share `\\wsl$\<machinename>` so you can pick up 
+built kernel images from there and copy to the SD Card using Windows, or flash to the bootloader
+using flasher.py on Windows.  If you take this approach you can use WSL v2.
+
+For code editing, VS Code can run on Windows and directly edit files on the Linux machine.  See here 
+for instructions on setting it up:
+
+    https://aka.ms/vscode-remote/download/extension
+
+For build instructions, please refer to the circle documentation for building under Linux.
+
+
+Using WSL 2
+-----------
+
+The main disadvantage of using WSL 1 is often painfully slow performance.  WSL 2 solves this and 
+can generally build C++ projects more that twice as fast. Unfortunately WSL 2 doesn't support serial 
+devices which makes flashing and monitoring difficult.
+
+If you only need to flash the device and monitor its output there's a fairly simple work around - 
+use Windows to run the new [bootloader flash tool](bootloader.txt).
+
+(This approach doesn't work with the Python tool - for some reason Python fails to start from
+inside a WSL machine).
+
+Under WSL, a Windows program can be launched from within the WSL machine and the WSL files accessed
+via a UNC path name.  This functionality can be leveraged so that builds are done under WSL but 
+flashing and serial monitoring done with Windows programs.  Circle's Rules.mk file is already 
+configured for this but it requires a few steps of preparation.
+
+1. Install NodeJS and Putty on the Windows machine and make sure both are in the path.
+
+2. Install the node serial port module from Windows - not from the WSL machine.  eg:
+
+	WindowsCmdPrompt> pushd \\wsl$\yourmachine\home\yourname\Projects\circle\tools\flashy
+	WindowsCmdPrompt> rmdir /S node_modules
+	WindowsCmdPrompt> npm install
+
+To run the flash tool from the command line, use `node.exe` instead of `node`. This forces
+WSL to run node under Windows instead of Linux:
+
+	$ node.exe tools/flashy/flashy.js /dev/ttyS3 kernel7.hex --flashBaud:2000000 --monitor
+

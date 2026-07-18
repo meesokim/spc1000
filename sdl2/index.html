@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>SPC-1000 Samsung Electronics 8bit personal computer</title>
+        <style>
+            html {
+                height: 100%;
+            }
+            body {
+                background-color: #ffffff;
+                border: 0px;
+                min-height: 100%;
+                margin: 0 auto;
+            }
+            #keyboardCanvas {
+                border: 1px solid #999;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            .img-concert {
+                width: 240px;
+                height: 180px;
+            }
+            .game {
+                overflow: hidden;
+                display: block;    
+            }
+            .third {
+                border-color: red;
+                color: #fff;
+                box-shadow: 0 0 40px 40px red inset, 0 0 0 0 red;
+                transition: all 150ms ease-in-out;
+            
+                &:hover {
+                    box-shadow: 0 0 10px 0 red inset, 0 0 10px 4px red;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <table align="center" padding="0">
+            <tr><td valign="bottom"><img src="images/samsung_logo.png"></td><td style="font-family: 'Trebuchet MS'; font-size: 2.6rem; text-shadow: 4px 4px 5px gray; line-height: 1.2">&nbsp;SPC-1000&nbsp;<a href="https://github.com/retro-1000/retro-1000.github.io/issues">개선요청</a></td><td><img src="images/spc-1000.jpg"></td></tr>
+        </table>
+        <div align="center" id="menu"><span id='controls'>
+            <input type="button" value="🖭 로딩 SHIFT+F1" onclick="LOAD();"> 
+            <input type="button" value="&#x1F3C3; RUN" onclick="RUN();"> 
+            <input type="button" value="이전 🖭 ALT + ⇦" onclick="tape_prev();"> 
+            <input type="button" value="다음 🖭 ALT + ⇨" onclick="tape_next();"> 
+            <input type="button" value="전체화면 &#x26F6;" onclick="Module['canvas'].requestFullscreen()">
+            <input type="button" value="스캔라인 &#x239a;" onclick="TOGGLE_SCANLINE()">
+            <input type="button" value="리셋 &#x27f3;" onclick="RESET(1);" class="third"> 
+        </span></div>
+        <div align="center">
+            <drop_zone><canvas class="game" id="canvas" oncontextmenu="event.preventDefault()" allow="autoplay"></canvas></drop_zone>
+        </div>
+        <div align="center">
+            <span>
+                <table align="center" padding="0">
+                    <tr valign="top"><td>
+                <label className="input-file-button" for="upload" style="padding: 1px 5px;background-color:gray;border-radius: 3px;color: white;cursor: pointer;">
+                    &#x1f5ce; 업로드
+                  </label>
+		  <input type="file" id="upload" accept=".tap, .cas" data-buttonText="파일" style='display:none' /></td>
+			    <td><script type="text/javascript" src="https://counter.websiteout.com/js/5/0/1329/0"></script></td>
+                  <td><button id="screenshot" type="button"> &#x2399; 화면캡처</button></td>
+                  <td><input type="button" id="showkeyboard" value="가상키보드" style="display:none" onclick="toggle_keyboard();"/></td>
+                  </tr></table>
+            </span>
+        </div>    
+        <div align="center">
+            <canvas id="keyboardCanvas" oncontextmenu="event.preventDefault()"></canvas></div>
+        </div>
+        <div align="center">휴대폰이나 타블릿은 가상키보드가 자동으로 나타납니다.<br/><a href="software_collection.html">많은 소프트웨어 목록은 이곳에 있습니다.</a><br/>아래 게임 스샷을 클릭하면 테잎로딩이 시작되고 게임이 자동으로 실행됩니다.</div> 
+        <div align="center"><a href="javascript:tape_loading('lode_runner1-mayhouse.tap');"><img class="img-concert" src="images/spc-1000_240720_0.png" /></a>
+            <a href="javascript:tape_loading('ASTEROID%20BELT.tap','F6');"><img class="img-concert" src="images/spc-1000_240720_1.png" /></a>
+            <a href="javascript:tape_loading('Xevious.cas');"><img class="img-concert" src="images/spc-1000_240720_2.png" /></a>
+        </div>     
+        <script type='text/javascript'>
+            var Module = {
+                locateFile: function(path, prefix) {
+                    if (path.endsWith('.wasm')) {
+                        return prefix + path + '?v=3';
+                    }
+                    return prefix + path;
+                },
+                canvas: (function() { return document.getElementById('canvas'); })()
+            };
+            async function getCanvasBlob(canvas) {
+                return new Promise(function(resolve, reject) {
+                    canvas.toBlob(function(blob) {
+                        resolve(blob)
+                    })
+                })
+            }
+            const elem1 = document.querySelector('#screenshot');
+            var screen_num = 0;
+            var tapename = null;
+            elem1.addEventListener('click', () => {
+                var canvasblob = getCanvasBlob(canvas);
+                canvasblob.then(function(blob) {
+                    var date = new Date().format('yyMMdd');
+                    console.log(blob.result)
+                    if (tapename != null)
+                        if (screen_num > 0)
+                            screenshotfile = `${tapename}_${screen_num}.png` 
+                        else
+                            screenshotfile = `${tapename}.png`
+                    else
+                        screenshotfile =  `spc-1000_${date}_${screen_num}.png`
+                    // 화면캡쳐 사이즈가 5017이면 검은색 화면만 캡쳐된 것으로 이 경우 다시 클릭된 것으로 요청
+                    if (blob.size > 5017)
+                    {
+                        saveBlob(blob, screenshotfile);
+                        screen_num += 1;
+                    } 
+                    else
+                    {
+                        elem1.click();
+                    }
+                }, function(err) {
+                    console.log(err)
+                });
+            });
+            const saveBlob = (function() {
+              const a = document.createElement('a');
+              document.body.appendChild(a);
+              a.style.display = 'none';
+              return function saveData(blob, fileName) {
+                 const url = window.URL.createObjectURL(blob);
+                 a.href = url;
+                 a.download = fileName;
+                 a.click();
+              };
+            }());
+            var reset_required = false;
+            const input = document.querySelector("#upload");
+            input.addEventListener('change', upload_file);
+            const supportsFileSystemAccessAPI =
+            "getAsFileSystemHandle" in DataTransferItem.prototype;
+          const supportsWebkitGetAsEntry =
+            "webkitGetAsEntry" in DataTransferItem.prototype;            
+            // This is the drag and drop zone.
+            const elem = document.querySelector('drop_zone');
+
+            // Prevent navigation.
+            elem.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            });
+
+            // Visually highlight the drop zone.
+            elem.addEventListener('dragenter', (e) => {
+            elem.style.outline = 'solid red 10px';
+            });
+
+            // Visually unhighlight the drop zone.
+            elem.addEventListener('dragleave', (e) => {
+            elem.style.outline = '';
+            });
+
+            function changesize() {
+                if (!hasTouchSupport() && !show_keyboard) {
+                    kcanvas.style.display = 'none';
+                    document.getElementById('showkeyboard').style.display = 'block';
+                    canvas.style.width = '640px';
+                } else {
+                    var w = 0, h = 0;
+                    if (typeof (window.innerWidth) == 'number') { //Chrome
+                        w = window.innerWidth / 2;
+                        h = window.innerHeight / 2;
+                    }
+                    if (h > w * 1.2)
+                        canvas.style.width = '100%';
+                    else {
+                        canvas.style.width = `${h / w / 1.2 * 100}%`;  
+                    }                
+                    // console.log(w, h, canvas.style.width, h > w * 1.5, h * 0.7);
+                }                
+            }
+            // This is where the drop is handled.
+            elem.addEventListener('drop', async (e) => {
+            // Prevent navigation.
+            e.preventDefault();
+            // Unhighlight the drop zone.
+            elem.style.outline = '';
+            // Prepare an array of promises…
+            const fileHandlesPromises = [...e.dataTransfer.items]
+                // …by including only files (where file misleadingly means actual file _or_
+                // directory)…
+                .filter((item) => item.kind === 'file')
+                // …and, depending on previous feature detection…
+                .map((item) =>
+                supportsFileSystemAccessAPI
+                    // …either get a modern `FileSystemHandle`…
+                    ? item.getAsFileSystemHandle()
+                    // …or a classic `File`.
+                    : item.getAsDataURL(),
+                );
+                // Loop over the array of promises.
+                for await (const handle of fileHandlesPromises) {
+                    // This is where we can actually exclusively act on the files.
+                    if (handle.kind === 'file' || handle.isFile) {
+                      console.log(`File: ${handle.name}`);
+                      const filename = handle.name;
+                      const file = await handle.getFile();
+                      const data = new Uint8Array(await file.arrayBuffer());
+                      if (filename.toLowerCase().includes('.cas'))
+                        ndata = cas2tap(data);
+                      else
+                        ndata = data;
+                      tape_load(ndata, ndata.length, filename);
+                    }
+                }
+            });
+            function cas2tap(data) {
+                const adata = data;
+                const length = adata.length;
+                const bitLength = (length > 0x10 ? length - 0x10 : 0) * 8;
+                let ndata = new Uint8Array(bitLength);
+                let idx = 0;
+                for (let i = 0x10; i < length; i++)
+                {
+                    for(let j = 0; j < 8; j++) {
+                        ndata[idx++] = (adata[i] & (0x80 >> j)) ? 49 : 48; // ASCII '1' or '0'
+                    }
+                }
+                return ndata;
+            }
+            function sleep(ms) {
+                const wakeUpTime = Date.now() + ms;
+                while (Date.now() < wakeUpTime) {}
+            }
+            function RESET(force) {
+                if (reset_required || force) {
+                    tapename = Module.ccall('remote', // name of C function
+                    'number', // return type
+                    ['number'], // argument types
+                    [0]); // arguments
+                    reset_required = false;
+                }
+            };
+            function LOAD() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [1]); // arguments             
+            };
+            function RUN() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number'], // argument types
+                [2]); // arguments  
+                reset_required = true;           
+            };          
+            function tape_prev() {
+                var result  = Module.ccall('remote', // name of C function
+                'string', // return type
+                ['number'], // argument types
+                [3]); // arguments  
+                tapename = result;
+                screen_num = 0;
+            }; 
+            function tape_next() {
+                var result  = Module.ccall('remote', // name of C function
+                'string', // return type
+                ['number'], // argument types
+                [4]); // arguments             
+                tapename = result;
+                screen_num = 0;
+            };                       
+            async function tape_load(data, length, filename) {
+                <!-- console.log(data, length, filename); -->
+                RESET();
+                var result  = Module.ccall('remote', // name of C function
+                'string', // return type
+                ['number', 'number', 'array', 'string'], // argument types
+                [6, length, data, filename]); // arguments  
+                console.log('tape_load:', result, filename, length);
+                if (filename.toLowerCase().includes('.zip'))
+                    tapename = filename;
+                else
+                    tapename = result;
+                screen_num = 0;
+            };
+            function SCANLINE(onoff) {
+                Module.ccall('remote', 'number', ['number','number'], [8,onoff]);
+            };
+            function TOGGLE_SCANLINE() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number','number'], // argument types
+                [8,2]); // arguments                 
+            };
+            function TURBO_OFF() {
+                var result = Module.ccall('remote', // name of C function
+                'number', // return type
+                ['number','number'], // argument types
+                [7,0]); // arguments                  
+            };
+            async function upload_file() {
+                const curFiles = input.files;
+                for (const file of curFiles) {
+                    // const file = await handle.getFile();
+                    filename = file.name;
+                    const adata = new Uint8Array(await file.arrayBuffer());
+                    if (filename.toLowerCase().includes('.cas'))
+                        ndata = cas2tap(adata);
+                    else
+                        ndata = adata;
+                    tape_load(ndata, ndata.length, filename);
+                }                
+            }
+            Date.prototype.format = function (f) {
+                if (!this.valueOf()) return " ";
+                var weekKorName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+                var weekKorShortName = ["일", "월", "화", "수", "목", "금", "토"];
+                var weekEngName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                var weekEngShortName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                var d = this;
+                return f.replace(/(yyyy|yy|MM|dd|KS|KL|ES|EL|HH|hh|mm|ss|a\/p)/gi, function ($1) {
+                    switch ($1) {
+                        case "yyyy": return d.getFullYear(); // 년 (4자리)
+                        case "yy": return (d.getFullYear() % 1000).zf(2); // 년 (2자리)            
+                        case "MM": return (d.getMonth() + 1).zf(2); // 월 (2자리)
+                        case "dd": return d.getDate().zf(2); // 일 (2자리)
+                        case "KS": return weekKorShortName[d.getDay()]; // 요일 (짧은 한글)
+                        case "KL": return weekKorName[d.getDay()]; // 요일 (긴 한글)
+                        case "ES": return weekEngShortName[d.getDay()]; // 요일 (짧은 영어)
+                        case "EL": return weekEngName[d.getDay()]; // 요일 (긴 영어)
+                        case "HH": return d.getHours().zf(2); // 시간 (24시간 기준, 2자리)
+                        case "hh": return ((h = d.getHours() % 12) ? h : 12).zf(2); // 시간 (12시간 기준, 2자리)
+                        case "mm": return d.getMinutes().zf(2); // 분 (2자리)
+                        case "ss": return d.getSeconds().zf(2); // 초 (2자리)
+                        case "a/p": return d.getHours() < 12 ? "오전" : "오후"; // 오전/오후 구분
+                        default: return $1;
+                    }
+                });
+            };
+            String.prototype.string = function (len) { var s = '', i = 0; while (i++ < len) { s += this; } return s; };
+            String.prototype.zf = function (len) { return "0".string(len - this.length) + this; };
+            Number.prototype.zf = function (len) { return this.toString().zf(len); };  
+
+            const kcanvas = document.getElementById('keyboardCanvas');
+            const ctx = kcanvas.getContext('2d');
+
+            var show_keyboard = false;
+            function toggle_keyboard() {
+                if (kcanvas.style.display =='none') {
+                    show_keyboard = true;
+                    kcanvas.style.display = 'block';
+                    if (!hasTouchSupport()) {
+                        canvas.style.width = '640px';
+                    } else {
+                        changesize();
+                    }
+                    document.getElementById('showkeyboard').value = '가상키보드 닫기';    
+                }
+                else
+                {
+                    show_keyboard = false;
+                    kcanvas.style.display = 'none';
+                    document.getElementById('showkeyboard').value = '가상키보드';    
+                    changesize();
+                }
+            }
+            function hasTouchSupport() {
+                return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            }
+            if (!hasTouchSupport() && !show_keyboard) {
+                kcanvas.style.display = 'none';
+                document.getElementById('showkeyboard').style.display = 'block';
+            } else {
+                changesize();
+                // setTimeout(() => SCANLINE(false), 500);
+            }
+       
+            kcanvas.width = window.innerWidth
+            kcanvas.height = window.innerHeight / 2;
+        
+            const normalKeys = [
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', 'HOME', '←', '→', '↑', '↓'],
+                ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\', 'BREAK'],
+                ['ESC', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  'DEL', 'GRP'],
+                ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ":", ']', 'RETURN'],
+                ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'SHIFT'],
+                ['LOCK', 'SPACE']
+            ];
+        
+            const shiftKeys = [
+                ['F1', 'F2', 'F3', 'F4', 'F5', ' ', 'CLS', '←', '→', '↑', '↓'],
+                ['!', '"', '#', '$', '%', '&', "'", '(', ')', '0', '=', '~', '\\', 'BREAK'],
+                ['ESC', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '{', 'INS', 'GRP'],
+                ['CTRL', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*', '}', 'RETURN'],
+                ['SHIFT', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 'SHIFT'],
+                ['LOCK', 'SPACE']
+            ];
+
+            let nkeys = [].concat(...normalKeys);
+            let skeys = [].concat(...shiftKeys);
+            
+            const offsets = [40,40,0,0,0,90]
+        
+            let keyWidth, keyHeight;
+            let isShiftToggled = false;
+            let isLockToggled = false;
+            let isGRPToggled = false;
+            let isCtrlToggled = false;
+            let pressedKey = null;
+            const specialKeys = ['F1', 'F2', 'F3', 'F4', 'F5', '←', '→', '↑', '↓', 'HOME','ESC', 'CLS', 'TAB', 'CTRL', 'LOCK', 'BREAK', 'INS', 'DEL', 'RETURN', 'GRP', 'SHIFT'];
+        
+            const keyClickSound = new Audio('typing.wav'); // 키 클릭 사운드 파일 경로를 지정하세요
+        
+            function calculateKeySize() {
+                keyWidth = (kcanvas.width) / 15;
+                keyHeight = kcanvas.height / 6;
+            }
+        
+            function drawKey(x, y, width, height, key, isToggled = false) {
+                const radius = 10;
+        
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+        
+                if (specialKeys.includes(key)) {
+                    ctx.fillStyle = isToggled ? '#505050' : '#404040';
+                } else {
+                    ctx.fillStyle = (key === pressedKey ? '#b0b0b0' : '#f0f0f0');
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#999';
+                ctx.stroke();
+        
+                ctx.fillStyle = specialKeys.includes(key) ? '#ffffff' : '#333333';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(key, x + width / 2, y + height / 2, width * 0.8);
+            }
+        
+            function drawKeyboard() {
+                ctx.clearRect(0, 0, kcanvas.width, kcanvas.height);
+                
+                const keys = isShiftToggled ? shiftKeys : normalKeys;
+                
+                keys.forEach((row, rowIndex) => {
+                    let xOffset = offsets[rowIndex];
+                    row.forEach((key, keyIndex) => {
+                        let width = keyWidth;
+                        let height = keyHeight;
+                        
+                        if (key === 'SPACE') width = keyWidth * 10;
+                        else if (['F1','F2', 'F3', 'F4', 'F5', 'CTRL', 'TAB', 'LOCK', 'RETURN'].includes(key)) width = keyWidth * 1.5;
+                        else if (key == 'SHIFT') width = keyWidth * 2;
+                        
+                        if (key != ' ')
+                            drawKey(xOffset, rowIndex * keyHeight, width, height, key, (key === 'SHIFT' && isShiftToggled) || (key === 'LOCK' && isLockToggled) || (key == 'CTRL' && isCtrlToggled) || (key == 'GRP' && isGRPToggled));
+                        xOffset += width;
+                    });
+                });
+            }
+        
+            function handleTouch(e) {
+                e.preventDefault();
+                const rect = kcanvas.getBoundingClientRect();
+                const x = e.touches ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+                const y = e.touches ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+                
+                const keys = isShiftToggled ? shiftKeys : normalKeys;
+                
+                let yOffset = 0;
+                for (let rowIndex = 0; rowIndex < keys.length; rowIndex++) {
+                    let xOffset = offsets[rowIndex];
+                    for (let keyIndex = 0; keyIndex < keys[rowIndex].length; keyIndex++) {
+                        const key = normalKeys[rowIndex][keyIndex];
+                        let width = keyWidth;
+                        let height = keyHeight;
+                        
+                        if (key === 'SPACE') width = keyWidth * 10;
+                        else if (['F1','F2', 'F3', 'F4', 'F5', 'TAB', 'LOCK', 'RETURN'].includes(key)) width = keyWidth * 1.5;
+                        else if (key == 'CTRL') width = keyWidth * 1.7;
+                        else if (key == 'SHIFT') width = keyWidth * 2;
+                        
+                        if (x >= xOffset && x < xOffset + width &&
+                            y >= yOffset && y < yOffset + height) {
+                            //console.log('Pressed key:', key);
+                            pressedKey = key;
+                            keyClickSound.play();
+                            drawKeyboard();
+                            
+                            if (key === 'SHIFT') {
+                                isShiftToggled = !isShiftToggled;
+                            } else if (key === 'CTRL') {
+                                isCtrlToggled = !isCtrlToggled;
+                            } else if (key === 'GRP') {
+                                isGRPToggled = !isGRPToggled;
+                            } else {
+                                // 여기에서 키 입력을 에뮬레이터로 전달
+                                emulatorKeyPress(key);
+                                // SHIFT, GRP, CTRL 키가 토글된 상태에서 다른 키를 누르면 상태 해제
+                                if (!isLockToggled)
+                                {
+                                    isShiftToggled = false;
+                                    isGRPToggled = false;
+                                    isCtrlToggled = false;
+                                }
+                            }
+                            setTimeout(() => {
+                                if (!pressedKey)
+                                    handleReleseTouch();
+                            }, 1000);
+                            return;
+                        }
+                        xOffset += width;
+                    }
+                    yOffset += keyHeight;
+                }
+            }
+        
+            kcanvas.addEventListener('touchstart', handleTouch);
+            kcanvas.addEventListener('touchend', handleReleseTouch);
+            kcanvas.addEventListener('mousedown', function(e) {
+                // 마우스 이벤트를 터치 이벤트로 변환
+                const touch = {
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                };
+                handleTouch({touches: [touch], preventDefault: function() {}});
+            });
+            kcanvas.addEventListener('mouseup', handleReleseTouch);
+
+            function handleReleseTouch() {
+                pressedkey = null;
+                emulatorKeyPress(pressedkey);
+                setTimeout(() => {
+                    pressedKey = null;
+                    drawKeyboard();
+                }, 100);
+            }
+            
+            function resizeCanvas() {
+                kcanvas.width = window.innerWidth * 0.96;
+                kcanvas.height = window.innerHeight / 4;
+                calculateKeySize();
+                drawKeyboard();
+                changesize();
+            }
+        
+            // 초기 키보드 그리기 및 리사이즈 이벤트 설정
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        
+            // 에뮬레이터로 키 입력을 전달하는 함수 (구현 필요)
+            function emulatorKeyPress(key, shift) {
+                // SPC1000 에뮬레이터로 키 입력을 전달하는 로직
+                // console.log('Emulator key press:', key, isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled);
+                Module.ccall('keydown', 'null', ['string','boolean', 'boolean', 'boolean','boolean','boolean'], [key, shift != null ? shift : isShiftToggled, isCtrlToggled, isGRPToggled, isLockToggled, shift != null]);
+            }
+            function emulatorTyping(cmd, turbooff=true) {
+                let ms = 0;
+                if (turbooff)
+                    TURBO_OFF();
+                emulatorKeyPress(null);
+                cmd.split('').forEach((c) => {
+                    let uppercase = false;
+                    if (c == ' ')
+                        c = 'SPACE'
+                    else if (c == '\n')
+                        c = 'RETURN'
+                    if (c >= 'a' && c <= 'z') {
+                        c = c.toUpperCase()
+                    } else if (c >= 'A' && c <= 'Z') 
+                        uppercase = true;
+                    if (!uppercase && nkeys.indexOf(c)>=0) {
+                        setTimeout(() => emulatorKeyPress(c, false), ms += 50);
+                    } else if (skeys.indexOf(c)>=0) {
+                        c = nkeys[skeys.indexOf(c)]
+                        setTimeout(() => emulatorKeyPress(c, true), ms += 50);
+                    } else {
+                        console.log('error:',c)
+                    }
+                });
+            }
+            function GetURLParameter(sParam)
+            {
+                var sPageURL = window.location.search.substring(1);
+                var sURLVariables = sPageURL.split('&');
+                for (var i = 0; i < sURLVariables.length; i++) 
+                {
+                    var sParameterName = sURLVariables[i].split('=');
+                    if (sParameterName[0] == sParam) 
+                    {
+                        return sParameterName[1];
+                    }
+                }
+            }
+            function isHex(h) {
+                var a = parseInt(h,16);
+                return (a.toString(16) ===h.toLowerCase())
+            }
+            Module['onRuntimeInitialized'] = prepare_tape_loading;
+            var first_initialized = true
+            var prev_tape = null;
+            function prepare_tape_loading()
+            {
+                const tape = GetURLParameter('tape');
+                const load = GetURLParameter('load');
+                const exec = GetURLParameter('exec');
+                if (first_initialized) {
+                    first_initialized = false
+                    tape_loading(tape, load, exec)
+                }
+            }
+            function tape_loading(tape, load, exec) {
+                if (tape != prev_tape) {
+                    var req = new XMLHttpRequest();
+                    req.open("GET", "/taps/" + tape, true);
+                    req.responseType = "arraybuffer";
+                    var cas = tape.toLowerCase().includes('.cas')
+                    var zip = tape.toLowerCase().includes('.zip')
+                    req.onload = function(){
+                        if (this.status == 404) {
+                            console.log('404 error')
+                            return;
+                        }
+                        let data = new Uint8Array(this.response);
+                        title = decodeURIComponent(tape)
+                        let ms = data.length/150
+                        console.log(data.length, tape, ms)
+                        if (cas)
+                            data = cas2tap(data)
+                        ms = data.length/150
+                        console.log(data.length, tape, cas, zip, ms)
+                        setTimeout(() => tape_load(data, data.length, title), ms);
+                        setTimeout(() => LOAD(), ms += 2000);
+                        if (load) {
+                            load.split(';').forEach((cmd) => {
+                                if (cmd == 'F6')
+                                    setTimeout(() => LOAD(), ms += 2000);
+                            });
+                        }
+                        // console.log(exec, ms)
+                        if (exec == null || exec.toUpperCase() == 'RUN')
+                        {
+                            setTimeout(() => RUN(), ms + 5000);
+                            return;
+                        } else if (exec == '')
+                            return;
+                        else if (isHex(exec)) 
+                            cmd = `call&h${exec}`;
+                        else
+                            cmd = exec;
+                        setTimeout(() => emulatorTyping(cmd+'\n'), ms += 2000);
+                    };
+                    req.open('GET', `./taps/${tape}`);
+                    if (cas)
+                        req.responseType = "arraybuffer";
+                    req.send(); 
+                    prev_tape = tape;               
+                }
+            }
+        </script>
+        <script src="index.js?v=3"></script>
+    </body>
+</html>

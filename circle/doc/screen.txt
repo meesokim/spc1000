@@ -1,0 +1,32 @@
+ESCAPE SEQUENCES
+
+\E[B		Cursor down one line
+\E[H		Cursor home
+\E[A		Cursor up one line
+\E[%d;%dH	Cursor move to row %1 and column %2 (starting at 1)
+^H		Cursor left one character
+\E[D		Cursor left one character
+\E[C		Cursor right one character
+^M		Carriage return
+\E[J		Clear to end of screen
+\E[K		Clear to end of line
+\E[%dX		Erase %1 characters starting at cursor
+^J		Carriage return/linefeed
+\E[0m		End of bold, half bright and reverse mode, reset colors
+\E[1m		Start bold mode
+\E[2m		Start half bright mode
+\E[7m		Start reverse video mode
+\E[27m		End reverse video mode
+\E[%dm		Set foreground color (%d = 30-37 or 90-97)
+\E[%dm		Set background color (%d = 40-47 or 100-107)
+^I		Move to next hardware tab
+\E[?25h		Normal cursor visible
+\E[?25l		Cursor invisible
+\E[%d;%dr	Set scroll region from row %1 to row %2 (starting at 1)
+\Ed+		Start autopage mode
+\Ed*		End autopage mode
+
+
+^X = Control character
+\E = Escape (\x1b)
+%d = Numerical parameter (ASCII)

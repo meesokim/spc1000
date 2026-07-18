@@ -1,0 +1,202 @@
+//
+// tcpconnection.h
+//
+// Circle - A C++ bare metal environment for Raspberry Pi
+// Copyright (C) 2015-2026  R. Stange <rsta2@gmx.net>
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+#ifndef _circle_net_tcpconnection_h
+#define _circle_net_tcpconnection_h
+
+#include <circle/net/netconnection.h>
+#include <circle/net/networklayer.h>
+#include <circle/net/ipaddress.h>
+#include <circle/net/icmphandler.h>
+#include <circle/net/netbuffer.h>
+#include <circle/net/netbufferqueue.h>
+#include <circle/net/reassemblyqueue.h>
+#include <circle/net/netqueue.h>
+#include <circle/net/retranstimeoutcalc.h>
+#include <circle/sched/synchronizationevent.h>
+#include <circle/timer.h>
+#include <circle/spinlock.h>
+#include <circle/types.h>
+
+enum TTCPState
+{
+	TCPStateClosed,
+	TCPStateListen,
+	TCPStateSynSent,
+	TCPStateSynReceived,
+	TCPStateEstablished,
+	TCPStateFinWait1,
+	TCPStateFinWait2,
+	TCPStateCloseWait,
+	TCPStateClosing,
+	TCPStateLastAck,
+	TCPStateTimeWait
+};
+
+enum TTCPTimer
+{
+	TCPTimerUser,
+	TCPTimerRetransmission,
+	TCPTimerTimeWait,
+	TCPTimerUnknown
+};
+
+struct TTCPHeader;
+
+class CTCPConnection : public CNetConnection
+{
+public:
+	CTCPConnection (CNetConfig	*pNetConfig,		// active OPEN
+			CNetworkLayer	*pNetworkLayer,
+			const CIPAddress &rForeignIP,
+			u16		 nForeignPort,
+			u16		 nOwnPort);
+	CTCPConnection (CNetConfig	*pNetConfig,		// passive OPEN
+			CNetworkLayer	*pNetworkLayer,
+			u16		 nOwnPort);
+	~CTCPConnection (void);
+
+	const char *GetStateName (void) const;
+
+	int Connect (void);
+	int Accept (CIPAddress *pForeignIP, u16 *pForeignPort);
+	int Close (void);
+	
+	int Send (CNetBuffer *pData, int nFlags);
+	int Receive (CNetBuffer **ppBuffer, int nFlags);
+
+	int SendTo (CNetBuffer *pData, int nFlags,
+		    const CIPAddress &rForeignIP, u16 nForeignPort);
+	int ReceiveFrom (CNetBuffer **ppBuffer, int nFlags,
+			 CIPAddress *pForeignIP, u16 *pForeignPort);
+
+	int SetOptionReceiveTimeout (unsigned nMicroSeconds);
+	int SetOptionSendTimeout (unsigned nMicroSeconds);
+
+	int SetOptionBroadcast (boolean bAllowed);
+
+	int SetOptionAddMembership (const CIPAddress &rGroupAddress);
+	int SetOptionDropMembership (const CIPAddress &rGroupAddress);
+
+	boolean IsConnected (void) const;
+	boolean IsTerminated (void) const;
+	
+	void Process (void);
+	
+	// returns: -1: invalid packet, 0: not to me, 1: packet consumed
+	int PacketReceived (CNetBuffer *pPacket,
+			    CIPAddress &rSenderIP, CIPAddress &rReceiverIP, int nProtocol);
+
+	// returns: 0: not to me, 1: notification consumed
+	int NotificationReceived (TICMPNotificationType Type,
+				  CIPAddress &rSenderIP, CIPAddress &rReceiverIP,
+				  u16 nSendPort, u16 nReceivePort,
+				  int nProtocol);
+
+	TStatus GetStatus (void) const;
+
+private:
+	boolean SendNewSegment (u32 nAdditionalCWND = 0);	// returns if segment has been sent
+
+	void OnDuplicateAck (void);
+	void ResendSegment (void);
+
+	boolean SendSegment (unsigned nFlags, u32 nSequenceNumber, u32 nAcknowledgmentNumber = 0,
+			     CNetBuffer *pData = 0);
+
+	void ScanOptions (TTCPHeader *pHeader);
+	
+	u32 CalculateISN (void);
+	
+	void StartTimer (unsigned nTimer, unsigned nHZ);
+	void StopTimer (unsigned nTimer);
+	void TimerHandler (unsigned nTimer);
+	static void TimerStub (TKernelTimerHandle hTimer, void *pParam, void *pContext);
+
+#ifndef NDEBUG
+	void DumpStatus (void);
+	TTCPState NewState (TTCPState State, unsigned nLine);
+	void UnexpectedState (unsigned nLine);
+#endif
+
+private:
+	boolean m_bActiveOpen;
+	volatile TTCPState m_State;
+
+	volatile int m_nErrno;			// signalize error to the user
+
+	CNetBufferQueue m_TxQueue;
+	CNetBufferQueue m_RxQueue;
+	CReassemblyQueue m_ReassemblyQueue;
+
+	volatile boolean m_bRetransmit;		// reset m_RetransmissionQueue and send
+	volatile boolean m_bSendSYN;		// send SYN when in TCPStateSynSent or TCPStateSynReceived
+	volatile boolean m_bFINQueued;		// send FIN when TX and retransmission queues are empty
+	TTCPState m_StateAfterFIN;		//	and go to this state
+	volatile boolean m_bFINSent;		// FIN was sent, do not increase m_nSND_NXT any more
+	volatile boolean m_bFINReceived;	// FIN received, do not increase m_nRCV_NXT any more
+
+	volatile unsigned m_nRetransmissionCount;
+	volatile boolean m_bTimedOut;		// abort connection and close
+	
+	CSynchronizationEvent m_Event;
+	CSynchronizationEvent m_TxEvent;	// for pacing transmit
+
+	CTimer *m_pTimer;
+	TKernelTimerHandle m_hTimer[TCPTimerUnknown];
+	CSpinLock m_TimerSpinLock;
+
+	// Send Sequence Variables
+	u32 m_nSND_UNA;		// send unacknowledged
+	u32 m_nSND_NXT;		// send next
+	u32 m_nSND_WND;		// send window
+	u16 m_nSND_UP;		// send urgent pointer
+	u32 m_nSND_WL1;		// segment sequence number used for last window update
+	u32 m_nSND_WL2;		// segment acknowledgment number used for last window update
+	u32 m_nISS;		// initial send sequence number
+
+	// Receive Sequence Variables
+	u32 m_nRCV_NXT;		// receive next
+	u32 m_nRCV_WND;		// receive window
+	//u16 m_nRCV_UP;	// receive urgent pointer
+	u32 m_nIRS;		// initial receive sequence number
+
+	// Other Variables
+	u16 m_nSND_MSS;		// send maximum segment size
+
+	CRetransmissionTimeoutCalculator m_RTOCalculator;
+
+	// Congestion Control Variables
+	u32 m_nIW;			// initial congestion window (bytes)
+	u32 m_nCWND;			// congestion window (bytes)
+	u32 m_nSSThresh;		// slow-start threshold (bytes)
+	unsigned m_nDupAckCount;	// count of consecutive duplicate ACKs
+	boolean m_bFastRecovery;	// fast recovery state flag
+	u32 m_nRecover;			// highest SEQ sent when entering fast recovery
+	unsigned m_nLastSendTicks; 	// time of last data transmission
+
+	unsigned m_nReceiveTimeout;	// us
+	unsigned m_nSendTimeout;	// us
+
+	static unsigned s_nConnections;
+
+	static const char *s_pStateName[];
+};
+
+#endif

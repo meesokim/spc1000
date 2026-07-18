@@ -1,0 +1,149 @@
+CREDITS
+
+To whom
+For what
+
+Aurelien Bidon
+Improving build and .git support
+
+tufty
+Architectural advise
+
+Jose Luis Sanchez
+Spanish keymap
+Support and testing while searching for a full-speed interrupt interval bug
+Testing while fixing an USB freeze bug
+Hint how to improve le2be* functions using GCC builtins
+Enhancing class CBcmFrameBuffer
+Providing Spectrum screen emulator code
+Testing while adding support for USB full-speed hubs (compound devices)
+Providing fixes for using u-boot
+Fixing issues for u-boot support
+Support while adding CPU clock rate management and sample/26-cpustress
+Testing while adding USB transaction queueing and SOF interrupt support
+Updating addon/fatfs/ module
+Driver for PS4, Xbox One and Nintendo Switch Pro gamepads
+
+Arjan van Vught
+Support while adding Raspberry Pi 3 support
+Testing and improving SPI support
+Providing code for WS28XX LED stripes
+Providing CString::ftoa()
+
+Rogier Wolff
+Helping to get spi_dio running and to improve the SPI master driver
+Hardware support for testing MCP7941x and spi_dio drivers
+
+Joshua Otto
+Providing support for framebuffers where pitch != width * bytes per pixel
+USB Audio Class MIDI device support
+
+Stephan Muehlstrasser
+Correcting problems for building with clang
+Idea for sample/30-gpiofiq
+Kernel Address Sanitizer implementation
+
+Marco Maccaferri
+USB HID class gamepad driver
+
+@Matheus-Garbelini
+Adding bootloader support and tools
+
+Stephane Damo
+Helping to fix FIQ synchronization issue
+Improving SD card (EMMC) performance
+Adding utility functions for Official Touchscreen and SD card
+Improving CSerialDevice in polling mode
+Adding class C2DGraphics and sample/41-screenanimations
+
+Steve Maynard
+Patches and testing for Compute Module 3(+)
+
+Hinko Kocevar
+Adding USB mouse wheel support
+Adding USB serial devices support
+Testing fixes for USB plug-and-play issues
+
+@MikeDB
+Providing CM4 and CM4IO hardware
+
+Dale Whinham
+Improving SD card performance
+Providing RPi 3A+ hardware
+Helping to fix several USB issues
+Testing HDMI sound support and 4K monitors
+Modifications for Raspberry Pi Zero 2 W
+Testing and tracing USB Audio streaming with Dirtywave M8
+
+Brad Robinson
+Improving scheduler library
+Improving bootloader support and tools
+Improving different parts of the base library
+
+D. Rimron
+Adding screen reverse mode
+Adding screen ANSI colors
+
+@sebastienNEC
+Providing info patch for I2S input
+Providing patch for WLAN AP mode
+Adding SMI master driver and WS2812OverSMI addon
+USB CDC ACM (serial) gadget driver
+IRQ-driven I2C master
+
+Maciej Sokolowski
+Adding WM8960 support to I2S sound driver
+
+@diyelectromusic
+Adding I2C support to HD44780 display driver
+Adding support for SSD1306 OLED display
+Adding character mode support for ST7789 display
+
+@nickverlinden
+Testing several USB Audio Pro streaming interfaces
+
+Kevin Boone
+Adding support for Ctrl+navigation keys
+
+@ArnoldUK
+Testing the resizing of the screen in different classes
+
+@aniplay62
+Providing U-Boot driver for MACB / GEM Ethernet NIC for Raspberry Pi 5
+Helping to get WLAN working on Raspberry Pi 5
+
+Joe Strout
+Providing Dvorak keyboard layout
+
+Mike Messinides
+USB Mass Storage gadget driver
+
+Joshua Norrid
+Adding block cursor support to CScreenDevice
+
+@SteveSpencer
+Adding backlight cmdline.txt option
+Adding RTL8153 NIC support
+Extending class CString
+
+Pete Moore
+Adding configure support for macOS
+Adding cFlashy support for macOS
+Optimizing memset() for AArch64
+
+Dani Sarfati
+Heavily testing USB Mass Storage gadget driver
+Implementing flushing audio device buffers
+
+@speendo
+Supporting configurable encoder types in KY-040 driver
+
+@ToonNelissen
+Adding SSD1309 OLED display driver (I2C + SPI)
+Adding MCP23017 I2C GPIO expander driver
+
+Alex Couture-Beil
+Adding memem() to utils
+
+@marchingband
+Testing CM0

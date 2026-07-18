@@ -1,0 +1,28 @@
+# Raspberry Pi Circle Bare Metal Boot Config
+# Save this file as 'config.txt' on the root of your FAT32 SD card.
+
+# Disable 64-bit mode (we are compiling for 32-bit AArch32)
+arm_64bit=0
+
+# Disable initial turbo to prevent power spikes causing boot hangs
+initial_turbo=0
+
+# Enable UART logging (Tx on GPIO 14, Rx on GPIO 15) to see boot errors
+enable_uart=1
+
+# Force HDMI on (useful for headless setups or slow-to-handshake displays)
+hdmi_force_hotplug=1
+
+# Raspberry Pi 3 specific (sometimes needed for touchscreen / framebuffers)
+[pi3]
+max_framebuffers=2
+
+# Raspberry Pi 4 specific settings
+[pi4]
+kernel=kernel7l.img
+armstub=armstub7-rpi4.bin
+max_framebuffers=2
+
+# Compute Module 4 specific
+[cm4]
+otg_mode=1

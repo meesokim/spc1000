@@ -762,6 +762,8 @@ void OutZ80(word Port, byte Value)
 	}
 }
 
+#ifndef HOST_COMPILE
 int printf(const char *format, ...) { return 0; }
+#endif
 
 } // extern "C"

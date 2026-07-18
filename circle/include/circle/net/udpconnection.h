@@ -1,0 +1,95 @@
+//
+// udpconnection.h
+//
+// Circle - A C++ bare metal environment for Raspberry Pi
+// Copyright (C) 2015-2025  R. Stange <rsta2@gmx.net>
+// 
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+#ifndef _circle_net_udpconnection_h
+#define _circle_net_udpconnection_h
+
+#include <circle/net/netconfig.h>
+#include <circle/net/netconnection.h>
+#include <circle/net/networklayer.h>
+#include <circle/net/ipaddress.h>
+#include <circle/net/icmphandler.h>
+#include <circle/net/netbuffer.h>
+#include <circle/net/netbufferqueue.h>
+#include <circle/sched/synchronizationevent.h>
+#include <circle/types.h>
+
+class CUDPConnection : public CNetConnection
+{
+public:
+	CUDPConnection (CNetConfig	*pNetConfig,
+			CNetworkLayer	*pNetworkLayer,
+			const CIPAddress &rForeignIP,
+			u16		 nForeignPort,
+			u16		 nOwnPort);
+	CUDPConnection (CNetConfig	*pNetConfig,
+			CNetworkLayer	*pNetworkLayer,
+			u16		 nOwnPort);
+	~CUDPConnection (void);
+
+	int Connect (void);
+	int Accept (CIPAddress *pForeignIP, u16 *pForeignPort);
+	int Close (void);
+	
+	int Send (CNetBuffer *pData, int nFlags);
+	int Receive (CNetBuffer **ppBuffer, int nFlags);
+
+	int SendTo (CNetBuffer *pData, int nFlags,
+		    const CIPAddress &rForeignIP, u16 nForeignPort);
+	int ReceiveFrom (CNetBuffer **ppBuffer, int nFlags,
+			 CIPAddress *pForeignIP, u16 *pForeignPort);
+
+	int SetOptionReceiveTimeout (unsigned nMicroSeconds);
+	int SetOptionSendTimeout (unsigned nMicroSeconds);
+
+	int SetOptionBroadcast (boolean bAllowed);
+
+	int SetOptionAddMembership (const CIPAddress &rGroupAddress);
+	int SetOptionDropMembership (const CIPAddress &rGroupAddress);
+
+	boolean IsConnected (void) const;
+	boolean IsTerminated (void) const;
+	
+	void Process (void);
+
+	// returns: -1: invalid packet, 0: not to me, 1: packet consumed
+	int PacketReceived (CNetBuffer *pPacket,
+			    CIPAddress &rSenderIP, CIPAddress &rReceiverIP, int nProtocol);
+
+	// returns: 0: not to me, 1: notification consumed
+	int NotificationReceived (TICMPNotificationType Type,
+				  CIPAddress &rSenderIP, CIPAddress &rReceiverIP,
+				  u16 nSendPort, u16 nReceivePort,
+				  int nProtocol);
+
+	TStatus GetStatus (void) const;
+
+private:
+	boolean m_bOpen;
+	boolean m_bActiveOpen;
+	CNetBufferQueue m_RxQueue;
+	CSynchronizationEvent m_Event;
+	unsigned m_nReceiveTimeout;		// us
+	boolean m_bBroadcastsAllowed;
+	CIPAddress *m_pHostGroup;
+
+	int m_nErrno;				// signalize error to the user
+};
+
+#endif

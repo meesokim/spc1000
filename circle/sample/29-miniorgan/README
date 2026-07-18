@@ -1,0 +1,84 @@
+README 
+
+This sample is a simple monophonic mini organ. You have to attach an USB PC
+keyboard to your Raspberry Pi to use it. The output signal is available on the
+3.5mm headphones jack.
+
+If you have a MIDI keyboard with USB interface, you can also use it to play. It
+has to support the USB Audio Class MIDI device specification. This sample does
+not support the MIDI velocity parameter.
+
+Because this sample is enabled for USB plug-and-play, an USB (MIDI) keyboard can
+be attached or removed at any time while or before the system is running. It
+will be detected automatically and can be used, if it is attached. On the
+Raspberry Pi 1-3 and Zero the system option USE_USB_SOF_INTR should be defined
+in the file include/circle/sysconfig.h to use this sample program.
+
+You can also attach a serial MIDI interface to your Raspberry Pi (31250 Baud).
+The MIDI input data has to be feeded to GPIO15 (Broadcom numbering) at 3.3V
+level. Because the MIDI standard uses a current loop, you need a converter
+circuit. Serial MIDI input is enabled, if an other keyboard is not attached.
+The MIDI output is not used by this sample.
+
+The mini organ uses the PWM sound device to generate a square wave of the
+required frequency for about one octave (note C3 to C4). A more complex sound
+synthesis using the CPWMSoundBaseDevice class should be possible.
+
+This sample can be built to be used with an I2S sound device too. It has been
+tested with PCM5102A and PCM5122 DACs. You have to enable the #define USE_I2S in
+the file miniorgan.h before building to use this. The DAC has to be connected to
+GPIO18 (BCK), 19 (LRCK) and 21 (DATA, Broadcom numbering). For I2S operation
+with a PCM5122-based sound device you may have to set the I2C slave address of
+the DAC too. By default the addresses 0x4C and 0x4D will be auto-probed. I2S
+sound cards with the WM8960 should work too (default I2C slave address is 0x1A).
+
+This sample can be built to be used with a HDMI display with audio support too.
+You have to enable the #define USE_HDMI in the file miniorgan.h before building
+to use this. You may notice a delay between pressing a key and the start of the
+tone. This latency is caused by the hardware and cannot be eliminated.
+
+This sample can be built for the Raspberry Pi 4 to be used with an external USB
+audio class streaming device. You have to enable the #define USE_USB in the file
+miniorgan.h before building to use this. The USB sound card must be connected
+before the sample program is started.
+
+The PC keyboard mapping is as follows:
+
++--------+
+|Key Note|
++--------+
+
+   +-----+-----+     +-----+-----+-----+
+   |S C#3|D D#3|     |G F#3|H G#3|J A#4|
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+-----+
+|Z C3 |X D3 |C E3 |V F3 |B G3 |N A4 |M B4 |, C4 |
++-----+-----+-----+-----+-----+-----+-----+-----+
+
+The inscription of the keyboard may vary, but the physical position of the
+piano keys is the same on all keyboards. Using this scheme you should be able to
+find them.
+
+
+USB GADGET MODE
+
+This sample works in USB gadget mode too. Normally the Raspberry Pi is the USB
+host, but in gadget mode it is the peripheral device. This allows the Raspberry
+Pi to be directly connected to a host computer. This is supported for the
+Raspberry Pi (3)A(+), Zero (2) (W) and 4B only. The Raspberry Pi 4B uses the
+USB-C power connector for that purpose. You need a suitable USB cable. The
+Raspberry Pi is normally bus-powered via the USB host in this case. A separate
+power supply need not be connected.
+
+If you want to self-power your Raspberry Pi, you have to ensure that the supply
+voltages at the USB connector and the power connector are exactly the same.
+Otherwise there is a risk of damage. Be careful!
+
+A configuration is required for this test. First you have to enable the define
+USB_GADGET_MODE in the file kernel.cpp. Furthermore you have to define the macro
+USB_GADGET_VENDOR_ID with your USB Vendor ID to be used for the USB device. See
+the file include/circle/sysconfig.h for details!
+
+Further general information about using the Raspberry Pi in USB gadget mode can
+be found in this guide:
+
+	https://github.com/thagrol/Guides/blob/main/ethernetgadget.pdf

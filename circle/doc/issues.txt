@@ -1,0 +1,61 @@
+ISSUES
+
+Known issues of Circle are:
+
+* If you get unexpected build errors, especially from the linker, this may be
+  caused by stale object files. This may happen especially after changing the
+  project configuration in Config.mk, which is not detected automatically. Please
+  enter "./makeall clean" from project root and "make clean" in your application's
+  source directory in this case and always after changing the configuration!
+
+* There are known issues with the included USB library (e.g. no error recovery,
+  limited split support, limited isochronous support). You should only attach the
+  USB devices, which are needed for your application!
+
+* Circle is not a real-time OS. That means different simultaneous operations may
+  interfere in respect of its timing behaviour. The provided samples are tested to
+  work but if you try different combinations of hardware support classes this has
+  to be tested by yourself. Nevertheless real-time applications based on Circle
+  are possible. Have a look at doc/realtime.txt for more information!
+
+* According to tests with the current firmware, 4K display resolutions on a
+  Raspberry Pi 4 with Circle are only possible, if the option "hdmi_enable_4kp60=1"
+  is enabled in the file config.txt and are not possible with the cut-down firmware
+  (start_cd.elf). This may change with future firmware versions.
+
+* sample/31-webclient does not work any more, because of the missing SSL/TLS
+  support. SSL/TLS support for Circle is developed here:
+
+	https://codeberg.org/larchcone/circle-stdlib
+
+* Some modules in the addon/ subdirectory will not build with STDLIB_SUPPORT = 0.
+
+* The class CHDMISoundBaseDevice will not link with STDLIB_SUPPORT = 0
+  and AARCH = 32.
+
+* There may be a few USB devices, which report a transfer error 3 (babble) on the
+  Raspberry Pi 4. According to some comments on the Internet, this may be caused
+  by incompatibilities of the USB device firmware. These devices cannot be used
+  with Circle on the Raspberry Pi 4 currently.
+
+* If there are problems to detect a specific USB device after power-on or
+  attach, it may help to increase the USB power-on delay by setting the option
+  usbpowerdelay= in the file cmdline.txt to 800 (ms) or higher. See the file
+  doc/cmdline.txt for details!
+
+* The class CScreenDevice does not initialize successfully on the Raspberry Pi 4,
+  when a display is not attached. This is different from earlier models. To run
+  most of the sample programs headless, you have to enable the system option
+  SCREEN_HEADLESS in the file include/circle/sysconfig.h.
+
+* The WLAN connection is delicate on the Raspberry Pi 5, when a HDMI display is
+  used at the same time.
+
+* The Official Touchscreen may not initialize successfully. If you have an old
+  controller (v1.0), the backlight is not set by the firmware on startup. To
+  resolve this set the option backlight=150 in the file cmdline.txt. See the
+  file doc/cmdline.txt for details.
+
+You can see or report further issues here:
+
+	https://github.com/rsta2/circle/issues

@@ -1,0 +1,26 @@
+README
+
+This sample demonstrates USB plug-and-play with USB mass-storage devices
+("UMSD", e.g. flash drives). The former application controlled
+semi-plug-and-play for UMSD is not needed any more. On the Raspberry Pi 1-3 and
+Zero the system option USE_USB_SOF_INTR should be defined in the file
+include/circle/sysconfig.h before building this sample program.
+
+After boot the sample prompts you to attach an USB flash drive. Just plug in an
+USB flash drive, which contains a FAT file system. For safety it should not
+contain important data. After plug-in the flash drive will be detected
+automatically and mounted afterwards. The sample program displays a listing of
+the root directory of the flash drive then, if there are files on the drive.
+
+Next the file system will be unmounted immediately by the sample application and
+you will be prompted to remove the USB flash drive from the USB connector. When
+this has been done, the USB device will be automatically unregistered in the
+system. After completion the process is started again. You can plug in the same
+or a different USB flash drive in the next run.
+
+Circle comes with two different implementations of a FAT file system driver
+(with different APIs). By default this sample uses the CFATFileSystem class in
+lib/fs/fat/. If you want to use the FatFs file system module in addon/fatfs/,
+you have to define "USE_FATFS = 1" in the Makefile of the sample. Additionally
+the library in addon/fatfs/ must be built manually, before entering "make" in
+this sample's directory. This is not required in the default case.

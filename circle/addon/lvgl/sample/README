@@ -1,0 +1,41 @@
+README
+
+	For SPI display support see below.
+
+This sample program demonstrates some features of the LVGL embedded GUI
+library v9.2.2 ((c) 2021 LVGL Kft):
+
+	https://github.com/lvgl/lvgl
+	https://lvgl.io
+
+The program can be controlled with an USB mouse, with the official Raspberry
+Pi touch screen or with some USB HID-class digitizer touch screens and is
+itself only a wrapper, which uses the LVGL widgets demo program.
+
+To build the sample you have to clone the LVGL project first, which is included
+as Git sub-module into Circle. To do this, just enter:
+
+	git submodule update --init addon/lvgl/lvgl
+
+First build the Circle libraries from Circle project root, then the LVGL library
+by entering "make" in the addon/lvgl/ directory. Finally the sample can be built
+with "make" in addon/lvgl/sample/.
+
+Please note that the system generates log messages on screen, when an USB mouse
+is connected, while the program is running. This destroys the displayed GUI. To
+prevent this, you should add the following option to the file cmdline.txt to
+direct the log output to the serial interface:
+
+	logdev=ttyS1
+
+
+This example can be used on a ST7789- or ILI9314-based SPI display or on
+a SSD1306-based I2C display too. For it you have to update the configuration for
+your display in the file addon/display/displayconfig.h and must enable one (!)
+of the following definitions in the Makefile before build:
+
+SPI_DISPLAY = DISPLAY_TYPE_ST7789
+SPI_DISPLAY = DISPLAY_TYPE_ILI9341
+I2C_DISPLAY = DISPLAY_TYPE_SSD1306
+
+You also have to build the library in addon/display/ before build.

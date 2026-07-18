@@ -1,0 +1,38 @@
+STDLIB SUPPORT
+
+Circle provides some support for solutions, which allow using C and C++ standard
+library features to build bare metal applications. This is configured using the
+build option STDLIB_SUPPORT, which can be defined in the files Config.mk or
+Rules.mk as follows:
+
+* STDLIB_SUPPORT=0 to build without external libs (old setting)
+* STDLIB_SUPPORT=1 to build with libgcc.a only (default now)
+* STDLIB_SUPPORT=2 to build with C standard library too
+* STDLIB_SUPPORT=3 to build with C++ standard library too
+* STDLIB_SUPPORT=4 to build with external C++ standard library
+
+Please note that Circle needs support from external projects to implement the
+options STDLIB_SUPPORT=2, STDLIB_SUPPORT=3 and STDLIB_SUPPORT=4. This is mainly
+realized by the following project (newlib and libc++ ports for Circle) by
+Stephan Muehlstrasser:
+
+	https://codeberg.org/larchcone/circle-stdlib
+
+Circle is included as a Git sub-module into this project, which provides a configure
+script and makefiles to build all required libraries (including the
+Circle libraries) to use C standard library functions in Circle. The project
+contains also specific sample programs, which demonstrate how this support can
+be used. Please see the documentation of this project for details!
+
+Some toolchains provide C++ standard library support, which have been build
+using newlib, like those which can be downloaded here:
+
+	https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
+
+With these toolchains and the newlib port by Stephan Muehlstrasser it is
+possible, to develop Circle applications, which use the features of the C++
+standard library. This is supported by the configure script in the
+circle-stdlib project too and is the default case. Only if you encounter
+problems when building applications (e.g. when building on Raspberry Pi OS
+itself), you can fall back to the C standard library only case using the
+configure option --no-cpp.
