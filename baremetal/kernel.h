@@ -18,6 +18,9 @@
 #include <vc4/vchiq/vchiqdevice.h>
 #include <vc4/sound/vchiqsoundbasedevice.h>
 
+#include <SDCard/emmc.h>
+#include <fatfs/ff.h>
+
 extern "C" {
 #include "emu2149.h"
 }
@@ -68,6 +71,8 @@ private:
 	CUSBHCIDevice		m_USBHCI;
 	CScheduler		m_Scheduler;
 	CUSBKeyboardDevice	*m_pKeyboard;
+	CEMMCDevice		m_EMMC;
+	FATFS			m_FileSystem;
 
 public:
 	CSPCSoundDevice		*m_pSound;

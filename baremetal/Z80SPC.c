@@ -55,7 +55,7 @@ INLINE byte RdZ80(word A)
 #include "common.h"
 extern SPCSystem spcsys;
 extern Uint8 ROM[];
-inline void CpZ80(register word dstAddr, register word srcAddr)
+static inline void CpZ80(register word dstAddr, register word srcAddr)
 {
     if (spcsys.IPLK)
         spcsys.RAM[dstAddr] = ROM[srcAddr & 0x7fff];

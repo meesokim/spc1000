@@ -110,6 +110,8 @@ TKeyMap spcKeyMap[] = // the last item's keyMatIdx must be -1
 	{ CRLK_LCTRL, 0, 0x04, "CTRL" },
 	{ CRLK_RCTRL, 0, 0x04, "CTRL" },
 	{ CRLK_DELETE, 0, 0x10, "BREAK" },
+	{ CRLK_PAUSE, 0, 0x10, "BREAK" },
+	{ CRLK_SCROLLOCK, 0, 0x10, "BREAK" },
 	{ CRLK_LALT, 0, 0x40, "GRAPH" },
 	{ CRLK_RALT, 0, 0x40, "GRAPH"  },
 

@@ -87,7 +87,8 @@ typedef struct
   byte IFF,I;                         /* Interrupt registers */
   byte R;                             /* Refresh register    */
 
-  int IPeriod,ICount; /* Set IPeriod to number of CPU cycles */
+  int IPeriod;
+  volatile int ICount; /* Set IPeriod to number of CPU cycles */
                       /* between calls to LoopZ80()          */
   int IBackup;        /* Private, don't touch                */
   word IRequest;      /* Set to address of pending IRQ       */
