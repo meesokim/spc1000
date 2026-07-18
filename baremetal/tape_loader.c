@@ -10,16 +10,21 @@ void TapeLoaderConfig_InitDefaults(TapeLoaderConfig *cfg)
     cfg->precursor_zeros = 15;
     cfg->start_offset = 10;
 
-    // Header injection: FILMOD = 0x02 BASIC at old hard-coded position 123.
-    cfg->injection_count = 2;
-    cfg->injection_pos[0] = 123;
+    // Header injection: FILMOD = 0x02 BASIC at position 91.
+    cfg->injection_count = 3;
+    cfg->injection_pos[0] = 91;
     cfg->injection_bits[0] = "000000100"; // 0x02 MSB-first + stop 0
     cfg->injection_done[0] = false;
 
-    // Data injection: first BASIC line relative offset 0x1B at position 1744.
-    cfg->injection_pos[1] = 1744;
-    cfg->injection_bits[1] = "000110110"; // 0x1B + stop 0
+    // Data injection: first BASIC line relative offset low byte (0x21) at position 14161.
+    cfg->injection_pos[1] = 14161;
+    cfg->injection_bits[1] = "001000010"; // 0x21 + stop 0
     cfg->injection_done[1] = false;
+
+    // Data injection: first BASIC line relative offset high byte (0x00) at position 14161.
+    cfg->injection_pos[2] = 14161;
+    cfg->injection_bits[2] = "000000000"; // 0x00 + stop 0
+    cfg->injection_done[2] = false;
 
     cfg->checksum_bypass_enabled = true;
     cfg->checksum_patch_count = 6;
