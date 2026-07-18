@@ -30,6 +30,9 @@ static TapeLoaderConfig tapeCfg;
 static int inject_bits_left = 0;
 static const char* inject_stream = nullptr;
 static int cksm_check_count = 0;
+static unsigned short last_calculated_cksm = 0;
+static unsigned short last_stored_cksm = 0;
+static bool cksm_updated = false;
 
 static void WriteLog(const char *format, ...)
 {
@@ -496,6 +499,9 @@ TShutdownMode CKernel::Run (void)
 			inject_bits_left = 0;
 			inject_stream = nullptr;
 			cksm_check_count = 0;
+			last_calculated_cksm = 0;
+			last_stored_cksm = 0;
+			cksm_updated = false;
 			spcsys.cas.motor = 0;
 			spcsys.cas.pulse = 0;
 			spcsys.cycles = 0;
@@ -506,6 +512,9 @@ TShutdownMode CKernel::Run (void)
 		{
 			unsigned short calculated = R->HL.W;
 			unsigned short stored = (R->DE.B.l << 8) | R->AF.B.h;
+			last_calculated_cksm = calculated;
+			last_stored_cksm = stored;
+			cksm_updated = true;
 			ScreenLog(14, "Cksm %d Cal:%04X Std:%04X", cksm_check_count++, calculated, stored);
 			WriteLog("Checksum check %d: Calc=%04X, Stored=%04X\n", cksm_check_count - 1, calculated, stored);
 		}
@@ -718,6 +727,11 @@ void OutZ80(word Port, byte Value)
 							spcsys.RAM[0x139C], spcsys.RAM[0x139D],
 							spcsys.RAM[0x139E], spcsys.RAM[0x139F]);
 						WriteLog("Loaded Header: Mode=0x%02X Name=%s\n", mode, name);
+						if (cksm_updated)
+						{
+							ScreenLog(14, "Cksm Cal:%04X Std:%04X", last_calculated_cksm, last_stored_cksm);
+							WriteLog("Last Checksum: Calc=%04X, Stored=%04X\n", last_calculated_cksm, last_stored_cksm);
+						}
 					}
 				}
 			}
