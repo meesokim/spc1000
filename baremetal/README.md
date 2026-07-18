@@ -39,8 +39,9 @@
 *   [ ] **추가 데이터 유실/Corrupt 추적**: 만약 `1744` 보정 이후에도 다른 행 번호에서 `SYNTAX ERROR`가 지속된다면, 메모리 번지(`0x7C4E` 이후의 BASIC 텍스트 영역)에 적재된 메모리 덤프를 디버그 로그(`SD:/log.txt`)에 기록하는 루틴을 작성하여 원본 TAP의 추가 손상 비트를 찾아 보정해야 합니다.
 
 ### 2. 하드코딩된 패치/주입 로직의 설정 파일화 (Configuration)
-*   [ ] 현재 `kernel.cpp` 내부에 하드코딩되어 있는 특정 파일(`apple.bas`)을 위한 주입 조건들(123/1744번지 판정 및 `0x02`, `0x1B` 주입)을 SD 카드의 설정 파일(예: `recommended_config.txt` 또는 `spcconfig.ini`)에서 동적으로 로드해 처리하도록 범용화합니다.
-*   [ ] TAP 파일마다 달라질 수 있는 비트 싱크 보정 값과 Checksum Bypass 유무를 메뉴나 설정 파일에서 온/오프할 수 있는 UI/CLI 환경을 구축합니다.
+*   [x] `kernel.cpp`에 하드코딩되어 있던 `apple.bas` 전용 주입 조건(123/1744번지의 `0x02`, `0x1B` 주입)과 Checksum Bypass(0x018A/0x018F NOP)를 `SD:/spcconfig.ini`에서 동적으로 로드하도록 `tape_loader.h`/`tape_loader.c` 파서를 추가하고, `kernel.cpp`가 이를 사용하도록 리팩토링했습니다.
+*   [x] 동기(sync) 검색 패턴, precursor zero 카운트, 시작 오프셋, zero-skip 임계값 역시 `spcconfig.ini`의 `[sync]` 섹션에서 설정할 수 있도록 범용화했습니다.
+*   [ ] TAP 파일마다 달라질 수 있는 추가 보정 값을 메뉴나 설정 파일에서 온/오프할 수 있는 UI/CLI 환경을 구축합니다.
 
 ### 3. 디바이스 드라이버 최적화
 *   [ ] **사운드 디바이스 버퍼링 개선**: PWM 사운드의 지연(latency) 최소화 및 오디오 잡음 제거를 위해 버퍼 사이즈와 샘플링 율을 추가 조정합니다.

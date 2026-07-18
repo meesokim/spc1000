@@ -12,6 +12,7 @@ extern "C" {
 #include "spcall.h"
 #include "common.h"
 #include "spckey.h"
+#include "tape_loader.h"
 }
 
 // 8bpp intermediate buffer for MC6847
@@ -25,11 +26,10 @@ extern unsigned char ROM[32768];
 extern char tap0[];
 static int tapeLen = 0;
 static int tapePos = 0;
-static bool first_data_read = true;
-static bool header_injected = false;
-static bool data_injected = false;
+static TapeLoaderConfig tapeCfg;
 static int inject_bits_left = 0;
 static const char* inject_stream = nullptr;
+static int cksm_check_count = 0;
 
 static void WriteLog(const char *format, ...)
 {
@@ -70,6 +70,54 @@ static void ScreenLog(int row, const char *format, ...)
     }
 }
 
+// SD card configuration loader for tape settings
+static bool LoadTapeConfig(void)
+{
+    FIL File;
+    UINT nBytesRead = 0;
+    char *buf = NULL;
+    bool ok = false;
+
+    TapeLoaderConfig_InitDefaults(&tapeCfg);
+
+    if (f_open(&File, "SD:/spcconfig.ini", FA_READ | FA_OPEN_EXISTING) == FR_OK)
+    {
+        DWORD size = f_size(&File);
+        if (size > 0 && size < 8192)
+        {
+            buf = new char[size + 1];
+            if (buf)
+            {
+                if (f_read(&File, buf, size, &nBytesRead) == FR_OK && nBytesRead == size)
+                {
+                    buf[size] = '\0';
+                    ok = TapeLoaderConfig_Parse(&tapeCfg, buf);
+                }
+                delete[] buf;
+            }
+        }
+        f_close(&File);
+    }
+
+    return ok;
+}
+
+// Apply ROM checksum bypass patches according to config
+static void ApplyChecksumBypass(void)
+{
+    if (!tapeCfg.checksum_bypass_enabled)
+        return;
+
+    for (int i = 0; i < tapeCfg.checksum_patch_count && i < MAX_EXTRA_PATCHES; i++)
+    {
+        unsigned short addr = tapeCfg.checksum_patch_addr[i];
+        if (addr < 0x8000)
+        {
+            spcsys.ROM[addr] = ROM[addr] = tapeCfg.checksum_patch_value[i];
+        }
+    }
+}
+
 // Cassette state (cycles-based timing matching sdl2/cassette.cpp)
 static unsigned int batch_start_cycles = 0;
 static int batch_start_icount = 0;
@@ -87,7 +135,7 @@ static unsigned int casBitInvTime = 0;
 static bool sync_found = false;
 static int nextBlockDataPos = 0;
 
-// ReadTapeBit - reads a single bit from tape data, skipping long leader tones (>50 zeros)
+// ReadTapeBit - reads a single bit from tape data, skipping long leader tones
 static int ReadTapeBit(void)
 {
     if (tapeLen == 0)
@@ -103,7 +151,10 @@ static int ReadTapeBit(void)
     }
 
     int c;
-    if (consecutiveZeros > 50)
+    int zero_skip = tapeCfg.zero_skip;
+    if (zero_skip < 1) zero_skip = 1;
+
+    if (consecutiveZeros > zero_skip)
     {
         while (tapePos < tapeLen && tap0[tapePos] == '0')
         {
@@ -171,25 +222,33 @@ static int CasRead(void)
     {
         if (!sync_found)
         {
-            // Scan for sync pattern "11000000" starting from tapePos
+            // Scan for configured sync pattern starting from tapePos
+            const char *pattern = tapeCfg.sync_pattern;
+            int pat_len = strlen(pattern);
             int scan_pos = tapePos;
-            while (scan_pos + 8 < tapeLen)
+            while (scan_pos + pat_len <= tapeLen)
             {
-                if (tap0[scan_pos] == '1' && tap0[scan_pos+1] == '1' &&
-                    tap0[scan_pos+2] == '0' && tap0[scan_pos+3] == '0' &&
-                    tap0[scan_pos+4] == '0' && tap0[scan_pos+5] == '0' &&
-                    tap0[scan_pos+6] == '0' && tap0[scan_pos+7] == '0')
+                bool match = true;
+                for (int k = 0; k < pat_len; k++)
                 {
-                    // Check precursor for at least 15 zeros in the preceding 20 bits
+                    if (tap0[scan_pos + k] != pattern[k])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    // Check precursor for at least precursor_zeros in the preceding 20 bits
                     int zero_count = 0;
                     for (int i = 1; i <= 20; i++)
                     {
                         if (scan_pos - i >= 0 && tap0[scan_pos - i] == '0')
                             zero_count++;
                     }
-                    if (zero_count >= 15)
+                    if (zero_count >= tapeCfg.precursor_zeros)
                     {
-                        nextBlockDataPos = scan_pos + 10;
+                        nextBlockDataPos = scan_pos + tapeCfg.start_offset;
                         sync_found = true;
                         ScreenLog(10, "Sync@%d NB:%d ZC:%d", scan_pos, nextBlockDataPos, zero_count);
                         break;
@@ -219,17 +278,19 @@ static int CasRead(void)
             sync_found = false;
         }
 
-        if (tapePos == 123 && !header_injected && inject_bits_left == 0)
+        // Apply configured bit-stream injections at the requested positions.
+        if (inject_bits_left == 0)
         {
-            inject_bits_left = 9;
-            inject_stream = "000000100"; // 0x02 + stop bit 0
-            header_injected = true;
-        }
-        else if (tapePos == 1744 && !data_injected && inject_bits_left == 0)
-        {
-            inject_bits_left = 9;
-            inject_stream = "000110110"; // 0x1B + stop bit 0
-            data_injected = true;
+            for (int i = 0; i < tapeCfg.injection_count && i < MAX_INJECTIONS; i++)
+            {
+                if (tapePos == tapeCfg.injection_pos[i] && !tapeCfg.injection_done[i])
+                {
+                    inject_bits_left = 9;
+                    inject_stream = tapeCfg.injection_bits[i];
+                    tapeCfg.injection_done[i] = true;
+                    break;
+                }
+            }
         }
 
         int ret = 0;
@@ -350,13 +411,9 @@ boolean CKernel::Initialize (void)
 	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
 
 	memcpy(spcsys.ROM, ROM, 0x8000);
-	// Patch ROM to bypass checksum verification (JP NZ, CLOAD2 -> NOPs)
-	spcsys.ROM[0x018A] = ROM[0x018A] = 0x00;
-	spcsys.ROM[0x018B] = ROM[0x018B] = 0x00;
-	spcsys.ROM[0x018C] = ROM[0x018C] = 0x00;
-	spcsys.ROM[0x018F] = ROM[0x018F] = 0x00;
-	spcsys.ROM[0x0190] = ROM[0x0190] = 0x00;
-	spcsys.ROM[0x0191] = ROM[0x0191] = 0x00;
+	// Load tape loader configuration and apply ROM checksum bypass patches
+	LoadTapeConfig();
+	ApplyChecksumBypass();
 	spcsys.IPLK = 1;
 	spcsys.GMODE = 0;
 	memset(spcsys.VRAM, 0, 0x2000);
@@ -427,27 +484,30 @@ TShutdownMode CKernel::Run (void)
 			g_reset_requested = false;
 			spcsys.IPL_SW = g_ipl_reset ? 1 : 0;
 			memcpy(spcsys.ROM, ROM, 0x8000);
-			// Patch ROM to bypass checksum verification (JP NZ, CLOAD2 -> NOPs)
-			spcsys.ROM[0x018A] = ROM[0x018A] = 0x00;
-			spcsys.ROM[0x018B] = ROM[0x018B] = 0x00;
-			spcsys.ROM[0x018C] = ROM[0x018C] = 0x00;
-			spcsys.ROM[0x018F] = ROM[0x018F] = 0x00;
-			spcsys.ROM[0x0190] = ROM[0x0190] = 0x00;
-			spcsys.ROM[0x0191] = ROM[0x0191] = 0x00;
+			// Patch ROM to bypass checksum verification according to config
+			ApplyChecksumBypass();
 			spcsys.IPLK = 1;
 			ResetZ80(R);
 			memset(keyMatrix, 0xff, 10);
 			tapePos = 0;
 			consecutiveZeros = 0;
 			casReadVal = 0;
-			header_injected = false;
-			data_injected = false;
+			TapeLoaderConfig_ResetInjections(&tapeCfg);
 			inject_bits_left = 0;
 			inject_stream = nullptr;
+			cksm_check_count = 0;
 			spcsys.cas.motor = 0;
 			spcsys.cas.pulse = 0;
 			spcsys.cycles = 0;
 			ScreenLog(13, "RESET SYSTEM (%s)", g_ipl_reset ? "IPL" : "NORMAL");
+		}
+
+		if (R->PC.W == 0x0189)
+		{
+			unsigned short calculated = R->HL.W;
+			unsigned short stored = (R->DE.B.l << 8) | R->AF.B.h;
+			ScreenLog(14, "Cksm %d Cal:%04X Std:%04X", cksm_check_count++, calculated, stored);
+			WriteLog("Checksum check %d: Calc=%04X, Stored=%04X\n", cksm_check_count - 1, calculated, stored);
 		}
 
 		int count = R->ICount;
