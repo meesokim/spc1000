@@ -33,6 +33,7 @@ static int cksm_check_count = 0;
 static unsigned short last_calculated_cksm = 0;
 static unsigned short last_stored_cksm = 0;
 static bool cksm_updated = false;
+static int first_data_bit_pos = 0;
 
 static void WriteLog(const char *format, ...)
 {
@@ -188,9 +189,9 @@ static int ReadTapeBit(void)
     }
 
     // Reconstruct and log bytes for debugging loader progress
-    if (tapePos >= 112)
+    if (first_data_bit_pos > 0 && tapePos >= first_data_bit_pos)
     {
-        int offset = tapePos - 112;
+        int offset = tapePos - first_data_bit_pos;
         int bit_in_byte = offset % 9;
         if (bit_in_byte == 8) // We just read the 8th data bit (0-indexed 7, but tapePos has already been incremented, so it's index 8 relative to start of byte)
         {
@@ -253,6 +254,7 @@ static int CasRead(void)
                     {
                         nextBlockDataPos = scan_pos + tapeCfg.start_offset;
                         sync_found = true;
+                        first_data_bit_pos = nextBlockDataPos;
                         ScreenLog(10, "Sync@%d NB:%d ZC:%d", scan_pos, nextBlockDataPos, zero_count);
                         break;
                     }
@@ -502,6 +504,7 @@ TShutdownMode CKernel::Run (void)
 			last_calculated_cksm = 0;
 			last_stored_cksm = 0;
 			cksm_updated = false;
+			first_data_bit_pos = 0;
 			spcsys.cas.motor = 0;
 			spcsys.cas.pulse = 0;
 			spcsys.cycles = 0;
