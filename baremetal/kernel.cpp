@@ -137,22 +137,6 @@ static unsigned int casLastTime = 0;
 static int casReadVal = 0;
 static int consecutiveZeros = 0;
 static unsigned int casBitEndTime = 0;
-static unsigned int casBitInvTime = 0;
-
-// ReadTapeBit - reads a single bit from the tape bit-stream sequentially.
-//
-// The SPC-1000 BIOS polls I/O port 0x4001 (bit 7) once per EDGE call with no
-// timing delay (WAITR is a NOP), so each poll must consume exactly one tape
-// bit. The BIOS' own MKRD/CLOAD0/VBLOAD routines perform all pilot/sync
-// detection, byte framing (8 data bits MSB-first + 1 stop bit) and checksum
-// verification natively. The emulator therefore only needs to feed bits in
-// order - no pattern scanning, no offset shifting and no byte injection.
-//
-// zero_skip accelerates turbo-loading by fast-forwarding through long runs
-// of zero bits (inter-block silence gaps). It only fires once more than
-// `zero_skip` consecutive zeros have been seen, which never happens inside
-// the MKRD zero-count phase (max 40 zeros) or inside the data payload (max 8
-// consecutive zero bits), so it cannot disturb bit alignment.
 static int ReadTapeBit(void)
 {
     if (tapeLen == 0)
@@ -167,39 +151,14 @@ static int ReadTapeBit(void)
         return 0;
     }
 
-    int c;
-    int zero_skip = tapeCfg.zero_skip;
-    if (zero_skip < 1) zero_skip = 1;
-
-    if (consecutiveZeros > zero_skip)
-    {
-        // Skip the remainder of a long zero gap, then return the first '1'.
-        while (tapePos < tapeLen && tap0[tapePos] == '0')
-            tapePos++;
-        if (tapePos < tapeLen)
-            c = (tap0[tapePos++] == '1' ? 1 : 0);
-        else
-            c = 0;
-        consecutiveZeros = 0;
-    }
-    else
-    {
-        c = (tap0[tapePos++] == '1' ? 1 : 0);
-        if (c == 0)
-            consecutiveZeros++;
-        else
-            consecutiveZeros = 0;
-    }
-
-    return c;
+    return (tap0[tapePos++] == '1' ? 1 : 0);
 }
 
-// CasRead - returns the next FSK-demodulated bit for I/O port 0x4001 (PSG
-// register 14, bit 7). Feeding one bit per poll lets the SPC-1000 BIOS load
-// the tape cleanly with correct checksums, eliminating the previous
-// alignment hacks (MKRD return-address sniffing, +10 offset, byte injection).
 static int CasRead(void)
 {
+    if (!spcsys.cas.motor)
+        return 1;
+
     return ReadTapeBit();
 }
 
@@ -429,6 +388,36 @@ TShutdownMode CKernel::Run (void)
 				}
 			}
 
+#ifdef HOST_COMPILE
+			// Automated LOAD command key sequence injection (starts at frame 1100)
+			static int autotype_step = -1;
+			if (frame >= 1100 && autotype_step < 10)
+			{
+				int new_step = (frame - 1100) / 20;
+				if (new_step != autotype_step)
+				{
+					autotype_step = new_step;
+					unsigned char raw_keys[6] = {0};
+					switch (autotype_step) {
+						case 0: raw_keys[0] = 0x0F; break; // 'L'
+						case 1: break;                       // release
+						case 2: raw_keys[0] = 0x12; break; // 'O'
+						case 3: break;                       // release
+						case 4: raw_keys[0] = 0x04; break; // 'A'
+						case 5: break;                       // release
+						case 6: raw_keys[0] = 0x07; break; // 'D'
+						case 7: break;                       // release
+						case 8: raw_keys[0] = 0x28; break; // RETURN
+						case 9: break;                       // release
+					}
+					if (autotype_step <= 9)
+					{
+						KeyStatusHandlerRaw(0, raw_keys);
+					}
+				}
+			}
+#endif
+
 			if (frame % 16 == 0)
 			{
 				if (R->IFF & IFF_EI)
@@ -451,15 +440,7 @@ TShutdownMode CKernel::Run (void)
 				R->ICount -= 20;
 			}
 
-			// Sleep only if motor is off, to allow turbo load when motor is on
-			if (!spcsys.cas.motor)
-			{
-				m_Scheduler.MsSleep(1);
-			}
-			else if (frame % 128 == 0)
-			{
-				m_Scheduler.Yield();
-			}
+			m_Scheduler.MsSleep(1);
 		}
 	}
 
