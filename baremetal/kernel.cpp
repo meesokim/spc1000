@@ -27,13 +27,10 @@ extern char tap0[];
 static int tapeLen = 0;
 static int tapePos = 0;
 static TapeLoaderConfig tapeCfg;
-static int inject_bits_left = 0;
-static const char* inject_stream = nullptr;
 static int cksm_check_count = 0;
 static unsigned short last_calculated_cksm = 0;
 static unsigned short last_stored_cksm = 0;
 static bool cksm_updated = false;
-static int first_data_bit_pos = 0;
 
 static void WriteLog(const char *format, ...)
 {
@@ -61,6 +58,11 @@ static void ScreenLog(int row, const char *format, ...)
     vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
     
+#ifdef HOST_COMPILE
+    printf("[ScreenLog Row %02d] %s\n", row, buf);
+    fflush(stdout);
+#endif
+
     int len = 0;
     while (buf[len] && len < 32)
     {
@@ -136,10 +138,21 @@ static int casReadVal = 0;
 static int consecutiveZeros = 0;
 static unsigned int casBitEndTime = 0;
 static unsigned int casBitInvTime = 0;
-static bool sync_found = false;
-static int nextBlockDataPos = 0;
 
-// ReadTapeBit - reads a single bit from tape data, skipping long leader tones
+// ReadTapeBit - reads a single bit from the tape bit-stream sequentially.
+//
+// The SPC-1000 BIOS polls I/O port 0x4001 (bit 7) once per EDGE call with no
+// timing delay (WAITR is a NOP), so each poll must consume exactly one tape
+// bit. The BIOS' own MKRD/CLOAD0/VBLOAD routines perform all pilot/sync
+// detection, byte framing (8 data bits MSB-first + 1 stop bit) and checksum
+// verification natively. The emulator therefore only needs to feed bits in
+// order - no pattern scanning, no offset shifting and no byte injection.
+//
+// zero_skip accelerates turbo-loading by fast-forwarding through long runs
+// of zero bits (inter-block silence gaps). It only fires once more than
+// `zero_skip` consecutive zeros have been seen, which never happens inside
+// the MKRD zero-count phase (max 40 zeros) or inside the data payload (max 8
+// consecutive zero bits), so it cannot disturb bit alignment.
 static int ReadTapeBit(void)
 {
     if (tapeLen == 0)
@@ -160,161 +173,34 @@ static int ReadTapeBit(void)
 
     if (consecutiveZeros > zero_skip)
     {
+        // Skip the remainder of a long zero gap, then return the first '1'.
         while (tapePos < tapeLen && tap0[tapePos] == '0')
-        {
             tapePos++;
-        }
         if (tapePos < tapeLen)
-        {
             c = (tap0[tapePos++] == '1' ? 1 : 0);
-        }
         else
-        {
             c = 0;
-        }
         consecutiveZeros = 0;
     }
     else
     {
         c = (tap0[tapePos++] == '1' ? 1 : 0);
-    }
-
-    if (c == 0)
-    {
-        consecutiveZeros++;
-    }
-    else
-    {
-        consecutiveZeros = 0;
-    }
-
-    // Reconstruct and log bytes for debugging loader progress
-    if (first_data_bit_pos > 0 && tapePos >= first_data_bit_pos)
-    {
-        int offset = tapePos - first_data_bit_pos;
-        int bit_in_byte = offset % 9;
-        if (bit_in_byte == 8) // We just read the 8th data bit (0-indexed 7, but tapePos has already been incremented, so it's index 8 relative to start of byte)
-        {
-            int val = 0;
-            // Decode the 8 bits of this byte (from tapePos - 8 to tapePos - 1)
-            for (int i = 0; i < 8; i++)
-            {
-                if (tap0[tapePos - 8 + i] == '1')
-                    val |= (1 << (7 - i));
-            }
-            int byte_idx = offset / 9;
-            ScreenLog(12, "Byte %d: 0x%02X (%c)", byte_idx, val, (val >= 32 && val < 127) ? val : '.');
-            WriteLog("Loaded Byte %d: 0x%02X\n", byte_idx, val);
-        }
+        if (c == 0)
+            consecutiveZeros++;
+        else
+            consecutiveZeros = 0;
     }
 
     return c;
 }
 
+// CasRead - returns the next FSK-demodulated bit for I/O port 0x4001 (PSG
+// register 14, bit 7). Feeding one bit per poll lets the SPC-1000 BIOS load
+// the tape cleanly with correct checksums, eliminating the previous
+// alignment hacks (MKRD return-address sniffing, +10 offset, byte injection).
 static int CasRead(void)
 {
-    unsigned int cycles = GetCycles();
-    unsigned short SP = spcsys.Z80R.SP.W;
-    unsigned short ret_addr = spcsys.RAM[SP] | (spcsys.RAM[(SP + 1) & 0xFFFF] << 8);
-    bool in_mkrd = (ret_addr >= 0x028B && ret_addr < 0x02E0);
-
-    // Show debug info
-    ScreenLog(14, "P:%d RA:%04X MK:%d PC:%04X", tapePos, ret_addr, in_mkrd ? 1 : 0, spcsys.Z80R.PC.W);
-    ScreenLog(15, "CY:%u SF:%d NB:%d", cycles, sync_found ? 1 : 0, nextBlockDataPos);
-
-    if (in_mkrd)
-    {
-        if (!sync_found)
-        {
-            // Scan for configured sync pattern starting from tapePos
-            const char *pattern = tapeCfg.sync_pattern;
-            int pat_len = strlen(pattern);
-            int scan_pos = tapePos;
-            while (scan_pos + pat_len <= tapeLen)
-            {
-                bool match = true;
-                for (int k = 0; k < pat_len; k++)
-                {
-                    if (tap0[scan_pos + k] != pattern[k])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match)
-                {
-                    // Check precursor for at least precursor_zeros in the preceding 20 bits
-                    int zero_count = 0;
-                    for (int i = 1; i <= 20; i++)
-                    {
-                        if (scan_pos - i >= 0 && tap0[scan_pos - i] == '0')
-                            zero_count++;
-                    }
-                    if (zero_count >= tapeCfg.precursor_zeros)
-                    {
-                        nextBlockDataPos = scan_pos + tapeCfg.start_offset;
-                        sync_found = true;
-                        first_data_bit_pos = nextBlockDataPos;
-                        ScreenLog(10, "Sync@%d NB:%d ZC:%d", scan_pos, nextBlockDataPos, zero_count);
-                        break;
-                    }
-                }
-                scan_pos++;
-            }
-            if (!sync_found)
-            {
-                nextBlockDataPos = tapePos;
-                sync_found = true;
-            }
-        }
-
-        if (ret_addr == 0x02AA) // MKRD5
-            return 1;
-        else if (ret_addr == 0x02BA) // MKRD2
-            return 0;
-        else
-            return 1;
-    }
-    else
-    {
-        if (sync_found)
-        {
-            tapePos = nextBlockDataPos;
-            sync_found = false;
-        }
-
-        // Apply configured bit-stream injections at the requested positions.
-        if (inject_bits_left == 0)
-        {
-            for (int i = 0; i < tapeCfg.injection_count && i < MAX_INJECTIONS; i++)
-            {
-                if (tapePos == tapeCfg.injection_pos[i] && !tapeCfg.injection_done[i])
-                {
-                    inject_bits_left = 9;
-                    inject_stream = tapeCfg.injection_bits[i];
-                    tapeCfg.injection_done[i] = true;
-                    break;
-                }
-            }
-        }
-
-        int ret = 0;
-        if (inject_bits_left > 0 && inject_stream != nullptr)
-        {
-            ret = (inject_stream[9 - inject_bits_left] == '1' ? 1 : 0);
-            inject_bits_left--;
-        }
-        else
-        {
-            if (tapePos < tapeLen)
-            {
-                ret = (tap0[tapePos] == '1' ? 1 : 0);
-            }
-            ReadTapeBit(); // Advance tapePos
-        }
-        casBitEndTime = cycles; // reset timer so next time we enter time-based it starts fresh
-        return ret;
-    }
+    return ReadTapeBit();
 }
 
 TKeyMap spcKeyHash[0x200];
@@ -498,13 +384,10 @@ TShutdownMode CKernel::Run (void)
 			consecutiveZeros = 0;
 			casReadVal = 0;
 			TapeLoaderConfig_ResetInjections(&tapeCfg);
-			inject_bits_left = 0;
-			inject_stream = nullptr;
 			cksm_check_count = 0;
 			last_calculated_cksm = 0;
 			last_stored_cksm = 0;
 			cksm_updated = false;
-			first_data_bit_pos = 0;
 			spcsys.cas.motor = 0;
 			spcsys.cas.pulse = 0;
 			spcsys.cycles = 0;
