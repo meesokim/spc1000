@@ -7,45 +7,11 @@
 #include <circle/string.h>
 #include <circle/util.h>
 
+
 extern "C" {
 
 void bz_internal_error(int n) {}
 
-// Redirect standard memory allocations to Circle's heap allocator
-void *malloc(size_t size)
-{
-    void *p = ::operator new(size + 4);
-    if (!p) return nullptr;
-    *(u32 *)p = size;
-    return (void *)((char *)p + 4);
-}
-
-void free(void *ptr)
-{
-    if (!ptr) return;
-    void *p = (void *)((char *)ptr - 4);
-    ::operator delete(p);
-}
-
-void *realloc(void *ptr, size_t size)
-{
-    if (!ptr) return malloc(size);
-    void *p = (void *)((char *)ptr - 4);
-    u32 old_size = *(u32 *)p;
-    void *new_ptr = malloc(size);
-    if (!new_ptr) return nullptr;
-    memcpy(new_ptr, ptr, old_size < size ? old_size : size);
-    free(ptr);
-    return new_ptr;
-}
-
-void *calloc(size_t nmemb, size_t size)
-{
-    size_t total = nmemb * size;
-    void *p = malloc(total);
-    if (p) memset(p, 0, total);
-    return p;
-}
 
 int _fstat(int file, struct stat *st) {
     st->st_mode = S_IFCHR;
@@ -112,6 +78,31 @@ off_t _lseek(int file, off_t offset, int whence) {
 int _getentropy(void *buffer, size_t length) {
     errno = ENOSYS;
     return -1;
+}
+
+char *strrchr(const char *s, int c) {
+    char *last = nullptr;
+    do {
+        if (*s == (char)c) {
+            last = (char *)s;
+        }
+    } while (*s++);
+    return last;
+}
+
+struct tm *localtime(const time_t *timep) {
+    static struct tm t;
+    memset(&t, 0, sizeof(t));
+    return &t;
+}
+
+time_t mktime(struct tm *tm) {
+    return 0;
+}
+
+time_t time(time_t *tloc) {
+    if (tloc) *tloc = 0;
+    return 0;
 }
 
 }

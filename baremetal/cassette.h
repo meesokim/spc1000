@@ -7,79 +7,81 @@ typedef unsigned char uint8_t;
 #endif
 
 #include <string.h>
-// #include <stdio.h>
 #include <stdlib.h>
-#include <vector>
-// #include <fstream>
-#include <algorithm>
-// #include <filesystem>
 
-#include <string>
 enum castype {TYPE_CHARBIN, TYPE_BINARY};
 
 class ZFile {
 public:
-    std::string fname;
+    char fname[128];
     int index;
-    ZFile(std::string f, int i=0) { fname = f; index = i;};
-    bool operator<(const ZFile& other) {
-        return fname < other.fname;
+    ZFile() { fname[0] = '\0'; index = 0; }
+    ZFile(const char *f, int i=0) {
+        strncpy(fname, f, 127);
+        fname[127] = '\0';
+        index = i;
     }
-    std::string operator=(const char *name) {
-        return name;
+    const char *c_str() const { return fname; }
+    const char *filename() const { return fname; }
+    const char *extension() const {
+        const char *dot = strrchr(fname, '.');
+        return dot ? dot : "";
     }
-    operator std::string() {
-        return fname;
-    }
-    std::string filename() { return fname; }
-    std::string extension() { return fname.substr(fname.find_last_of(".")); }
-    const char *c_str() { return fname.c_str(); }
 };
 
-#define TAPE_SIZE (1024 * 1024 * 6)
+#define TAPE_SIZE (512 * 1024) // 512KB
+
 class Cassette {
     unsigned int old_cycles;
     char *tape;
-    int len = 0;
-    char type = TYPE_CHARBIN;
-    char mark = -1;
+    int len;
+    char type;
+    char mark;
     unsigned int inv_time, end_time, old_time;
-#ifdef __EMSCRIPTEN__    
-    std::vector<filesystem::path> files;
-#else
-    std::vector<ZFile> files;
-#endif
-    unsigned int file_index = 0;
-    std::string m_dirname;
-    std::string loaded_filename;
-    std::vector<std::string> exts {".tap",".cas",".zip",".bz2"};
+    
+    ZFile files[256];
+    unsigned int files_size;
+    int file_index;
+    
+    char m_dirname[256];
+    char loaded_filename[256];
+    const char *exts[4];
+
 public:
     char motor;
-    int pos = 0;
+    int pos;
+    int get_len() const { return len; }
     Cassette();
     ~Cassette();
-    void alloc_tape();
     void initTick(unsigned int tick) { old_cycles = tick; }
-    void load(const char *name = NULL);
+    void load(const char *name = nullptr);
     void load(const char *data, unsigned int length, const char *filename);
     void save(const char *name);
     char read(unsigned int, unsigned char);
-    char read1() { return 0;}
+    char read1() { return 0; }
     void write(char);
-    void next() { if (++file_index >= files.size()) file_index = 0; load(); }
-    void get_title(char *buf) { strcpy(buf, loaded_filename.c_str()); };
-    void prev() { if (--file_index < 0) file_index = files.size() - 1; load();}
-    void settape(unsigned int i) 
-    {
-        if ( i >= files.size() )
-            file_index = files.size() - 1; 
-        else 
-            file_index = i; 
-        load(); 
-    };
-    void setfile(const char *);
-    void loaddir(const char *);
-    int loadzip(const char *, int len = 0);
+    void next() {
+        if (files_size == 0) return;
+        file_index++;
+        if (file_index >= (int)files_size) file_index = 0;
+        load();
+    }
+    void get_title(char *buf) { strcpy(buf, loaded_filename); }
+    void prev() {
+        if (files_size == 0) return;
+        file_index--;
+        if (file_index < 0) file_index = files_size - 1;
+        load();
+    }
+    void settape(unsigned int i) {
+        if (files_size == 0) return;
+        if (i >= files_size) file_index = files_size - 1;
+        else file_index = i;
+        load();
+    }
+    void setfile(const char *filename);
+    void loaddir(const char *dirname);
+    int loadzip(const char *data, int size = 0);
 };
 
 #endif

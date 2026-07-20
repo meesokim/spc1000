@@ -1,29 +1,64 @@
 #include "cassette.h"
-using namespace std;
+#include <fatfs/ff.h>
+
 extern "C" {
     #include <bzlib.h>
     #include <miniz_zip.h>
 }
 
-#ifdef __circle__
-#include <circle/fs/fat/fatdir.h>
-#include <fatfs/ff.h>
-#define printf(a, ...) void(0)
-#endif
-inline string lower(string data) {
-    string ret = data;
-    for (unsigned int i = 0; i < data.length(); i++)
-        ret[i] = tolower(data[i]);
-    return ret;
+static void lower(char *out, const char *in) {
+    while (*in) {
+        char c = *in;
+        if (c >= 'A' && c <= 'Z') c = c - 'A' + 'a';
+        *out++ = c;
+        in++;
+    }
+    *out = '\0';
 }
-bool in_array(const std::string &value, const std::vector<std::string> &array)
-{
-    return std::find(array.begin(), array.end(), value) != array.end();
+
+static bool is_supported_extension(const char *ext) {
+    char ext_lower[16];
+    lower(ext_lower, ext);
+    return (strcmp(ext_lower, ".tap") == 0 ||
+            strcmp(ext_lower, ".cas") == 0 ||
+            strcmp(ext_lower, ".zip") == 0 ||
+            strcmp(ext_lower, ".bz2") == 0);
+}
+
+static int compare_files(const ZFile &f1, const ZFile &f2) {
+    const char *s1 = f1.c_str();
+    const char *s2 = f2.c_str();
+    while (*s1 && *s2) {
+        char c1 = *s1;
+        char c2 = *s2;
+        if (c1 >= 'A' && c1 <= 'Z') c1 = c1 - 'A' + 'a';
+        if (c2 >= 'A' && c2 <= 'Z') c2 = c2 - 'A' + 'a';
+        if (c1 != c2) return (unsigned char)c1 - (unsigned char)c2;
+        s1++;
+        s2++;
+    }
+    char c1 = *s1;
+    char c2 = *s2;
+    if (c1 >= 'A' && c1 <= 'Z') c1 = c1 - 'A' + 'a';
+    if (c2 >= 'A' && c2 <= 'Z') c2 = c2 - 'A' + 'a';
+    return (unsigned char)c1 - (unsigned char)c2;
+}
+
+static void sort_files(ZFile *files, unsigned int size) {
+    for (unsigned int i = 0; i < size - 1; i++) {
+        for (unsigned int j = i + 1; j < size; j++) {
+            if (compare_files(files[i], files[j]) > 0) {
+                ZFile temp = files[i];
+                files[i] = files[j];
+                files[j] = temp;
+            }
+        }
+    }
 }
 
 Cassette::Cassette()
 {
-    tape = nullptr;
+    tape = new char[TAPE_SIZE];
     old_cycles = 0;
     len = 0;
     type = TYPE_CHARBIN;
@@ -34,24 +69,18 @@ Cassette::Cassette()
     file_index = 0;
     motor = 0;
     pos = 0;
+    files_size = 0;
+    m_dirname[0] = '\0';
+    loaded_filename[0] = '\0';
 }
 
 Cassette::~Cassette()
 {
-    if (tape) delete[] tape;
-}
-
-void Cassette::alloc_tape()
-{
-    if (!tape) {
-        tape = new char[TAPE_SIZE];
-        memset(tape, 0, TAPE_SIZE);
-    }
+    delete[] tape;
 }
 
 #define PULSE 14
 char Cassette::read(unsigned int cycles, unsigned char wait) {
-    alloc_tape();
     char val = 0;
     int diff = cycles - old_cycles;
     if (diff > 4 * PULSE * 90)
@@ -63,21 +92,13 @@ char Cassette::read(unsigned int cycles, unsigned char wait) {
         mark++;
     } else if (len && mark < 0)
     {
-        // mark = (type == TYPE_CHARBIN ? (tape[pos] == '1' ? 1 : 0) : (tape[pos>>3] & (1 << (pos % 8) ? 1 : 0)));
-        mark = (tape[pos] == '1' ? 1:0);
-        // printf("%d", mark);
-        // if (pos < 100)
-        //     printf("%d.%d ", mark, pos);
+        mark = (tape[pos] == '1' ? 1 : 0);
         old_time = cycles;
         inv_time = cycles + 70;
         end_time = cycles + 160 + PULSE * wait * mark;
-        // if (pos < 100)
-        //     printf("%d--[%d]%d/%d,%d\n", mark, pos, inv_time - cycles, end_time - cycles, wait);
-            // printf("%d\n", mark);
         if (++pos > len)
         {
             pos = 0;
-            printf("tape rewinded.\n");
         }
     }
     if (mark > -1)
@@ -87,8 +108,6 @@ char Cassette::read(unsigned int cycles, unsigned char wait) {
         else if (cycles < end_time)
             val = 1;
     }
-    // if (pos < 100 && inv_time > 0)
-    //     printf("%d(%d)%c\n", val, cycles - old_time, val != mark ? '*' : 0);
     if (cycles > end_time)
         mark = -1;
     old_cycles = cycles;
@@ -97,75 +116,62 @@ char Cassette::read(unsigned int cycles, unsigned char wait) {
 
 void Cassette::write(char ch)
 {
-    // printf("%d", ch);
 }
 
 void Cassette::load(const char *name) 
 {
-    alloc_tape();
     pos = 0;
     len = 0;
-    string file;
-    int size = 0;
     char *Buffer = new char[TAPE_SIZE];
     if (!Buffer) return;
 
-    if (!name)
+    char path[256];
+    if (name)
     {
-#ifdef __EMSCRIPTEN__
-        file = files[file_index].string();
-#else
-        file = files[file_index].filename();
-#endif
+        if (strncmp(name, "SD:/", 4) != 0 && strncmp(name, "sd:/", 4) != 0) {
+            strcpy(path, m_dirname);
+            strcat(path, name);
+        } else {
+            strcpy(path, name);
+        }
     } else {
-        file = name;
+        if (file_index >= 0 && file_index < (int)files_size) {
+            strcpy(path, m_dirname);
+            strcat(path, files[file_index].c_str());
+        } else {
+            delete[] Buffer;
+            return;
+        }
     }        
 
-    string path = file;
-    if (path.rfind("SD:/", 0) != 0 && path.rfind("sd:/", 0) != 0)
-    {
-        path = m_dirname + path;
-    }
-
-#ifdef __circle__
-    FIL File;
     unsigned int nBytesRead = 0;
-    FRESULT Result = f_open (&File, path.c_str(), FA_READ | FA_OPEN_EXISTING);
+    FIL File;
+    FRESULT Result = f_open (&File, path, FA_READ | FA_OPEN_EXISTING);
     if (Result == FR_OK) {
         f_read (&File, Buffer, TAPE_SIZE, &nBytesRead);
         f_close (&File);
     }
-    size = nBytesRead;
-#else        
-    memset(tape, 0, TAPE_SIZE);
-    ifstream f(path);
-    f.seekg(0, std::ios::end);
-    size = f.tellg();
-    if (size > TAPE_SIZE) size = TAPE_SIZE;
-    f.seekg(0, std::ios::beg);
-    f.read((char *)Buffer, size);
-    f.close();
-#endif
-    ZFile filename(file);
-    loaded_filename = filename;
-    string ext = lower(filename.extension());
-    // printf("ext: %s (%d)\n", ext.c_str(), size);
-    if (!ext.compare(".bz2")) 
+    int size = nBytesRead;
+
+    ZFile filename(name ? name : files[file_index].c_str());
+    strcpy(loaded_filename, filename.filename());
+    char ext[16];
+    lower(ext, filename.extension());
+
+    if (strcmp(ext, ".bz2") == 0) 
     {
-        bz_stream bStream;
-        bStream.next_in = Buffer;
-        bStream.avail_in = size;
-        bStream.next_out = tape;
-        bStream.avail_out = len;
-        BZ2_bzDecompressInit(&bStream, 0, 0);
-        int bReturn = BZ2_bzDecompress(&bStream);
+        unsigned int dest_len = TAPE_SIZE - 1;
+        int bReturn = BZ2_bzBuffToBuffDecompress(tape, &dest_len, Buffer, size, 0, 0);
+        if (bReturn == BZ_OK) {
+            len = dest_len;
+        }
     }
-    else if (!ext.compare(".tap")) 
+    else if (strcmp(ext, ".tap") == 0) 
     {
         memcpy(tape, Buffer, size);
         len = size;
     } 
-    else if (!ext.compare(".cas")) 
+    else if (strcmp(ext, ".cas") == 0) 
     {
         len = 0;
         for(int i = 0; i < size; i++)
@@ -173,22 +179,22 @@ void Cassette::load(const char *name)
             uint8_t c = Buffer[i];
             for(int j = 0; j < 8; j++)  
             {
-                tape[i*8+j] = (c&(0x80>>j))>0 ? '1' : '0';
-                len++;
+                if (len < TAPE_SIZE - 1) {
+                    tape[i*8+j] = (c&(0x80>>j))>0 ? '1' : '0';
+                    len++;
+                }
             }
         }
     } 
-    else if (!ext.compare(".zip"))
+    else if (strcmp(ext, ".zip") == 0)
     {
         len = loadzip(Buffer, size);
     }
     delete[] Buffer;
-    printf("%s (%d)\n", loaded_filename.c_str(), len);
 }
 
 void Cassette::load(const char *data, unsigned int length, const char *filename)
 {
-    alloc_tape();
     if (data[0] == 'P' && data[1] == 'K')
     {
         loadzip(data, length);
@@ -198,130 +204,106 @@ void Cassette::load(const char *data, unsigned int length, const char *filename)
         memset(tape, 0, TAPE_SIZE);
         len = length > TAPE_SIZE ? TAPE_SIZE : length;
         memcpy(tape, data, len);
-        // printf("load:%s (%d)\n", tape, len);
-        loaded_filename = filename;
+        strcpy(loaded_filename, filename);
     }
 }
 
-#include <sys/stat.h>
 void Cassette::setfile(const char *filename)
 {
-    struct stat sb;
-    stat(filename, &sb);
-    string ext = lower(filename);
-    if (S_ISDIR(sb.st_mode))
-    {
-        loaddir(filename);
-        printf("loaddir\n");
+    // In bare-metal, just try to load directly by extension
+    char ext[16];
+    const char *dot = strrchr(filename, '.');
+    if (dot) {
+        lower(ext, dot);
+    } else {
+        ext[0] = '\0';
     }
-    else if (!ext.compare(".zip"))
+    if (strcmp(ext, ".zip") == 0)
     {
         loadzip(filename);
-        printf("loadzip\n");
     }
     else {
         load(filename);
-        printf("load\n");
     }
 }
+
 void Cassette::loaddir(const char *dirname)
 {
-    printf("loaddir:%s\n", dirname);
-    m_dirname = dirname;
-    if (m_dirname.empty()) {
-        m_dirname = "SD:/taps";
+    strcpy(m_dirname, dirname);
+    if (m_dirname[0] == '\0') {
+        strcpy(m_dirname, "SD:/taps");
     }
-    if (m_dirname.back() != '/') {
-        m_dirname += "/";
+    int len_dir = strlen(m_dirname);
+    if (len_dir > 0 && m_dirname[len_dir - 1] != '/') {
+        strcat(m_dirname, "/");
     }
 
-    files.clear();
+    files_size = 0;
 
-    int index = 0;
-#ifdef __circle__
-	DIR Directory;
-	FILINFO FileInfo;
-	FRESULT Result = f_findfirst (&Directory, &FileInfo, dirname, "*");
-    for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0]; i++)
+    DIR Directory;
+    FILINFO FileInfo;
+    FRESULT Result = f_findfirst (&Directory, &FileInfo, m_dirname, "*");
+    for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0] && files_size < 256; i++)
     {
         ZFile file(FileInfo.fname);
-        if (in_array(lower(file.extension()), exts))
+        if (is_supported_extension(file.extension()))
         {
-            files.push_back(file);
+            files[files_size++] = file;
         }
         Result = f_findnext (&Directory, &FileInfo);
     }
-#else
-    for (const auto & entry : fs::directory_iterator(dirname))
-    {
-        ZFile file(entry.path(), index++);
-        if (in_array(lower(file.extension()), exts))
-        {
-#ifdef __EMSCRIPTEN__
-            files.push_back(file.string());
-#else
-            files.push_back(file);
-#endif
-            printf("%d. %s\n", file.index, file.c_str());
-        }
-    }
-#endif
-    sort(files.begin(), files.end());
+    
+    sort_files(files, files_size);
     file_index = 0;
     load();
 }
 
 int Cassette::loadzip(const char *data, int size)
 {
-    alloc_tape();
-    size_t uncomp_size, len; 
+    size_t uncomp_size, l; 
     mz_zip_archive zip;
     mz_zip_archive_file_stat file_stat;
-    uint8_t *compresssed = new uint8_t[1024*1024*1];
+    
+    uint8_t *compressed = new uint8_t[1024*1024*1];
     uint8_t *uncompressed = new uint8_t[1024*1024*4];
-    if (!compresssed || !uncompressed)
+    if (!compressed || !uncompressed)
     {
-        delete[] compresssed;
+        delete[] compressed;
         delete[] uncompressed;
         return 0;
     }
-    char unzipfile[1024];
+    char unzipfile[256];
     memset(tape, 0, TAPE_SIZE);
     memset(&zip, 0, sizeof(zip));
-    len = 0;
+    l = 0;
+    
     if (!size)
     {
-#ifdef __circle__
-        string zipname(data);
-        if (zipname.rfind("SD:/", 0) != 0 && zipname.rfind("sd:/", 0) != 0)
+        char zipname[256];
+        if (strncmp(data, "SD:/", 4) != 0 && strncmp(data, "sd:/", 4) != 0)
         {
-            zipname = m_dirname + zipname;
+            strcpy(zipname, m_dirname);
+            strcat(zipname, data);
+        }
+        else 
+        {
+            strcpy(zipname, data);
         }
         FIL File;
         unsigned int nBytesRead = 0;
-        FRESULT Result = f_open (&File, zipname.c_str(), FA_READ | FA_OPEN_EXISTING);
+        FRESULT Result = f_open (&File, zipname, FA_READ | FA_OPEN_EXISTING);
         if (Result == FR_OK) {
-            f_read (&File, compresssed, 1024*1024*1, &nBytesRead);
+            f_read (&File, compressed, 1024*1024*1, &nBytesRead);
             f_close (&File);
         }
         size = nBytesRead;
-#else
-        string zipname(data);
-        ifstream file(zipname, std::ios_base::binary);
-        file.seekg(0, std::ios::end);
-        size = file.tellg();
-        if (size > TAPE_SIZE) size = TAPE_SIZE;
-        file.seekg(0, std::ios::beg);
-        file.read((char *)compresssed, size);
-        file.close();
-#endif        
-        printf("loadzip: %s (%d)\n", zipname.c_str(), size);
     }
     else 
     {
-        memcpy(compresssed, data, size);
+        memcpy(compressed, data, size);
     }
-    if (mz_zip_reader_init_mem(&zip, compresssed, size, 0))
+    
+    if (mz_zip_reader_init_mem(&zip, compressed, size, 0))
     {
         for (mz_uint no = 0; no < mz_zip_reader_get_num_files(&zip); no++)
         {
@@ -331,48 +313,55 @@ int Cassette::loadzip(const char *data, int size)
             }
             if (!strlen(file_stat.m_filename))
                 continue;
-            strcpy(unzipfile, file_stat.m_filename);
+            
+            strncpy(unzipfile, file_stat.m_filename, 255);
+            unzipfile[255] = '\0';
             uncomp_size = file_stat.m_uncomp_size;
+            
             ZFile file(unzipfile);
-            string ext = lower(file.extension()); 
-            if (!ext.compare(".tap"))
+            char ext[16];
+            lower(ext, file.extension());
+            
+            if (strcmp(ext, ".tap") == 0)
             {
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
-                    printf("fatal error\n");
                     break;
                 }
-                memcpy(tape+len, uncompressed, uncomp_size);
-                len += uncomp_size;
+                if (l + uncomp_size < TAPE_SIZE) {
+                    memcpy(tape+l, uncompressed, uncomp_size);
+                    l += uncomp_size;
+                }
             } 
-            else if (!ext.compare(".cas"))
+            else if (strcmp(ext, ".cas") == 0)
             {
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
-                    printf("fatal error\n");
                     break;
                 }
                 for(unsigned int i = 0; i < uncomp_size; i++)
                 {
                     for(int j = 0; j < 8; j++)  
                     {
-                        tape[len+i*8+j] = (uncompressed[i]&(0x80>>j))>0 ? '1' : '0';
+                        if (l < TAPE_SIZE - 1) {
+                            tape[l] = (uncompressed[i]&(0x80>>j))>0 ? '1' : '0';
+                            l++;
+                        }
                     }
                 }
-                uncomp_size = uncomp_size * 8; 
-                len += uncomp_size;
             } else 
                 continue;
-            printf("unzip:%d. %s(%d)\n", no+1, unzipfile, (int) uncomp_size);
-            if (!no) {
-                loaded_filename = unzipfile;
+            
+            if (l > 0) {
+                strcpy(loaded_filename, unzipfile);
             }
+            break; // Load first file
         }
     }
     mz_zip_reader_end(&zip);
-    delete[] compresssed;
+    delete[] compressed;
     delete[] uncompressed;
-    return len;
+    return l;
 }

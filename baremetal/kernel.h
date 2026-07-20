@@ -21,6 +21,9 @@
 #include <SDCard/emmc.h>
 #include <fatfs/ff.h>
 
+#define __circle__
+#include "cassette.h"
+
 extern "C" {
 #include "emu2149.h"
 }
@@ -75,6 +78,7 @@ private:
 	FATFS			m_FileSystem;
 
 public:
+	Cassette		m_Cassette;
 	CSPCSoundDevice		*m_pSound;
 	PSG			*m_pPSG;
 };

@@ -5,15 +5,17 @@
 CXX = g++
 CC = gcc
 
-CFLAGS = -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. `sdl2-config --cflags`
-CXXFLAGS = -std=c++17 -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. `sdl2-config --cflags`
-LDFLAGS = `sdl2-config --libs`
+CFLAGS = -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. -Iminiz `sdl2-config --cflags`
+CXXFLAGS = -std=c++17 -O2 -g -Wall -DHOST_COMPILE -Ihost_include -I. -Iminiz `sdl2-config --cflags`
+LDFLAGS = `sdl2-config --libs` -lbz2
 
-SRCS = main.cpp kernel.cpp MC6847.c Z80SPC.c spcall.c emu2149.c tap.c tape_loader.c \
+SRCS = main.cpp kernel.cpp cassette.cpp MC6847.c Z80SPC.c spcall.c emu2149.c tap.c tape_loader.c \
+       miniz/miniz.c miniz/miniz_tdef.c miniz/miniz_tinfl.c miniz/miniz_zip.c \
        host_circle/screen.cpp host_circle/sound.cpp host_circle/scheduler.cpp host_circle/fatfs.cpp
 
-OBJS = main.host.o kernel.host.o MC6847.host.o Z80SPC.host.o spcall.host.o \
+OBJS = main.host.o kernel.host.o cassette.host.o MC6847.host.o Z80SPC.host.o spcall.host.o \
        emu2149.host.o tap.host.o tape_loader.host.o \
+       miniz/miniz.host.o miniz/miniz_tdef.host.o miniz/miniz_tinfl.host.o miniz/miniz_zip.host.o \
        host_circle/screen.host.o host_circle/sound.host.o \
        host_circle/scheduler.host.o host_circle/fatfs.host.o
 

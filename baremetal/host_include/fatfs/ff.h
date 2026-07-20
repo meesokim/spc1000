@@ -3,6 +3,12 @@
 
 #include <stdio.h>
 #include <circle/types.h>
+#include <dirent.h>
+#include <string.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef int FRESULT;
 #define FR_OK 0
@@ -23,6 +29,15 @@ struct FIL {
     FILE *fh;
 };
 
+typedef struct {
+    DIR *dp;
+} FATFS_DIR;
+#define DIR FATFS_DIR
+
+typedef struct {
+    char fname[256];
+} FILINFO;
+
 FRESULT f_open(FIL *fp, const char *path, byte mode);
 FRESULT f_close(FIL *fp);
 FRESULT f_read(FIL *fp, void *buff, unsigned btr, unsigned *br);
@@ -30,5 +45,11 @@ FRESULT f_write(FIL *fp, const void *buff, unsigned btw, unsigned *bw);
 FRESULT f_lseek(FIL *fp, unsigned long ofs);
 unsigned long f_size(FIL *fp);
 FRESULT f_mount(FATFS *fs, const char *path, byte opt);
+FRESULT f_findfirst(DIR *dp, FILINFO *fno, const char *path, const char *pattern);
+FRESULT f_findnext(DIR *dp, FILINFO *fno);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

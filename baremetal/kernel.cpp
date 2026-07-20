@@ -76,6 +76,9 @@ static void ScreenLog(int row, const char *format, ...)
     }
 }
 
+// Cassette tape is handled via m_Cassette (Cassette class member of CKernel)
+
+
 // SD card configuration loader for tape settings
 static bool LoadTapeConfig(void)
 {
@@ -137,36 +140,31 @@ static unsigned int casLastTime = 0;
 static int casReadVal = 0;
 static int consecutiveZeros = 0;
 static unsigned int casBitEndTime = 0;
-static int ReadTapeBit(void)
-{
-    if (tapeLen == 0)
-    {
-        int len = 0;
-        while (tap0[len]) len++;
-        tapeLen = len;
-    }
 
-    if (tapePos >= tapeLen)
-    {
-        return 0;
-    }
-
-    return (tap0[tapePos++] == '1' ? 1 : 0);
-}
+class CKernel; // forward
+static CKernel *s_pThis;
 
 static int CasRead(void)
 {
-    if (!spcsys.cas.motor)
-        return 1;
-
-    return ReadTapeBit();
+	if (!spcsys.cas.motor)
+		return 1;
+	if (s_pThis)
+		return s_pThis->m_Cassette.read(GetCycles(), 38);
+	// fallback to built-in tap
+	if (tapeLen == 0)
+	{
+		int len = 0;
+		while (tap0[len]) len++;
+		tapeLen = len;
+	}
+	if (tapePos >= tapeLen) return 0;
+	return (tap0[tapePos++] == '1' ? 1 : 0);
 }
 
 TKeyMap spcKeyHash[0x200];
 unsigned char keyMatrix[10] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 volatile bool g_reset_requested = false;
 volatile bool g_ipl_reset = false;
-static CKernel *s_pThis;
 
 int bpp = 16;
 char samsung_bmp_c[] = "";
@@ -321,6 +319,14 @@ TShutdownMode CKernel::Run (void)
 	unsigned offX = (sw > 320) ? (sw - 320) / 2 : 0;
 	unsigned offY = (sh > 240) ? (sh - 240) / 2 : 0;
 
+	// Load cassette directory from SD card
+	m_Cassette.loaddir("SD:/taps");
+	{
+		char title[256];
+		m_Cassette.get_title(title);
+		if (title[0]) ScreenLog(10, "Tape: %s", title);
+	}
+
 	Z80 *R = &spcsys.Z80R;
 	ResetZ80(R);
 	R->ICount = I_PERIOD;
@@ -449,6 +455,52 @@ TShutdownMode CKernel::Run (void)
 
 void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
+	// Detect ALT + LEFT/RIGHT cassette tape controls
+	bool alt_pressed = (ucModifiers & 0x44) != 0; // Left Alt (0x04) or Right Alt (0x40)
+	if (alt_pressed)
+	{
+		bool left_pressed = false;
+		bool right_pressed = false;
+		for (int r = 0; r < 6; r++)
+		{
+			if (RawKeys[r] == 0x50) left_pressed = true; // CRLK_LEFT
+			if (RawKeys[r] == 0x4f) right_pressed = true; // CRLK_RIGHT
+		}
+
+		static bool left_was_pressed = false;
+		static bool right_was_pressed = false;
+
+		if (left_pressed && !left_was_pressed)
+		{
+			if (s_pThis)
+			{
+				s_pThis->m_Cassette.prev();
+				char title[256];
+				s_pThis->m_Cassette.get_title(title);
+				ScreenLog(10, "Tape: %s", title);
+			}
+		}
+		if (right_pressed && !right_was_pressed)
+		{
+			if (s_pThis)
+			{
+				s_pThis->m_Cassette.next();
+				char title[256];
+				s_pThis->m_Cassette.get_title(title);
+				ScreenLog(10, "Tape: %s", title);
+			}
+		}
+
+		left_was_pressed = left_pressed;
+		right_was_pressed = right_pressed;
+
+		// Consume keypress so it is not forwarded to Z80
+		if (left_pressed || right_pressed)
+		{
+			return;
+		}
+	}
+
 	memset(keyMatrix, 0xff, 10);
 	for (int i = 0; spcKeyMap[i].keyMatIdx != -1; i++)
 	{
@@ -521,18 +573,12 @@ byte InZ80(word Port)
 	}
 	else if (Port == 0x4003)
 	{
-		return (tapeLen > 0 ? 1 : 0);
+		return (s_pThis && s_pThis->m_Cassette.get_len() > 0) ? 1 : (tapeLen > 0 ? 1 : 0);
 	}
 	else if (Port == 0x4004)
 	{
-		byte retval = 0;
-		for (int i = 0; i < 8; i++)
-		{
-			if (ReadTapeBit())
-				retval |= (1 << (7 - i));
-		}
-		ReadTapeBit(); // Skip stop bit/extra bit
-		return retval;
+		// Byte-oriented read via CasRead (uses m_Cassette internally)
+		return 0xff;
 	}
 	return 0xff;
 }
@@ -559,6 +605,7 @@ void OutZ80(word Port, byte Value)
 				{
 					spcsys.cas.pulse = 0;
 					spcsys.cas.motor = !spcsys.cas.motor;
+					if (s_pThis) s_pThis->m_Cassette.motor = spcsys.cas.motor;
 					if (spcsys.cas.motor)
 					{
 						casLastTime = GetCycles();
