@@ -15,11 +15,13 @@ class ZFile {
 public:
     char fname[128];
     int index;
-    ZFile() { fname[0] = '\0'; index = 0; }
-    ZFile(const char *f, int i=0) {
+    int size;
+    ZFile() { fname[0] = '\0'; index = 0; size = 0; }
+    ZFile(const char *f, int i=0, int s=0) {
         strncpy(fname, f, 127);
         fname[127] = '\0';
         index = i;
+        size = s;
     }
     const char *c_str() const { return fname; }
     const char *filename() const {
@@ -79,6 +81,9 @@ public:
         load();
     }
     void get_title(char *buf) { strcpy(buf, loaded_filename); }
+    int get_count() const { return files_size; }
+    int get_index() const { return file_index + 1; } // 1-based
+    int get_size() const { return files[file_index].size; }
     void prev() {
         if (files_size == 0) return;
         file_index--;

@@ -6,6 +6,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifdef HOST_COMPILE
+#include <SDL.h>
+#endif
+
 extern "C" {
 #include "Z80.h"
 #include "MC6847.h"
@@ -13,11 +17,71 @@ extern "C" {
 #include "common.h"
 #include "spckey.h"
 #include "tape_loader.h"
+#include "ugui/ugui.h"
 }
 
 // 8bpp intermediate buffer for MC6847
 static u8 mc6847_buf[320*240];
 static u16 pal565[256];
+
+// ---------------------------------------------------------------------------
+// On-screen display (OSD) via uGUI: shows the current tape filename at the
+// top of the screen for a few seconds after ALT+LEFT/ALT+RIGHT.
+// ---------------------------------------------------------------------------
+static UG_GUI osd_gui;
+static u16 *osd_screen = 0;
+static unsigned osd_pitch = 0;
+static unsigned osd_offx = 0;
+static unsigned osd_offy = 0;
+static char osd_text[128] = "";
+static u64 osd_until_us = 0;
+static bool osd_ready = false;
+#define OSD_DURATION_US 3000000ull
+
+static u64 NowUs (void)
+{
+#ifdef HOST_COMPILE
+	return (u64) SDL_GetTicks () * 1000;
+#else
+	return CTimer::GetClockTicks ();
+#endif
+}
+
+// uGUI pixel callback: writes an RGB565 pixel into the live framebuffer.
+// Coordinates are relative to the 320x240 emulated image.
+static void UguiSetPixel (UG_S16 x, UG_S16 y, UG_COLOR c)
+{
+	if (x < 0 || y < 0)
+		return;
+	if ((unsigned) x >= 320 || (unsigned) y >= 240)
+		return;
+	osd_screen[(y + osd_offy) * osd_pitch + (x + osd_offx)] = (u16) c;
+}
+
+// Draw the OSD text (no box). Called from the render path only; while it is
+// active the uGUI text stays on screen because nothing else writes to the
+// framebuffer in between.
+static void DrawOsd (void)
+{
+	if (!osd_ready || osd_text[0] == 0)
+		return;
+	if (NowUs () > osd_until_us)
+	{
+		osd_text[0] = 0;
+		return;
+	}
+	UG_SetForecolor (C_WHITE);
+	UG_SetBackcolor (C_BLACK);
+	UG_PutString (8, 2, osd_text);
+}
+
+// Show a message in the OSD bar for OSD_DURATION_US.
+static void ShowOsd (const char *text)
+{
+	strncpy (osd_text, text, sizeof (osd_text) - 1);
+	osd_text[sizeof (osd_text) - 1] = 0;
+	osd_until_us = NowUs () + OSD_DURATION_US;
+}
 
 SPCSystem spcsys;
 extern unsigned char ROM[32768];
@@ -354,23 +418,23 @@ boolean CKernel::Initialize (void)
 		m_Logger.Initialize (0);
 	}
 
-	// Palette
-	pal565[0]  = RGB565(0x00>>3, 0x00>>2, 0x00>>3);
-	pal565[1]  = RGB565(0x07>>3, 0xff>>2, 0x00>>3);
-	pal565[2]  = RGB565(0xff>>3, 0xff>>2, 0x00>>3);
-	pal565[3]  = RGB565(0x3b>>3, 0x08>>2, 0xff>>3);
-	pal565[4]  = RGB565(0xcc>>3, 0x00>>2, 0x3b>>3);
-	pal565[5]  = RGB565(0xff>>3, 0xff>>2, 0xff>>3);
-	pal565[6]  = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);
-	pal565[7]  = RGB565(0xff>>3, 0x1c>>2, 0xff>>3);
-	pal565[8]  = RGB565(0xff>>3, 0x80>>2, 0x00>>3);
-	pal565[9]  = RGB565(0x3b>>3, 0x08>>2, 0xff>>3);
-	pal565[10] = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);
-	pal565[11] = RGB565(0x00>>3, 0x00>>2, 0x00>>3);
-	pal565[12] = RGB565(0x07>>3, 0xff>>2, 0x00>>3);
-	pal565[13] = RGB565(0xcc>>3, 0x00>>2, 0x3b>>3);
-	pal565[14] = RGB565(0xff>>3, 0x80>>2, 0x00>>3);
-	pal565[15] = RGB565(0xff>>3, 0xff>>2, 0x00>>3);
+	// Palette (matches sdl2/mc6847.cpp reference)
+	pal565[0]  = RGB565(0x00>>3, 0x00>>2, 0x00>>3);  // black
+	pal565[1]  = RGB565(0x07>>3, 0xff>>2, 0x00>>3);  // green
+	pal565[2]  = RGB565(0xff>>3, 0xff>>2, 0x00>>3);  // yellow
+	pal565[3]  = RGB565(0x3b>>3, 0x08>>2, 0xff>>3);  // blue
+	pal565[4]  = RGB565(0xcc>>3, 0x00>>2, 0x3b>>3);  // red
+	pal565[5]  = RGB565(0xff>>3, 0xff>>2, 0xff>>3);  // buff
+	pal565[6]  = RGB565(0x07>>3, 0xe3>>2, 0x99>>3);  // cyan
+	pal565[7]  = RGB565(0xff>>3, 0x1c>>2, 0xff>>3);  // magenta
+	pal565[8]  = RGB565(0xff>>3, 0x80>>2, 0x00>>3);  // orange
+	pal565[9]  = RGB565(0x07>>3, 0xff>>2, 0x00>>3);  // green (high-res graphics CSS=0)
+	pal565[10] = RGB565(0xff>>3, 0xff>>2, 0xff>>3);  // buff (high-res graphics CSS=1)
+	pal565[11] = RGB565(0x00>>3, 0x3f>>2, 0x00>>3);  // dark green
+	pal565[12] = RGB565(0x07>>3, 0xff>>2, 0x00>>3);  // bright green
+	pal565[13] = RGB565(0x91>>3, 0x00>>2, 0x00>>3);  // dark orange
+	pal565[14] = RGB565(0xff>>3, 0x81>>2, 0x00>>3);  // bright orange
+	pal565[15] = RGB565(0xff>>3, 0xff>>2, 0x00>>3);  // yellow
 	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
 
 	memcpy(spcsys.ROM, ROM, 0x8000);
@@ -437,6 +501,15 @@ TShutdownMode CKernel::Run (void){
 	unsigned pitch = pFB->GetPitch() / 2;
 	unsigned offX = (sw > 320) ? (sw - 320) / 2 : 0;
 	unsigned offY = (sh > 240) ? (sh - 240) / 2 : 0;
+
+	// Set up the uGUI OSD overlay (RGB565, drawn on top of the MC6847 image)
+	osd_screen = pScreen;
+	osd_pitch = pitch;
+	osd_offx = offX;
+	osd_offy = offY;
+	UG_Init (&osd_gui, UguiSetPixel, 320, 240);
+	UG_FontSelect (&FONT_8X12);
+	osd_ready = true;
 
 	// Load cassette directory from SD card
 	m_Cassette.loaddir("SD:/taps");
@@ -539,6 +612,15 @@ TShutdownMode CKernel::Run (void){
 				char title[256];
 				s_pThis->m_Cassette.get_title(title);
 				ScreenLog(10, "Tape: %s", title);
+				// Show the switched tape filename as an OSD overlay:
+				// "N/TOTAL. filename (filesize)"
+				char osd_buf[128];
+				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
+					s_pThis->m_Cassette.get_index(),
+					s_pThis->m_Cassette.get_count(),
+					title,
+					s_pThis->m_Cassette.get_size());
+				ShowOsd(osd_buf);
 			}
 
 			if (frame % 60 == 0)
@@ -602,6 +684,7 @@ TShutdownMode CKernel::Run (void){
 					for (unsigned x = 0; x < 320; x++)
 						dst[x] = pal565[src[x]];
 				}
+				DrawOsd();
 				R->ICount -= 20;
 			}
 

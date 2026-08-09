@@ -281,7 +281,7 @@ void Cassette::loaddir(const char *dirname)
     FRESULT Result = f_findfirst (&Directory, &FileInfo, m_dirname, "*");
     for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0] && files_size < 256; i++)
     {
-        ZFile file(FileInfo.fname);
+        ZFile file(FileInfo.fname, 0, (int)FileInfo.fsize);
         if (is_supported_extension(file.extension()))
         {
             files[files_size++] = file;

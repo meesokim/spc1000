@@ -1,6 +1,7 @@
 #include <fatfs/ff.h>
 #include <string>
 #include <cstring>
+#include <sys/stat.h>
 
 static std::string MapPath(const char *path) {
     std::string s = path;
@@ -74,6 +75,8 @@ FRESULT f_mount(FATFS *fs, const char *path, byte opt) {
 FRESULT f_findfirst(DIR *dp, FILINFO *fno, const char *path, const char *pattern) {
     if (!dp || !fno) return 1;
     std::string mapped = MapPath(path);
+    strncpy(dp->dirpath, mapped.c_str(), sizeof(dp->dirpath) - 1);
+    dp->dirpath[sizeof(dp->dirpath) - 1] = '\0';
     dp->dp = opendir(mapped.c_str());
     if (!dp->dp) return 1;
     return f_findnext(dp, fno);
@@ -90,5 +93,13 @@ FRESULT f_findnext(DIR *dp, FILINFO *fno) {
     }
     strncpy(fno->fname, de->d_name, sizeof(fno->fname) - 1);
     fno->fname[sizeof(fno->fname) - 1] = '\0';
+    fno->fsize = 0;
+    struct stat st;
+    std::string full = dp->dirpath;
+    full += "/";
+    full += de->d_name;
+    if (stat(full.c_str(), &st) == 0) {
+        fno->fsize = (unsigned long)st.st_size;
+    }
     return FR_OK;
 }

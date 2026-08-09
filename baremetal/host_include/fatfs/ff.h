@@ -31,11 +31,13 @@ struct FIL {
 
 typedef struct {
     DIR *dp;
+    char dirpath[256];
 } FATFS_DIR;
 #define DIR FATFS_DIR
 
 typedef struct {
     char fname[256];
+    unsigned long fsize;
 } FILINFO;
 
 FRESULT f_open(FIL *fp, const char *path, byte mode);
