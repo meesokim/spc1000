@@ -8,7 +8,7 @@
 class CUSBHCIDevice {
 public:
     CUSBHCIDevice(CInterruptSystem *pInterrupt = nullptr, CTimer *pTimer = nullptr, boolean bCoherent = TRUE) {}
-    boolean Initialize() { return TRUE; }
+    boolean Initialize(boolean bScanDevices = TRUE) { return TRUE; }
     void UpdatePlugAndPlay() {}
 };
 

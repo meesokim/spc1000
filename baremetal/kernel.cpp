@@ -38,6 +38,12 @@ static u64 osd_until_us = 0;
 static bool osd_ready = false;
 #define OSD_DURATION_US 3000000ull
 
+// Start the slower boot subsystems (VCHIQ sound) only after this many frames.
+// Each frame advances 4000 Z80 cycles (~1ms), so by frame 400 the SPC-1000
+// boot banner has fully rendered and the first screen is already on display.
+// USB device enumeration happens at the same point via UpdatePlugAndPlay().
+#define BOOT_INIT_FRAME 400
+
 static u64 NowUs (void)
 {
 #ifdef HOST_COMPILE
@@ -114,18 +120,8 @@ static void WriteLog(const char *format, ...)
         f_write(&File, buf, strlen(buf), &nWritten);
         f_close(&File);
     }
-#ifdef HOST_COMPILE
-    else
-    {
-        fprintf(stderr, "WriteLog: f_open failed with %d\n", res);
-    }
-#endif
 }
 #endif
-
-// Enable to log tape-loading debug messages (per-bit reads, screen dumps,
-// header/RAM dumps) to SD:/log.txt. Disabled by default.
-// #define CASSETTE_DEBUG_MESSAGE
 
 // Enable to draw emulator status overlays (tape title, motor state, header
 // info, reset message) into VRAM rows. Disabled by default so the display
@@ -261,6 +257,10 @@ static int ReadBitFrom(char *tapBuf, int tapLen, int &tapPos)
     }
 
     int c;
+    // zero_skip disabled: the skip collapses the entire zero gap (and any
+    // zero run longer than the threshold) into a single read, corrupting the
+    // ROM's bit-by-bit leader/checksum framing.
+#if 0
     int zero_skip = tapeCfg.zero_skip;
     if (zero_skip < 1) zero_skip = 1;
 
@@ -284,6 +284,9 @@ static int ReadBitFrom(char *tapBuf, int tapLen, int &tapPos)
     {
         c = (tapBuf[tapPos++] == '1' ? 1 : 0);
     }
+#else
+    c = (tapBuf[tapPos++] == '1' ? 1 : 0);
+#endif
 
     if (c == 0)
     {
@@ -313,25 +316,9 @@ static int CasRead(void)
 		int bit = ReadBitFrom(s_pThis->m_Cassette.get_tape(),
 		                      s_pThis->m_Cassette.get_len(),
 		                      s_pThis->m_Cassette.pos);
-#ifdef CASSETTE_DEBUG_MESSAGE
-		static int casread_count = 0;
-		if (casread_count < 500)
-		{
-			WriteLog("[CasRead Cassette] %d: pc=0x%04X bit=%d pos=%d zeros=%d motor=%d\n",
-				casread_count++, spcsys.Z80R.PC.W, bit, s_pThis->m_Cassette.pos, consecutiveZeros, spcsys.cas.motor);
-		}
-#endif
 		return bit;
 	}
 	int bit = ReadTapeBit();
-#ifdef CASSETTE_DEBUG_MESSAGE
-	static int casread_count = 0;
-	if (casread_count < 1000)
-	{
-		WriteLog("[CasRead Tap0] %d: pc=0x%04X bit=%d tapePos=%d zeros=%d motor=%d\n",
-			casread_count++, spcsys.Z80R.PC.W, bit, tapePos, consecutiveZeros, spcsys.cas.motor);
-	}
-#endif
 	return bit;
 }
 
@@ -403,7 +390,11 @@ boolean CKernel::Initialize (void)
 
 	if (bOK) bOK = m_Interrupt.Initialize ();
 	if (bOK) bOK = m_Timer.Initialize ();
-	if (bOK) bOK = m_USBHCI.Initialize ();
+	// Do NOT scan USB devices synchronously here: the initial enumeration can
+	// block for ~0.5s (root port connect timeout) or longer, which delays the
+	// first frame. Device detection is done by UpdatePlugAndPlay() in the main
+	// loop, after the SPC-1000 boot screen has been rendered.
+	if (bOK) bOK = m_USBHCI.Initialize (FALSE);
 	if (bOK)
 	{
 		if (m_EMMC.Initialize ())
@@ -465,23 +456,6 @@ boolean CKernel::Initialize (void)
 		PSG_reset(m_pPSG);
 	}
 
-	// VCHIQ init
-	if (bOK)
-	{
-		bOK = m_VCHIQ.Initialize();
-		for (int i = 0; i < 10; i++)
-			m_Scheduler.Yield();
-	}
-
-	// VCHIQ sound with direct GetChunk
-	m_pSound = new CSPCSoundDevice(&m_VCHIQ, &m_pPSG, SAMPLE_RATE);
-	if (m_pSound)
-	{
-		m_pSound->Start();
-		for (int i = 0; i < 20; i++)
-			m_Scheduler.MsSleep(1);
-	}
-
 	// Key hash
 	int num = 0;
 	do {
@@ -524,6 +498,10 @@ TShutdownMode CKernel::Run (void){
 	R->ICount = I_PERIOD;
 
 	int frame = 0;
+	// Boot optimization: VCHIQ/sound init is deferred until the SPC-1000 boot
+	// screen has been rendered, so the first frame appears immediately instead
+	// of after ~1s of blocking subsystem setup.
+	bool boot_slow_init_done = false;
 
 	while (1)
 	{
@@ -561,39 +539,11 @@ TShutdownMode CKernel::Run (void){
 		ExecZ80(R);
 		spcsys.cycles += (count - R->ICount);
 
-
-
 		if (R->ICount <= 0)
 		{
 			frame++;
 			spcsys.tick++;
 			R->ICount += I_PERIOD;
-
-#ifdef CASSETTE_DEBUG_MESSAGE
-			if (frame % 300 == 0)
-			{
-				DumpScreen();
-			}
-
-			// Detect BREAK on screen and log state
-			static bool break_logged = false;
-			if (!break_logged)
-			{
-				const char *p = (const char *)spcsys.VRAM;
-				bool has_break = (strstr(p, "BREAK") != 0);
-				if (has_break)
-				{
-					break_logged = true;
-					WriteLog("=== BREAK DETECTED at frame %d ===\n", frame);
-					WriteLog("Z80 PC=0x%04X, tapePos=%d, consecutiveZeros=%d, casReadVal=%d\n",
-						spcsys.Z80R.PC.W, tapePos, consecutiveZeros, casReadVal);
-					WriteLog("BASIC text RAM dump 0x7C4E-0x7D4D:");
-					for (int i = 0; i < 0x100; i++) WriteLog(" %02X", spcsys.RAM[0x7C4E + i]);
-					WriteLog("\n");
-					DumpScreen();
-				}
-			}
-#endif
 
 			// Deferred cassette prev()/next() (requested from the keyboard
 			// interrupt handler; run here in the main loop, not in IRQ context)
@@ -623,7 +573,29 @@ TShutdownMode CKernel::Run (void){
 				ShowOsd(osd_buf);
 			}
 
-			if (frame % 60 == 0)
+			// Boot optimization: initialize VCHIQ sound only after the boot
+			// screen is fully on display (see BOOT_INIT_FRAME).
+			if (frame >= BOOT_INIT_FRAME && !boot_slow_init_done)
+			{
+				boot_slow_init_done = true;
+				if (m_VCHIQ.Initialize())
+				{
+					for (int i = 0; i < 10; i++)
+						m_Scheduler.Yield();
+				}
+				m_pSound = new CSPCSoundDevice(&m_VCHIQ, &m_pPSG, SAMPLE_RATE);
+				if (m_pSound)
+				{
+					m_pSound->Start();
+					for (int i = 0; i < 20; i++)
+						m_Scheduler.MsSleep(1);
+				}
+			}
+
+			// USB plug-and-play also starts only after the boot screen is up;
+			// the initial enumeration may block for ~0.5s, so it must not delay
+			// the first frame either.
+			if (frame >= BOOT_INIT_FRAME && frame % 60 == 0)
 			{
 				m_USBHCI.UpdatePlugAndPlay();
 				if (m_pKeyboard == 0)
@@ -857,19 +829,22 @@ void OutZ80(word Port, byte Value)
 			}
 			else
 			{
-				if (spcsys.cas.pulse)
-				{
-					spcsys.cas.pulse = 0;
-					spcsys.cas.motor = !spcsys.cas.motor;
-					if (s_pThis) s_pThis->m_Cassette.motor = spcsys.cas.motor;
+					if (spcsys.cas.pulse)
+					{
+						spcsys.cas.pulse = 0;
+						spcsys.cas.motor = !spcsys.cas.motor;
+						if (s_pThis) s_pThis->m_Cassette.motor = spcsys.cas.motor;
 						if (spcsys.cas.motor)
 						{
+							// Tape load routines (FLOAD/MLOAD/CLOAD) store checksum and
+							// other scratch variables in low RAM (e.g., CKSMF1 at 0x11E3).
+							// With IPLK=1 those reads come from the ROM mirror and see
+							// stale values, breaking checksum verification. Force IPLK=0
+							// while the motor is on so the ROM reads/writes RAM.
+							spcsys.IPLK = 0;
 							casLastTime = GetCycles();
 							consecutiveZeros = 0;
 							casReadVal = 0;
-#ifdef CASSETTE_DEBUG_MESSAGE
-							loaded_byte_count = 0; // Reset byte counter
-#endif
 							if (s_pThis)
 							{
 								s_pThis->m_Cassette.initTick(GetCycles());
@@ -882,18 +857,11 @@ void OutZ80(word Port, byte Value)
 							int displayLen = (s_pThis && s_pThis->m_Cassette.get_len() > 0)
 											 ? s_pThis->m_Cassette.get_len()
 											 : tapeLen;
-#ifdef CASSETTE_DEBUG_MESSAGE
-							WriteLog("Cassette motor ON, tapePos=%d, tapeLen=%d\n", tapePos, displayLen);
-#endif
 							ScreenLog(13, "MOTOR ON, LEN:%d", displayLen);
 						}
 					else
 					{
 						if (CActLED::Get ()) CActLED::Get ()->Off ();
-#ifdef CASSETTE_DEBUG_MESSAGE
-						int mpos = (s_pThis && s_pThis->m_Cassette.get_len() > 0) ? s_pThis->m_Cassette.pos : tapePos;
-						WriteLog("Cassette motor OFF, tapePos=%d (mpos=%d)\n", tapePos, mpos);
-#endif
 						ScreenLog(13, "MOTOR OFF");
 
 						// Decode and display header info loaded at FILMOD (0x1396)
@@ -915,16 +883,6 @@ void OutZ80(word Port, byte Value)
 							spcsys.RAM[0x139A], spcsys.RAM[0x139B],
 							spcsys.RAM[0x139C], spcsys.RAM[0x139D],
 							spcsys.RAM[0x139E], spcsys.RAM[0x139F]);
-#ifdef CASSETTE_DEBUG_MESSAGE
-					WriteLog("Loaded Header: Mode=0x%02X Name=%s\n", mode, name);
-					WriteLog("Header RAM dump 0x1396-0x13B7:");
-					for (int i = 0; i < 0x22; i++) WriteLog(" %02X", spcsys.RAM[0x1396 + i]);
-					WriteLog("\n");
-					WriteLog("BASIC text RAM dump 0x7C4E-0x7D4D:");
-					for (int i = 0; i < 0x100; i++) WriteLog(" %02X", spcsys.RAM[0x7C4E + i]);
-					WriteLog("\n");
-					DumpScreen();
-#endif
 					}
 				}
 			}
@@ -939,6 +897,8 @@ void OutZ80(word Port, byte Value)
 			casReadVal = 0;
 			spcsys.cas.button = 1; // CAS_PLAY
 			spcsys.cas.motor = 1;
+			// See cassette-motor toggle above for the IPLK rationale.
+			spcsys.IPLK = 0;
 			int displayLen = (s_pThis && s_pThis->m_Cassette.get_len() > 0)
 							 ? s_pThis->m_Cassette.get_len()
 							 : tapeLen;
