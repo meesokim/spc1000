@@ -10,39 +10,8 @@ void TapeLoaderConfig_InitDefaults(TapeLoaderConfig *cfg)
     cfg->precursor_zeros = 15;
     cfg->start_offset = 2;
 
-    // Data injection: first BASIC line relative offset low byte (0x23) at position 14152.
-    cfg->injection_count = 1;
-    cfg->injection_pos[0] = 14152;
-    cfg->injection_bits[0] = "001000110"; // 0x23 MSB-first + stop 0
-    cfg->injection_done[0] = false;
-
-    cfg->checksum_bypass_enabled = true;
-    cfg->checksum_patch_count = 6;
-    cfg->checksum_patch_addr[0] = 0x018A; cfg->checksum_patch_value[0] = 0x00;
-    cfg->checksum_patch_addr[1] = 0x018B; cfg->checksum_patch_value[1] = 0x00;
-    cfg->checksum_patch_addr[2] = 0x018C; cfg->checksum_patch_value[2] = 0x00;
-    cfg->checksum_patch_addr[3] = 0x018F; cfg->checksum_patch_value[3] = 0x00;
-    cfg->checksum_patch_addr[4] = 0x0190; cfg->checksum_patch_value[4] = 0x00;
-    cfg->checksum_patch_addr[5] = 0x0191; cfg->checksum_patch_value[5] = 0x00;
-
     cfg->rewind_on_reset = true;
     cfg->auto_load = true;
-}
-
-void TapeLoaderConfig_ResetInjections(TapeLoaderConfig *cfg)
-{
-    if (!cfg) return;
-    for (int i = 0; i < cfg->injection_count && i < MAX_INJECTIONS; i++)
-        cfg->injection_done[i] = false;
-}
-
-static char *tl_strdup(const char *s)
-{
-    if (!s) return NULL;
-    size_t n = strlen(s);
-    char *d = (char *)malloc(n + 1);
-    if (d) memcpy(d, s, n + 1);
-    return d;
 }
 
 static const char *tl_skip_ws(const char *p)
@@ -170,46 +139,6 @@ bool TapeLoaderConfig_Parse(TapeLoaderConfig *cfg, const char *text)
                 cfg->precursor_zeros = tl_parse_int(valbuf, 10);
             else if (strcmp(keybuf, "start_offset") == 0)
                 cfg->start_offset = tl_parse_int(valbuf, 10);
-        }
-        else if (strcmp(section, "injection") == 0)
-        {
-            if (strncmp(keybuf, "pos", 3) == 0)
-            {
-                int idx = tl_parse_int(keybuf + 3, 10);
-                if (idx >= 0 && idx < MAX_INJECTIONS)
-                    cfg->injection_pos[idx] = tl_parse_int(valbuf, 10);
-            }
-            else if (strncmp(keybuf, "bits", 4) == 0)
-            {
-                int idx = tl_parse_int(keybuf + 4, 10);
-                if (idx >= 0 && idx < MAX_INJECTIONS && vlen == 9)
-                {
-                    cfg->injection_bits[idx] = tl_strdup(valbuf);
-                    cfg->injection_done[idx] = false;
-                    if (idx + 1 > cfg->injection_count)
-                        cfg->injection_count = idx + 1;
-                }
-            }
-        }
-        else if (strcmp(section, "checksum_bypass") == 0)
-        {
-            if (strcmp(keybuf, "enabled") == 0)
-                cfg->checksum_bypass_enabled = (tl_parse_int(valbuf, 10) != 0);
-            else if (strncmp(keybuf, "patch", 5) == 0)
-            {
-                int idx = tl_parse_int(keybuf + 5, 10);
-                if (idx >= 0 && idx < MAX_EXTRA_PATCHES)
-                {
-                    const char *sep = strchr(valbuf, ':');
-                    if (sep)
-                    {
-                        cfg->checksum_patch_addr[idx] = (unsigned short)tl_parse_int(valbuf, 16);
-                        cfg->checksum_patch_value[idx] = (unsigned char)tl_parse_int(sep + 1, 16);
-                        if (idx + 1 > cfg->checksum_patch_count)
-                            cfg->checksum_patch_count = idx + 1;
-                    }
-                }
-            }
         }
         else if (strcmp(section, "tape") == 0)
         {

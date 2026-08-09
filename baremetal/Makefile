@@ -30,13 +30,17 @@ LIBS = $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
 
 INCLUDE = -I$(CIRCLEHOME)/addon -Iminiz -Ibzip2 -I.
 
+TARGET = kernel
+
+include $(CIRCLEHOME)/Rules.mk
+
 tap.o: tap.c
 
-tap.c: sharkkiller.tap
+tap.c: apple.tap
 	@echo "Generating tap.c from $<..."
 	@echo 'char tap0[] = {' > $@
 	@echo -n '"' >> $@
-	@tail -n 1 $< | tr -d '\r\n' >> $@
+	@tr -d '\r\n' < $< >> $@
 	@echo '"};' >> $@
 
 host:
@@ -44,5 +48,3 @@ host:
 
 host-clean:
 	$(MAKE) -f Makefile.host clean
-
-include $(CIRCLEHOME)/Rules.mk

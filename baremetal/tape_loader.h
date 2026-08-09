@@ -9,9 +9,6 @@
 extern "C" {
 #endif
 
-#define MAX_INJECTIONS 8
-#define MAX_EXTRA_PATCHES 8
-
 typedef struct _TapeLoaderConfig
 {
     // [sync]
@@ -20,18 +17,6 @@ typedef struct _TapeLoaderConfig
     int precursor_zeros;
     int start_offset;
 
-    // [injection]
-    int injection_count;
-    int injection_pos[MAX_INJECTIONS];
-    const char *injection_bits[MAX_INJECTIONS];
-    bool injection_done[MAX_INJECTIONS];
-
-    // [checksum_bypass]
-    bool checksum_bypass_enabled;
-    int checksum_patch_count;
-    unsigned short checksum_patch_addr[MAX_EXTRA_PATCHES];
-    unsigned char checksum_patch_value[MAX_EXTRA_PATCHES];
-
     // [tape]
     bool rewind_on_reset;
     bool auto_load;
@@ -39,7 +24,6 @@ typedef struct _TapeLoaderConfig
 
 void TapeLoaderConfig_InitDefaults(TapeLoaderConfig *cfg);
 bool TapeLoaderConfig_Parse(TapeLoaderConfig *cfg, const char *text);
-void TapeLoaderConfig_ResetInjections(TapeLoaderConfig *cfg);
 
 #ifdef __cplusplus
 }

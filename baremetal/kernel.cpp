@@ -27,15 +27,12 @@ extern char tap0[];
 static int tapeLen = 0;
 static int tapePos = 0;
 static TapeLoaderConfig tapeCfg;
-static int cksm_check_count = 0;
-static unsigned short last_calculated_cksm = 0;
-static unsigned short last_stored_cksm = 0;
-static bool cksm_updated = false;
 
 static void WriteLog(const char *format, ...)
 {
     FIL File;
-    if (f_open (&File, "SD:/log.txt", FA_WRITE | FA_OPEN_ALWAYS) == FR_OK)
+    FRESULT res = f_open (&File, "SD:/log.txt", FA_WRITE | FA_OPEN_ALWAYS);
+    if (res == FR_OK)
     {
         f_lseek(&File, f_size(&File));
         char buf[256];
@@ -48,6 +45,12 @@ static void WriteLog(const char *format, ...)
         f_write(&File, buf, strlen(buf), &nWritten);
         f_close(&File);
     }
+#ifdef HOST_COMPILE
+    else
+    {
+        fprintf(stderr, "WriteLog: f_open failed with %d\n", res);
+    }
+#endif
 }
 
 static void ScreenLog(int row, const char *format, ...)
@@ -59,8 +62,8 @@ static void ScreenLog(int row, const char *format, ...)
     va_end(args);
     
 #ifdef HOST_COMPILE
-    printf("[ScreenLog Row %02d] %s\n", row, buf);
-    fflush(stdout);
+    // printf("[ScreenLog Row %02d] %s\n", row, buf);
+    // fflush(stdout);
 #endif
 
     int len = 0;
@@ -74,6 +77,32 @@ static void ScreenLog(int row, const char *format, ...)
         spcsys.VRAM[row * 32 + len] = ' ';
         len++;
     }
+}
+
+static int loaded_byte_count = 0;
+
+static void DumpScreen(void)
+{
+    WriteLog("=== SCREEN BUFFER DUMP ===\n");
+    for (int r = 0; r < 16; r++)
+    {
+        char line[33];
+        for (int c = 0; c < 32; c++)
+        {
+            byte val = spcsys.VRAM[r * 32 + c];
+            line[c] = (val >= 32 && val < 127) ? val : '.';
+        }
+        line[32] = '\0';
+        WriteLog("%s\n", line);
+#ifdef HOST_COMPILE
+        // printf("%s\n", line);
+#endif
+    }
+    WriteLog("==========================\n");
+#ifdef HOST_COMPILE
+    // printf("==========================\n");
+    // fflush(stdout);
+#endif
 }
 
 // Cassette tape is handled via m_Cassette (Cassette class member of CKernel)
@@ -111,22 +140,6 @@ static bool LoadTapeConfig(void)
     return ok;
 }
 
-// Apply ROM checksum bypass patches according to config
-static void ApplyChecksumBypass(void)
-{
-    if (!tapeCfg.checksum_bypass_enabled)
-        return;
-
-    for (int i = 0; i < tapeCfg.checksum_patch_count && i < MAX_EXTRA_PATCHES; i++)
-    {
-        unsigned short addr = tapeCfg.checksum_patch_addr[i];
-        if (addr < 0x8000)
-        {
-            spcsys.ROM[addr] = ROM[addr] = tapeCfg.checksum_patch_value[i];
-        }
-    }
-}
-
 // Cassette state (cycles-based timing matching sdl2/cassette.cpp)
 static unsigned int batch_start_cycles = 0;
 static int batch_start_icount = 0;
@@ -139,32 +152,108 @@ static unsigned int GetCycles(void)
 static unsigned int casLastTime = 0;
 static int casReadVal = 0;
 static int consecutiveZeros = 0;
-static unsigned int casBitEndTime = 0;
 
 class CKernel; // forward
 static CKernel *s_pThis;
+
+static int ReadBitFrom(char *tapBuf, int tapLen, int &tapPos)
+{
+    if (tapLen == 0)
+    {
+        int len = 0;
+        while (tapBuf[len]) len++;
+        tapLen = len;
+    }
+
+    if (tapPos >= tapLen)
+    {
+        return 0;
+    }
+
+    int c;
+    int zero_skip = tapeCfg.zero_skip;
+    if (zero_skip < 1) zero_skip = 1;
+
+    if (consecutiveZeros > zero_skip)
+    {
+        while (tapPos < tapLen && tapBuf[tapPos] == '0')
+        {
+            tapPos++;
+        }
+        if (tapPos < tapLen)
+        {
+            c = (tapBuf[tapPos++] == '1' ? 1 : 0);
+        }
+        else
+        {
+            c = 0;
+        }
+        consecutiveZeros = 0;
+    }
+    else
+    {
+        c = (tapBuf[tapPos++] == '1' ? 1 : 0);
+    }
+
+    if (c == 0)
+    {
+        consecutiveZeros++;
+    }
+    else
+    {
+        consecutiveZeros = 0;
+    }
+
+    return c;
+}
+
+static int ReadTapeBit(void)
+{
+    return ReadBitFrom(tap0, tapeLen, tapePos);
+}
 
 static int CasRead(void)
 {
 	if (!spcsys.cas.motor)
 		return 1;
-	if (s_pThis)
-		return s_pThis->m_Cassette.read(GetCycles(), 38);
-	// fallback to built-in tap
-	if (tapeLen == 0)
+	if (s_pThis && s_pThis->m_Cassette.get_len() > 0)
 	{
-		int len = 0;
-		while (tap0[len]) len++;
-		tapeLen = len;
+		// SD card path: read one bit per poll from the Cassette buffer,
+		// matching the ROM's polling model (not the old cycle-timing model).
+		int bit = ReadBitFrom(s_pThis->m_Cassette.get_tape(),
+		                      s_pThis->m_Cassette.get_len(),
+		                      s_pThis->m_Cassette.pos);
+#ifdef HOST_COMPILE
+		static int casread_count = 0;
+		if (casread_count < 500)
+		{
+			WriteLog("[CasRead Cassette] %d: pc=0x%04X bit=%d pos=%d zeros=%d motor=%d\n",
+				casread_count++, spcsys.Z80R.PC.W, bit, s_pThis->m_Cassette.pos, consecutiveZeros, spcsys.cas.motor);
+		}
+#endif
+		return bit;
 	}
-	if (tapePos >= tapeLen) return 0;
-	return (tap0[tapePos++] == '1' ? 1 : 0);
+	int bit = ReadTapeBit();
+#ifdef HOST_COMPILE
+	static int casread_count = 0;
+	if (casread_count < 1000)
+	{
+		WriteLog("[CasRead Tap0] %d: pc=0x%04X bit=%d tapePos=%d zeros=%d motor=%d\n",
+			casread_count++, spcsys.Z80R.PC.W, bit, tapePos, consecutiveZeros, spcsys.cas.motor);
+	}
+#endif
+	return bit;
 }
 
 TKeyMap spcKeyHash[0x200];
 unsigned char keyMatrix[10] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 volatile bool g_reset_requested = false;
 volatile bool g_ipl_reset = false;
+
+// Set from the USB keyboard interrupt handler; consumed in the main loop.
+volatile int tape_switch_request = 0;
+static bool left_was_pressed = false;
+static bool right_was_pressed = false;
 
 int bpp = 16;
 char samsung_bmp_c[] = "";
@@ -259,9 +348,14 @@ boolean CKernel::Initialize (void)
 	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
 
 	memcpy(spcsys.ROM, ROM, 0x8000);
-	// Load tape loader configuration and apply ROM checksum bypass patches
+	// Load tape loader configuration
 	LoadTapeConfig();
-	ApplyChecksumBypass();
+	// Initialize tapeLen from tap0 fallback to resolve the tape presence detection chicken-and-egg bug
+	{
+		int len = 0;
+		while (tap0[len]) len++;
+		tapeLen = len;
+	}
 	spcsys.IPLK = 1;
 	spcsys.GMODE = 0;
 	memset(spcsys.VRAM, 0, 0x2000);
@@ -307,8 +401,7 @@ boolean CKernel::Initialize (void)
 	return bOK;
 }
 
-TShutdownMode CKernel::Run (void)
-{
+TShutdownMode CKernel::Run (void){
 	InitMC6847(mc6847_buf, spcsys.VRAM, 256, 192);
 
 	CBcmFrameBuffer *pFB = m_Screen.GetFrameBuffer();
@@ -340,34 +433,27 @@ TShutdownMode CKernel::Run (void)
 			g_reset_requested = false;
 			spcsys.IPL_SW = g_ipl_reset ? 1 : 0;
 			memcpy(spcsys.ROM, ROM, 0x8000);
-			// Patch ROM to bypass checksum verification according to config
-			ApplyChecksumBypass();
 			spcsys.IPLK = 1;
 			ResetZ80(R);
 			memset(keyMatrix, 0xff, 10);
 			tapePos = 0;
 			consecutiveZeros = 0;
 			casReadVal = 0;
-			TapeLoaderConfig_ResetInjections(&tapeCfg);
-			cksm_check_count = 0;
-			last_calculated_cksm = 0;
-			last_stored_cksm = 0;
-			cksm_updated = false;
 			spcsys.cas.motor = 0;
 			spcsys.cas.pulse = 0;
 			spcsys.cycles = 0;
+			if (s_pThis)
+			{
+				s_pThis->m_Cassette.motor = 0;
+				// Only rewind the tape on reset if rewind_on_reset is enabled.
+				// Otherwise a multi-block tape keeps its position so the user can
+				// continue loading subsequent blocks after a warm reset.
+				if (tapeCfg.rewind_on_reset)
+				{
+					s_pThis->m_Cassette.pos = 0;
+				}
+			}
 			ScreenLog(13, "RESET SYSTEM (%s)", g_ipl_reset ? "IPL" : "NORMAL");
-		}
-
-		if (R->PC.W == 0x0189)
-		{
-			unsigned short calculated = R->HL.W;
-			unsigned short stored = (R->DE.B.l << 8) | R->AF.B.h;
-			last_calculated_cksm = calculated;
-			last_stored_cksm = stored;
-			cksm_updated = true;
-			ScreenLog(14, "Cksm %d Cal:%04X Std:%04X", cksm_check_count++, calculated, stored);
-			WriteLog("Checksum check %d: Calc=%04X, Stored=%04X\n", cksm_check_count - 1, calculated, stored);
 		}
 
 		int count = R->ICount;
@@ -376,11 +462,58 @@ TShutdownMode CKernel::Run (void)
 		ExecZ80(R);
 		spcsys.cycles += (count - R->ICount);
 
+
+
 		if (R->ICount <= 0)
 		{
 			frame++;
 			spcsys.tick++;
 			R->ICount += I_PERIOD;
+
+#ifdef HOST_COMPILE
+			if (frame % 300 == 0)
+			{
+				DumpScreen();
+			}
+
+			// Detect BREAK on screen and log state
+			static bool break_logged = false;
+			if (!break_logged)
+			{
+				const char *p = (const char *)spcsys.VRAM;
+				bool has_break = (strstr(p, "BREAK") != 0);
+				if (has_break)
+				{
+					break_logged = true;
+					WriteLog("=== BREAK DETECTED at frame %d ===\n", frame);
+					WriteLog("Z80 PC=0x%04X, tapePos=%d, consecutiveZeros=%d, casReadVal=%d\n",
+						spcsys.Z80R.PC.W, tapePos, consecutiveZeros, casReadVal);
+					WriteLog("BASIC text RAM dump 0x7C4E-0x7D4D:");
+					for (int i = 0; i < 0x100; i++) WriteLog(" %02X", spcsys.RAM[0x7C4E + i]);
+					WriteLog("\n");
+					DumpScreen();
+				}
+			}
+#endif
+
+			// Deferred cassette prev()/next() (requested from the keyboard
+			// interrupt handler; run here in the main loop, not in IRQ context)
+			if (tape_switch_request != 0 && s_pThis)
+			{
+				int dir = tape_switch_request;
+				tape_switch_request = 0;
+				if (dir < 0)
+				{
+					s_pThis->m_Cassette.prev();
+				}
+				else
+				{
+					s_pThis->m_Cassette.next();
+				}
+				char title[256];
+				s_pThis->m_Cassette.get_title(title);
+				ScreenLog(10, "Tape: %s", title);
+			}
 
 			if (frame % 60 == 0)
 			{
@@ -399,7 +532,7 @@ TShutdownMode CKernel::Run (void)
 			static int autotype_step = -1;
 			if (frame >= 1100 && autotype_step < 10)
 			{
-				int new_step = (frame - 1100) / 20;
+				int new_step = (frame - 1100) / 60;
 				if (new_step != autotype_step)
 				{
 					autotype_step = new_step;
@@ -446,7 +579,17 @@ TShutdownMode CKernel::Run (void)
 				R->ICount -= 20;
 			}
 
-			m_Scheduler.MsSleep(1);
+			if (spcsys.cas.motor)
+			{
+				if (frame % 200 == 0)
+				{
+					m_Scheduler.Yield();
+				}
+			}
+			else
+			{
+				m_Scheduler.MsSleep(1);
+			}
 		}
 	}
 
@@ -455,7 +598,10 @@ TShutdownMode CKernel::Run (void)
 
 void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
-	// Detect ALT + LEFT/RIGHT cassette tape controls
+	// Detect ALT + LEFT/RIGHT cassette tape controls.
+	// NOTE: This is called from the USB interrupt handler. We only record
+	// the requested direction here; the actual prev()/next() call (which
+	// allocates heap and reads the SD card) is deferred to the main loop.
 	bool alt_pressed = (ucModifiers & 0x44) != 0; // Left Alt (0x04) or Right Alt (0x40)
 	if (alt_pressed)
 	{
@@ -467,28 +613,13 @@ void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned cha
 			if (RawKeys[r] == 0x4f) right_pressed = true; // CRLK_RIGHT
 		}
 
-		static bool left_was_pressed = false;
-		static bool right_was_pressed = false;
-
 		if (left_pressed && !left_was_pressed)
 		{
-			if (s_pThis)
-			{
-				s_pThis->m_Cassette.prev();
-				char title[256];
-				s_pThis->m_Cassette.get_title(title);
-				ScreenLog(10, "Tape: %s", title);
-			}
+			tape_switch_request = -1;
 		}
 		if (right_pressed && !right_was_pressed)
 		{
-			if (s_pThis)
-			{
-				s_pThis->m_Cassette.next();
-				char title[256];
-				s_pThis->m_Cassette.get_title(title);
-				ScreenLog(10, "Tape: %s", title);
-			}
+			tape_switch_request = 1;
 		}
 
 		left_was_pressed = left_pressed;
@@ -540,7 +671,15 @@ word LoopZ80(Z80 *R) { return INT_NONE; }
 byte InZ80(word Port)
 {
 	if (Port >= 0x8000 && Port <= 0x8009)
-		return keyMatrix[Port - 0x8000];
+	{
+		byte val = keyMatrix[Port - 0x8000];
+		// WriteLog("[InZ80 Keyboard] Port=0x%04X, val=0x%02X\n", Port, val);
+#ifdef HOST_COMPILE
+		// printf("[InZ80 Keyboard] Port=0x%04X, val=0x%02X\n", Port, val);
+		// fflush(stdout);
+#endif
+		return val;
+	}
 	else if ((Port & 0xE000) == 0xA000)
 		spcsys.IPLK = spcsys.IPLK ? 0 : 1;
 	else if ((Port & 0xE000) == 0x2000)
@@ -556,8 +695,16 @@ byte InZ80(word Port)
 				byte r = 0xff;
 				if (spcsys.cas.button == 1 && spcsys.cas.motor) // CAS_PLAY && motor on
 				{
-					if (CasRead() == 1) r |= 0x80;
-					else r &= 0x7f;
+					word pc = spcsys.Z80R.PC.W;
+					if (pc >= 0x02E0 && pc <= 0x0370)
+					{
+						r |= 0x80; // Return dummy high bit during motor check to avoid stealing tape bits
+					}
+					else
+					{
+						if (CasRead() == 1) r |= 0x80;
+						else r &= 0x7f;
+					}
 					r &= ~0x40; // Motor On (0)
 				}
 				else
@@ -606,19 +753,31 @@ void OutZ80(word Port, byte Value)
 					spcsys.cas.pulse = 0;
 					spcsys.cas.motor = !spcsys.cas.motor;
 					if (s_pThis) s_pThis->m_Cassette.motor = spcsys.cas.motor;
-					if (spcsys.cas.motor)
-					{
-						casLastTime = GetCycles();
-						consecutiveZeros = 0;
-						casReadVal = 0;
-						if (CActLED::Get ()) CActLED::Get ()->On ();
-						WriteLog("Cassette motor ON, tapeLen=%d\n", tapeLen);
-						ScreenLog(13, "MOTOR ON, LEN:%d", tapeLen);
-					}
+						if (spcsys.cas.motor)
+						{
+							casLastTime = GetCycles();
+							consecutiveZeros = 0;
+							casReadVal = 0;
+							loaded_byte_count = 0; // Reset byte counter
+							if (s_pThis)
+							{
+								s_pThis->m_Cassette.initTick(GetCycles());
+								// Do NOT reset pos here: multi-block tapes keep playing
+								// forward, so the next block is read where the last
+								// one ended. (Tape rewind happens only on system reset
+								// when rewind_on_reset is enabled.)
+							}
+							if (CActLED::Get ()) CActLED::Get ()->On ();
+							int displayLen = (s_pThis && s_pThis->m_Cassette.get_len() > 0)
+											 ? s_pThis->m_Cassette.get_len()
+											 : tapeLen;
+							WriteLog("Cassette motor ON, tapePos=%d, tapeLen=%d\n", tapePos, displayLen);							ScreenLog(13, "MOTOR ON, LEN:%d", displayLen);
+						}
 					else
 					{
 						if (CActLED::Get ()) CActLED::Get ()->Off ();
-						WriteLog("Cassette motor OFF\n");
+						int mpos = (s_pThis && s_pThis->m_Cassette.get_len() > 0) ? s_pThis->m_Cassette.pos : tapePos;
+						WriteLog("Cassette motor OFF, tapePos=%d (mpos=%d)\n", tapePos, mpos);
 						ScreenLog(13, "MOTOR OFF");
 
 						// Decode and display header info loaded at FILMOD (0x1396)
@@ -640,12 +799,16 @@ void OutZ80(word Port, byte Value)
 							spcsys.RAM[0x139A], spcsys.RAM[0x139B],
 							spcsys.RAM[0x139C], spcsys.RAM[0x139D],
 							spcsys.RAM[0x139E], spcsys.RAM[0x139F]);
-						WriteLog("Loaded Header: Mode=0x%02X Name=%s\n", mode, name);
-						if (cksm_updated)
-						{
-							ScreenLog(14, "Cksm Cal:%04X Std:%04X", last_calculated_cksm, last_stored_cksm);
-							WriteLog("Last Checksum: Calc=%04X, Stored=%04X\n", last_calculated_cksm, last_stored_cksm);
-						}
+#ifdef HOST_COMPILE
+					WriteLog("Loaded Header: Mode=0x%02X Name=%s\n", mode, name);
+					WriteLog("Header RAM dump 0x1396-0x13B7:");
+					for (int i = 0; i < 0x22; i++) WriteLog(" %02X", spcsys.RAM[0x1396 + i]);
+					WriteLog("\n");
+					WriteLog("BASIC text RAM dump 0x7C4E-0x7D4D:");
+					for (int i = 0; i < 0x100; i++) WriteLog(" %02X", spcsys.RAM[0x7C4E + i]);
+					WriteLog("\n");
+					DumpScreen();
+#endif
 					}
 				}
 			}
@@ -655,13 +818,15 @@ void OutZ80(word Port, byte Value)
 	{
 		if (Value == 0)
 		{
-			tapePos = 0;
 			consecutiveZeros = 0;
 			casLastTime = GetCycles();
 			casReadVal = 0;
 			spcsys.cas.button = 1; // CAS_PLAY
 			spcsys.cas.motor = 1;
-			ScreenLog(13, "MOTOR ON (via 4003), LEN:%d", tapeLen);
+			int displayLen = (s_pThis && s_pThis->m_Cassette.get_len() > 0)
+							 ? s_pThis->m_Cassette.get_len()
+							 : tapeLen;
+			ScreenLog(13, "MOTOR ON (via 4003), LEN:%d", displayLen);
 		}
 	}
 	else if ((Port & 0xFFFE) == 0x4000) // PSG

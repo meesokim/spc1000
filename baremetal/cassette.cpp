@@ -1,5 +1,8 @@
 #include "cassette.h"
 #include <fatfs/ff.h>
+#ifdef HOST_COMPILE
+#include <stdio.h>
+#endif
 
 extern "C" {
     #include <bzlib.h>
@@ -82,20 +85,38 @@ Cassette::~Cassette()
 #define PULSE 14
 char Cassette::read(unsigned int cycles, unsigned char wait) {
     char val = 0;
-    int diff = cycles - old_cycles;
-    if (diff > 4 * PULSE * 90)
+    wait = 38;
+    int diff = (int)(cycles - old_cycles);
+#ifdef HOST_COMPILE
+    static int read_count = 0;
+    bool log_this = (read_count < 200);
+    if (log_this)
     {
+        read_count++;
+    }
+#endif
+    if ((unsigned int)diff > 4 * PULSE * 90)
+    {
+#ifdef HOST_COMPILE
+        if (log_this) fprintf(stderr, "[Cassette::read] timeout reset: diff=%d cycles=%u old_cycles=%u\n", diff, cycles, old_cycles);
+#endif
         mark = -3;
         inv_time = 0;
     } else if (mark < -2)
     {
+#ifdef HOST_COMPILE
+        if (log_this) fprintf(stderr, "[Cassette::read] mark recovery: mark=%d\n", (int)mark);
+#endif
         mark++;
     } else if (len && mark < 0)
     {
         mark = (tape[pos] == '1' ? 1 : 0);
         old_time = cycles;
-        inv_time = cycles + 70;
-        end_time = cycles + 160 + PULSE * wait * mark;
+        inv_time = old_time + 120;
+        end_time = old_time + 1250 + PULSE * wait * mark;
+#ifdef HOST_COMPILE
+        if (log_this) fprintf(stderr, "[Cassette::read] load bit from tape[%d]=%c mark=%d cycles=%u\n", pos, tape[pos], (int)mark, cycles);
+#endif
         if (++pos > len)
         {
             pos = 0;
@@ -103,19 +124,33 @@ char Cassette::read(unsigned int cycles, unsigned char wait) {
     }
     if (mark > -1)
     {
-        if (cycles < inv_time)
+        if ((int)(cycles - inv_time) < 0)
             val = 0;
-        else if (cycles < end_time)
+        else if ((int)(cycles - end_time) < 0)
             val = 1;
+#ifdef HOST_COMPILE
+        if (log_this) fprintf(stderr, "[Cassette::read] mark active mark=%d inv=%u end=%u cycles=%u val=%d\n", (int)mark, inv_time, end_time, cycles, (int)val);
+#endif
     }
-    if (cycles > end_time)
+    if ((int)(cycles - end_time) > 0)
+    {
+#ifdef HOST_COMPILE
+        if (log_this) fprintf(stderr, "[Cassette::read] mark ended at cycles=%u end_time=%u\n", cycles, end_time);
+#endif
         mark = -1;
+    }
     old_cycles = cycles;
     return val;
 }
 
 void Cassette::write(char ch)
 {
+}
+
+void Cassette::save(const char *name)
+{
+    // Saving cassette tape is not supported on bare-metal (read-only SD card).
+    (void)name;
 }
 
 void Cassette::load(const char *name) 
@@ -160,7 +195,7 @@ void Cassette::load(const char *name)
 
     if (strcmp(ext, ".bz2") == 0) 
     {
-        unsigned int dest_len = TAPE_SIZE - 1;
+        unsigned int dest_len = TAPE_SIZE;
         int bReturn = BZ2_bzBuffToBuffDecompress(tape, &dest_len, Buffer, size, 0, 0);
         if (bReturn == BZ_OK) {
             len = dest_len;
@@ -170,20 +205,21 @@ void Cassette::load(const char *name)
     {
         memcpy(tape, Buffer, size);
         len = size;
+        // Strip trailing CR/LF so the bit buffer matches the compiled-in tap0
+        while (len > 0 && (tape[len - 1] == '\n' || tape[len - 1] == '\r'))
+            len--;
     } 
     else if (strcmp(ext, ".cas") == 0) 
     {
         len = 0;
-        for(int i = 0; i < size; i++)
+        int max_bits = (size * 8 > TAPE_SIZE - 1) ? (TAPE_SIZE - 1) : (size * 8);
+        for(int bit = 0; bit < max_bits; bit++)
         {
+            int i = bit / 8;
+            int j = bit % 8;
             uint8_t c = Buffer[i];
-            for(int j = 0; j < 8; j++)  
-            {
-                if (len < TAPE_SIZE - 1) {
-                    tape[i*8+j] = (c&(0x80>>j))>0 ? '1' : '0';
-                    len++;
-                }
-            }
+            tape[len] = (c & (0x80 >> j)) > 0 ? '1' : '0';
+            len++;
         }
     } 
     else if (strcmp(ext, ".zip") == 0)
@@ -297,9 +333,16 @@ int Cassette::loadzip(const char *data, int size)
             f_close (&File);
         }
         size = nBytesRead;
+        if (size == 0)
+        {
+            delete[] compressed;
+            delete[] uncompressed;
+            return 0;
+        }
     }
     else 
     {
+        if (size > 1024*1024*1) size = 1024*1024*1;
         memcpy(compressed, data, size);
     }
     
@@ -341,15 +384,13 @@ int Cassette::loadzip(const char *data, int size)
                 {
                     break;
                 }
-                for(unsigned int i = 0; i < uncomp_size; i++)
+                size_t max_bits = (uncomp_size * 8 > TAPE_SIZE - 1) ? (TAPE_SIZE - 1) : (uncomp_size * 8);
+                for(size_t bit = 0; bit < max_bits; bit++)
                 {
-                    for(int j = 0; j < 8; j++)  
-                    {
-                        if (l < TAPE_SIZE - 1) {
-                            tape[l] = (uncompressed[i]&(0x80>>j))>0 ? '1' : '0';
-                            l++;
-                        }
-                    }
+                    int i = bit / 8;
+                    int j = bit % 8;
+                    tape[l] = (uncompressed[i] & (0x80 >> j)) > 0 ? '1' : '0';
+                    l++;
                 }
             } else 
                 continue;

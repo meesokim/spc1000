@@ -22,7 +22,15 @@ public:
         index = i;
     }
     const char *c_str() const { return fname; }
-    const char *filename() const { return fname; }
+    const char *filename() const {
+        const char *base = fname;
+        const char *p = fname;
+        while (*p) {
+            if (*p == '/' || *p == '\\') base = p + 1;
+            p++;
+        }
+        return base;
+    }
     const char *extension() const {
         const char *dot = strrchr(fname, '.');
         return dot ? dot : "";
@@ -51,6 +59,7 @@ public:
     char motor;
     int pos;
     int get_len() const { return len; }
+    char *get_tape() { return tape; }
     Cassette();
     ~Cassette();
     void initTick(unsigned int tick) { old_cycles = tick; }
@@ -58,7 +67,10 @@ public:
     void load(const char *data, unsigned int length, const char *filename);
     void save(const char *name);
     char read(unsigned int, unsigned char);
-    char read1() { return 0; }
+    char read_bit() {
+        if (pos >= len) return 1;
+        return (tape[pos++] == '1') ? 1 : 0;
+    }
     void write(char);
     void next() {
         if (files_size == 0) return;

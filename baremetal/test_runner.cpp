@@ -34,13 +34,6 @@ static int tapePos = 0;
 static int consecutiveZeros = 0;
 static unsigned int casLastTime = 0;
 static int casReadVal = 0;
-static unsigned int casBitEndTime = 0;
-static unsigned int casBitInvTime = 0;
-static bool sync_found = false;
-static int nextBlockDataPos = 0;
-static int inject_bits_left = 0;
-static const char *inject_stream = nullptr;
-
 static int ReadTapeBit(void)
 {
     if (tapeLen == 0)
@@ -167,103 +160,13 @@ static void DecodeTape() {
 
 static int CasRead(void)
 {
-    unsigned int cycles = GetCycles();
-    unsigned short SP = spcsys.Z80R.SP.W;
-    unsigned short ret_addr = spcsys.RAM[SP] | (spcsys.RAM[(SP + 1) & 0xFFFF] << 8);
-    bool in_mkrd = (ret_addr >= 0x028B && ret_addr < 0x02E0);
-
-    if (in_mkrd)
+    static int read_count = 0;
+    int c = ReadTapeBit();
+    if (read_count < 200)
     {
-        if (!sync_found)
-        {
-            // Scan for configured sync pattern starting from tapePos
-            const char *pattern = tapeCfg.sync_pattern;
-            int pat_len = strlen(pattern);
-            int scan_pos = tapePos;
-            while (scan_pos + pat_len <= tapeLen)
-            {
-                bool match = true;
-                for (int k = 0; k < pat_len; k++)
-                {
-                    if (tap0[scan_pos + k] != pattern[k])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match)
-                {
-                    int zero_count = 0;
-                    for (int i = 1; i <= 20; i++)
-                    {
-                        if (scan_pos - i >= 0 && tap0[scan_pos - i] == '0')
-                            zero_count++;
-                    }
-                    if (zero_count >= tapeCfg.precursor_zeros)
-                    {
-                        nextBlockDataPos = scan_pos + tapeCfg.start_offset;
-                        sync_found = true;
-                        break;
-                    }
-                }
-                scan_pos++;
-            }
-            if (!sync_found)
-            {
-                nextBlockDataPos = tapePos;
-                sync_found = true;
-            }
-        }
-
-        if (ret_addr == 0x02AA) // MKRD5
-            return 1;
-        else if (ret_addr == 0x02BA) // MKRD2
-            return 0;
-        else
-            return 1;
+        printf("CasRead %d: motor=%d tapePos=%d bit=%d\n", read_count++, spcsys.cas.motor, tapePos, c);
     }
-    else
-    {
-        static bool injected = false;
-        static int inject_bits_left = 0;
-        const char* inject_stream = "000000100"; // 0x02 + stop bit 0
-
-        if (sync_found)
-        {
-            tapePos = nextBlockDataPos;
-            sync_found = false;
-        }
-
-        if (inject_bits_left == 0)
-        {
-            for (int i = 0; i < tapeCfg.injection_count && i < MAX_INJECTIONS; i++)
-            {
-                if (tapePos == tapeCfg.injection_pos[i] && !tapeCfg.injection_done[i])
-                {
-                    inject_bits_left = 9;
-                    inject_stream = tapeCfg.injection_bits[i];
-                    tapeCfg.injection_done[i] = true;
-                    break;
-                }
-            }
-        }
-
-        int ret = 0;
-        if (inject_bits_left > 0 && inject_stream != nullptr)
-        {
-            ret = (inject_stream[9 - inject_bits_left] == '1' ? 1 : 0);
-            inject_bits_left--;
-        }
-        else
-        {
-            if (tapePos < tapeLen)
-            {
-                ret = (tap0[tapePos] == '1' ? 1 : 0);
-            }
-            ReadTapeBit(); // Advance tapePos
-        }
-        return ret;
-    }
+    return c;
 }
 
 extern "C" {
@@ -397,7 +300,7 @@ int main()
     memcpy(spcsys.RAM, spcsys.ROM, 32768);
     spcsys.IPLK = 0;
     spcsys.cas.button = 1; // CAS_PLAY
-    spcsys.cas.motor = 1; // Starts ON
+    spcsys.cas.motor = 0; // Starts OFF
     memset(spcsys.keyMatrix, 0xff, 10);
     DecodeTape();
     TapeLoaderConfig_InitDefaults(&tapeCfg);
