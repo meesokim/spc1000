@@ -28,6 +28,11 @@ static int tapeLen = 0;
 static int tapePos = 0;
 static TapeLoaderConfig tapeCfg;
 
+// Enable to log tape-loading debug messages (per-bit reads, screen dumps,
+// header/RAM dumps) to SD:/log.txt. Disabled by default.
+// #define CASSETTE_DEBUG_MESSAGE
+
+#ifdef CASSETTE_DEBUG_MESSAGE
 static void WriteLog(const char *format, ...)
 {
     FIL File;
@@ -52,7 +57,18 @@ static void WriteLog(const char *format, ...)
     }
 #endif
 }
+#endif
 
+// Enable to log tape-loading debug messages (per-bit reads, screen dumps,
+// header/RAM dumps) to SD:/log.txt. Disabled by default.
+// #define CASSETTE_DEBUG_MESSAGE
+
+// Enable to draw emulator status overlays (tape title, motor state, header
+// info, reset message) into VRAM rows. Disabled by default so the display
+// matches real hardware behavior.
+// #define SCREEN_DEBUG_MESSAGE
+
+#ifdef SCREEN_DEBUG_MESSAGE
 static void ScreenLog(int row, const char *format, ...)
 {
     char buf[33];
@@ -78,7 +94,16 @@ static void ScreenLog(int row, const char *format, ...)
         len++;
     }
 }
+#else
+static void ScreenLog(int row, const char *format, ...)
+{
+    // No-op: overlay hidden to match real hardware display.
+    (void)row;
+    (void)format;
+}
+#endif
 
+#ifdef CASSETTE_DEBUG_MESSAGE
 static int loaded_byte_count = 0;
 
 static void DumpScreen(void)
@@ -104,6 +129,7 @@ static void DumpScreen(void)
     // fflush(stdout);
 #endif
 }
+#endif
 
 // Cassette tape is handled via m_Cassette (Cassette class member of CKernel)
 
@@ -223,7 +249,7 @@ static int CasRead(void)
 		int bit = ReadBitFrom(s_pThis->m_Cassette.get_tape(),
 		                      s_pThis->m_Cassette.get_len(),
 		                      s_pThis->m_Cassette.pos);
-#ifdef HOST_COMPILE
+#ifdef CASSETTE_DEBUG_MESSAGE
 		static int casread_count = 0;
 		if (casread_count < 500)
 		{
@@ -234,7 +260,7 @@ static int CasRead(void)
 		return bit;
 	}
 	int bit = ReadTapeBit();
-#ifdef HOST_COMPILE
+#ifdef CASSETTE_DEBUG_MESSAGE
 	static int casread_count = 0;
 	if (casread_count < 1000)
 	{
@@ -470,7 +496,7 @@ TShutdownMode CKernel::Run (void){
 			spcsys.tick++;
 			R->ICount += I_PERIOD;
 
-#ifdef HOST_COMPILE
+#ifdef CASSETTE_DEBUG_MESSAGE
 			if (frame % 300 == 0)
 			{
 				DumpScreen();
@@ -758,7 +784,9 @@ void OutZ80(word Port, byte Value)
 							casLastTime = GetCycles();
 							consecutiveZeros = 0;
 							casReadVal = 0;
+#ifdef CASSETTE_DEBUG_MESSAGE
 							loaded_byte_count = 0; // Reset byte counter
+#endif
 							if (s_pThis)
 							{
 								s_pThis->m_Cassette.initTick(GetCycles());
@@ -771,13 +799,18 @@ void OutZ80(word Port, byte Value)
 							int displayLen = (s_pThis && s_pThis->m_Cassette.get_len() > 0)
 											 ? s_pThis->m_Cassette.get_len()
 											 : tapeLen;
-							WriteLog("Cassette motor ON, tapePos=%d, tapeLen=%d\n", tapePos, displayLen);							ScreenLog(13, "MOTOR ON, LEN:%d", displayLen);
+#ifdef CASSETTE_DEBUG_MESSAGE
+							WriteLog("Cassette motor ON, tapePos=%d, tapeLen=%d\n", tapePos, displayLen);
+#endif
+							ScreenLog(13, "MOTOR ON, LEN:%d", displayLen);
 						}
 					else
 					{
 						if (CActLED::Get ()) CActLED::Get ()->Off ();
+#ifdef CASSETTE_DEBUG_MESSAGE
 						int mpos = (s_pThis && s_pThis->m_Cassette.get_len() > 0) ? s_pThis->m_Cassette.pos : tapePos;
 						WriteLog("Cassette motor OFF, tapePos=%d (mpos=%d)\n", tapePos, mpos);
+#endif
 						ScreenLog(13, "MOTOR OFF");
 
 						// Decode and display header info loaded at FILMOD (0x1396)
@@ -799,7 +832,7 @@ void OutZ80(word Port, byte Value)
 							spcsys.RAM[0x139A], spcsys.RAM[0x139B],
 							spcsys.RAM[0x139C], spcsys.RAM[0x139D],
 							spcsys.RAM[0x139E], spcsys.RAM[0x139F]);
-#ifdef HOST_COMPILE
+#ifdef CASSETTE_DEBUG_MESSAGE
 					WriteLog("Loaded Header: Mode=0x%02X Name=%s\n", mode, name);
 					WriteLog("Header RAM dump 0x1396-0x13B7:");
 					for (int i = 0; i < 0x22; i++) WriteLog(" %02X", spcsys.RAM[0x1396 + i]);
