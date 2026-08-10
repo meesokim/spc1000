@@ -509,10 +509,19 @@ TShutdownMode CKernel::Run (void){
 		{
 			g_reset_requested = false;
 			spcsys.IPL_SW = g_ipl_reset ? 1 : 0;
+			// Restore original ROM image in case a tape load modified the mirror.
 			memcpy(spcsys.ROM, ROM, 0x8000);
+			// Bring the I/O/peripheral state back to the power-on defaults.
 			spcsys.IPLK = 1;
+			spcsys.GMODE = 0;
+			spcsys.psgRegNum = 0;
+			spcsys.cas.button = 1; // CAS_PLAY
+			spcsys.cas.motor = 0;
+			spcsys.cas.pulse = 0;
 			ResetZ80(R);
-			// Re-initialize PSG so the boot ROM's startup BEEP is always audible.
+			R->ICount = I_PERIOD;
+			spcsys.cycles = 0;
+			// Reset the PSG so the boot ROM's startup BEEP is always audible.
 			// The old bare-metal path did a warm Z80 reset without touching PSG;
 			// on the host compatibility layer PSG registers may be muted, so
 			// force a reset here. On real hardware this is harmless.
@@ -521,9 +530,6 @@ TShutdownMode CKernel::Run (void){
 			tapePos = 0;
 			consecutiveZeros = 0;
 			casReadVal = 0;
-			spcsys.cas.motor = 0;
-			spcsys.cas.pulse = 0;
-			spcsys.cycles = 0;
 			if (s_pThis)
 			{
 				s_pThis->m_Cassette.motor = 0;

@@ -159,10 +159,6 @@ void HostUpdate() {
             exit(0);
         }
         else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-            // Check for key reset F12 or F10
-            if (event.key.keysym.sym == SDLK_F12 || event.key.keysym.sym == SDLK_F10) {
-                keys_changed = true;
-            }
             unsigned char usb_code = SDLKeyToUSBScanCode(event.key.keysym.sym);
             if (usb_code != 0) {
                 if (event.type == SDL_KEYDOWN) {
@@ -174,6 +170,20 @@ void HostUpdate() {
             }
         }
     }
+
+    // Poll the physical keyboard state for reset keys (F10/F12) explicitly.
+    // This makes RESET work even when the SDL video driver is in dummy mode
+    // or when the window manager does not deliver key-up/down events reliably.
+    static bool prev_f12 = false;
+    static bool prev_f10 = false;
+    const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+    bool cur_f12 = keystate[SDL_SCANCODE_F12] != 0;
+    bool cur_f10 = keystate[SDL_SCANCODE_F10] != 0;
+    if (cur_f12 != prev_f12 || cur_f10 != prev_f10) {
+        keys_changed = true;
+    }
+    prev_f12 = cur_f12;
+    prev_f10 = cur_f10;
 
     if (keys_changed && g_pKeyboardDevice && g_pKeyboardDevice->m_pHandler) {
         Uint8 modifiers = 0;
@@ -189,14 +199,15 @@ void HostUpdate() {
 
         unsigned char raw_keys[6];
         GetActiveKeys(raw_keys);
-        
-        // Emulate F12 / F10 key reset inside KeyStatusHandlerRaw
-        if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_F12]) {
-            raw_keys[0] = 0x45; // F12 keycode mapped in KeyStatusHandlerRaw
-        } else if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_F10]) {
-            raw_keys[0] = 0x43; // F10 keycode
+
+        // Place F10/F12 in the first slot so KeyStatusHandlerRaw detects them
+        // regardless of what other keys are held.
+        if (cur_f12) {
+            raw_keys[0] = 0x45; // F12
+        } else if (cur_f10) {
+            raw_keys[0] = 0x43; // F10
         }
-        
+
         g_pKeyboardDevice->m_pHandler(modifiers, raw_keys);
     }
 
