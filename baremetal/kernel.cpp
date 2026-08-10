@@ -512,6 +512,11 @@ TShutdownMode CKernel::Run (void){
 			memcpy(spcsys.ROM, ROM, 0x8000);
 			spcsys.IPLK = 1;
 			ResetZ80(R);
+			// Re-initialize PSG so the boot ROM's startup BEEP is always audible.
+			// The old bare-metal path did a warm Z80 reset without touching PSG;
+			// on the host compatibility layer PSG registers may be muted, so
+			// force a reset here. On real hardware this is harmless.
+			if (m_pPSG) PSG_reset(m_pPSG);
 			memset(keyMatrix, 0xff, 10);
 			tapePos = 0;
 			consecutiveZeros = 0;
