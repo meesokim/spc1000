@@ -512,6 +512,13 @@ TShutdownMode CKernel::Run (void){
 			memcpy(spcsys.ROM, ROM, 0x8000);
 			spcsys.IPLK = 1;
 			ResetZ80(R);
+			if (m_pPSG)
+			{
+				// Resetting the PSG restores its default register state.
+				// The SPC-1000 boot ROM plays a short BEEP during initialization,
+				// so this guarantees the beep is heard on every reset.
+				PSG_reset(m_pPSG);
+			}
 			memset(keyMatrix, 0xff, 10);
 			tapePos = 0;
 			consecutiveZeros = 0;
