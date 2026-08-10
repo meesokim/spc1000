@@ -509,9 +509,20 @@ TShutdownMode CKernel::Run (void){
 		{
 			g_reset_requested = false;
 			spcsys.IPL_SW = g_ipl_reset ? 1 : 0;
+			// Restore the original ROM image. The previous tape load may have
+			// overwritten the ROM mirror with checksum data, so start fresh.
 			memcpy(spcsys.ROM, ROM, 0x8000);
 			spcsys.IPLK = 1;
+			spcsys.GMODE = 0;
+			memset(spcsys.VRAM, 0, 0x2000);
+			memset(spcsys.RAM, 0, 0x10000);
+			spcsys.psgRegNum = 0;
+			spcsys.cas.button = 1; // CAS_PLAY
+			spcsys.cas.motor = 0;
+			spcsys.cas.pulse = 0;
 			ResetZ80(R);
+			R->ICount = I_PERIOD;
+			spcsys.cycles = 0;
 			if (m_pPSG)
 			{
 				// Resetting the PSG restores its default register state.
@@ -523,9 +534,6 @@ TShutdownMode CKernel::Run (void){
 			tapePos = 0;
 			consecutiveZeros = 0;
 			casReadVal = 0;
-			spcsys.cas.motor = 0;
-			spcsys.cas.pulse = 0;
-			spcsys.cycles = 0;
 			if (s_pThis)
 			{
 				s_pThis->m_Cassette.motor = 0;
