@@ -8,6 +8,7 @@
 
 #ifdef HOST_COMPILE
 #include <SDL.h>
+void SetHostKeyHandler(void (*)(unsigned char, const unsigned char[6]));
 #endif
 
 extern "C" {
@@ -78,7 +79,7 @@ static void DrawOsd (void)
 	}
 	UG_SetForecolor (C_WHITE);
 	UG_SetBackcolor (C_BLACK);
-	UG_PutString (8, 2, osd_text);
+	UG_PutString (2, 2, osd_text);
 }
 
 // Show a message in the OSD bar for OSD_DURATION_US.
@@ -157,7 +158,15 @@ static void ScreenLog(int row, const char *format, ...)
 #else
 static void ScreenLog(int row, const char *format, ...)
 {
-    // No-op: overlay hidden to match real hardware display.
+    // No-op on real hardware: overlay hidden to match real hardware display.
+#ifdef HOST_COMPILE
+    char buf[33];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    fprintf(stderr, "[ScreenLog Row %02d] %s\n", row, buf);
+#endif
     (void)row;
     (void)format;
 }
@@ -468,6 +477,10 @@ boolean CKernel::Initialize (void)
 TShutdownMode CKernel::Run (void){
 	InitMC6847(mc6847_buf, spcsys.VRAM, 256, 192);
 
+#ifdef HOST_COMPILE
+	SetHostKeyHandler(KeyStatusHandlerRaw);
+#endif
+
 	CBcmFrameBuffer *pFB = m_Screen.GetFrameBuffer();
 	u16 *pScreen = (u16 *)(uintptr)pFB->GetBuffer();
 	unsigned sw = pFB->GetWidth();
@@ -660,8 +673,12 @@ TShutdownMode CKernel::Run (void){
 			if (frame % 33 == 0)
 			{
 				Update6847(spcsys.GMODE);
+				bool osd_active = osd_ready && osd_text[0] != 0 && NowUs() <= osd_until_us;
 				for (unsigned y = 0; y < 240; y++)
 				{
+					// Skip OSD rows so the text doesn't flicker
+					if (osd_active && y >= 2 && y < 14)
+						continue;
 					u16 *dst = pScreen + (y + offY) * pitch + offX;
 					u8  *src = mc6847_buf + y * 320;
 					for (unsigned x = 0; x < 320; x++)

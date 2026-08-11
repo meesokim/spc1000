@@ -66,11 +66,14 @@ static inline void CpZ80(register word dstAddr, register word srcAddr)
 inline void WrZ80(register word dstAddr, register byte b)
 {
 	spcsys.RAM[dstAddr] = b;
-	// When the ROM writes into the low 32KB (its own scratch area while IPLK is
-	// set), keep the ROM mirror in sync so that subsequent reads with IPLK=1
-	// see the updated value. This fixes cassette checksum storage at CKSMF1
-	// (0x11E7) and other self-modifying ROM routines.
-	if (dstAddr < 0x8000)
+	// When the ROM writes into the low 32KB while IPLK is set, keep the ROM
+	// mirror in sync so that subsequent reads with IPLK=1 see the updated
+	// value. This fixes cassette checksum storage at CKSMF1 (0x11E7) and
+	// other self-modifying ROM routines.
+	// IMPORTANT: only sync when IPLK is actually set. Writing to ROM[] while
+	// IPLK=0 (e.g. during tape loading) corrupts the original ROM image and
+	// causes a subsequent RESET to copy garbage into spcsys.ROM.
+	if (spcsys.IPLK && dstAddr < 0x8000)
 		ROM[dstAddr] = b;
 }
 

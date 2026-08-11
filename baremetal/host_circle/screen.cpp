@@ -8,6 +8,13 @@
 CUSBKeyboardDevice *g_pKeyboardDevice = nullptr;
 CScreenDevice *g_pScreenDevice = nullptr;
 
+typedef void (*KeyHandlerFunc)(unsigned char, const unsigned char[6]);
+static KeyHandlerFunc g_pKeyHandler = nullptr;
+
+void SetHostKeyHandler(KeyHandlerFunc handler) {
+    g_pKeyHandler = handler;
+}
+
 static SDL_Window *g_Window = nullptr;
 static SDL_Renderer *g_Renderer = nullptr;
 static SDL_Texture *g_Texture = nullptr;
@@ -185,7 +192,7 @@ void HostUpdate() {
     prev_f12 = cur_f12;
     prev_f10 = cur_f10;
 
-    if (keys_changed && g_pKeyboardDevice && g_pKeyboardDevice->m_pHandler) {
+    if (keys_changed) {
         Uint8 modifiers = 0;
         SDL_Keymod mod = SDL_GetModState();
         if (mod & KMOD_LCTRL) modifiers |= 0x01;
@@ -208,7 +215,11 @@ void HostUpdate() {
             raw_keys[0] = 0x43; // F10
         }
 
-        g_pKeyboardDevice->m_pHandler(modifiers, raw_keys);
+        if (g_pKeyboardDevice && g_pKeyboardDevice->m_pHandler) {
+            g_pKeyboardDevice->m_pHandler(modifiers, raw_keys);
+        } else if (g_pKeyHandler) {
+            g_pKeyHandler(modifiers, raw_keys);
+        }
     }
 
     unsigned now = SDL_GetTicks();
