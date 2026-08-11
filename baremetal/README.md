@@ -13,11 +13,28 @@
 
 ### 2. 하드웨어 리셋 및 시스템 안정화
 *   **키보드 단축키 RESET 지원**:
-    *   `F10` 또는 `F12` 키를 누르면 시스템 리셋 플래그(`g_reset_requested`)가 활성화되며, 리셋 시 BIOS/IPL 메모리 재정렬 및 에뮬레이터 내 테이프 주입 상태 변수(`header_injected`, `data_injected` 등)를 전부 클리어하도록 리셋 루틴을 안정화했습니다.
+    *   `F10` 또는 `F12` 키를 누르면 시스템 리셋 플래그(`g_reset_requested`)가 활성화됩니다.
+    *   리셋 시 `spcsys.IPLK=1`, `GMODE=0`, `psgRegNum=0`, cassette 상태 초기화, Z80 리셋, PSG 리셋을 수행하여 안정적인 웜 리셋을 보장합니다.
+    *   `rewind_on_reset=1` 설정 시 테이프 위치를 처음으로 되감습니다.
+*   **Host 빌드 RESET 키 전달 버그 수정**:
+    *   Host 빌드에서는 USB 키보드 장치(`g_pKeyboardDevice`)가 `nullptr`이므로 `HostUpdate()`의 F10/F12 키 상태가 `KeyStatusHandlerRaw`에 전달되지 않던 문제를 해결했습니다.
+    *   `SetHostKeyHandler()` fallback을 추가하여 host 환경에서도 F10/F12 리셋이 정상 동작합니다.
+*   **ROM 이미지 손상 버그 수정**:
+    *   `WrZ80()`가 IPLK 상태와 무관하게 전역 `ROM[]` 미러에 쓰던 버그를 수정했습니다. 테이프 로딩 중(IPLK=0) ROM 이미지가 손상되어 RESET 시 Z80이 쓰레기 코드를 실행하며 멈추는 현상을 해결했습니다.
+    *   `spcsys.IPLK == 1`일 때만 ROM 미러를 동기화하도록 조건을 추가했습니다.
 *   **터보 로더 속도 최적화**:
     *   카세트 모터 작동 중(`spcsys.cas.motor`가 ON일 때) 스레드 대기 방식을 `MsSleep(1)` 대신 `Yield()` 방식으로 조절하여, CPU 자원을 에뮬레이터에 집중시킴으로써 1초 이내의 초고속 로딩을 완성했습니다.
+*   **부트 최적화**:
+    *   VCHIQ 사운드 및 USB 초기화를 `BOOT_INIT_FRAME`(400프레임) 이후로 지연시켜 첫 화면이 즉시 표시되도록 했습니다.
 
-### 3. 하드웨어 주변기기 드라이버 통합
+### 3. OSD(On-Screen Display) 및 디버그 출력
+*   **OSD 테이프 파일명 표시**:
+    *   `ALT+LEFT`/`ALT+RIGHT`로 테이프 전환 시 현재 파일명을 화면 상단에 3초간 표시합니다.
+    *   OSD x 시작 위치를 2px로 조정하고, OSD 활성화 시 MC6847 화면 복사에서 OSD 행(y=2~13)을 건너뛰어 깜빡임을 제거했습니다.
+*   **Host 디버그 로그**:
+    *   Host 빌드에서 `ScreenLog()`가 stderr로 출력되어 RESET, MOTOR ON/OFF, 테이프 헤더 정보 등을 실시간 확인할 수 있습니다.
+
+### 4. 하드웨어 주변기기 드라이버 통합
 *   **SD 카드/FatFS 연동**: EMMC 드라이버를 초기화하고 SD 카드를 `SD:` 마운트하여 필요한 파일 시스템 로딩 구조를 확보했습니다.
 *   **PSG 사운드 출력**: emu2149 PSG 코어 및 `CSPCSoundDevice`를 VCHIQ 사운드와 직접 연결하여 오디오 렌더링을 구현했습니다.
 
