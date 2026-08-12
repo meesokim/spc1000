@@ -75,6 +75,7 @@ Cassette::Cassette()
     files_size = 0;
     m_dirname[0] = '\0';
     loaded_filename[0] = '\0';
+    m_zip_name[0] = '\0';
 }
 
 Cassette::~Cassette()
@@ -193,6 +194,8 @@ void Cassette::load(const char *name)
     char ext[16];
     lower(ext, filename.extension());
 
+    m_zip_name[0] = '\0';
+
     if (strcmp(ext, ".bz2") == 0) 
     {
         unsigned int dest_len = TAPE_SIZE;
@@ -224,6 +227,7 @@ void Cassette::load(const char *name)
     } 
     else if (strcmp(ext, ".zip") == 0)
     {
+        strcpy(m_zip_name, filename.filename());
         len = loadzip(Buffer, size);
     }
     delete[] Buffer;
@@ -370,7 +374,7 @@ int Cassette::loadzip(const char *data, int size)
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
-                    break;
+                    continue;
                 }
                 if (l + uncomp_size < TAPE_SIZE) {
                     memcpy(tape+l, uncompressed, uncomp_size);
@@ -382,9 +386,9 @@ int Cassette::loadzip(const char *data, int size)
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
-                    break;
+                    continue;
                 }
-                size_t max_bits = (uncomp_size * 8 > TAPE_SIZE - 1) ? (TAPE_SIZE - 1) : (uncomp_size * 8);
+                size_t max_bits = (uncomp_size * 8 > TAPE_SIZE - l - 1) ? (TAPE_SIZE - l - 1) : (uncomp_size * 8);
                 for(size_t bit = 0; bit < max_bits; bit++)
                 {
                     int i = bit / 8;
@@ -395,10 +399,9 @@ int Cassette::loadzip(const char *data, int size)
             } else 
                 continue;
             
-            if (l > 0) {
+            if (loaded_filename[0] == '\0') {
                 strcpy(loaded_filename, unzipfile);
             }
-            break; // Load first file
         }
     }
     mz_zip_reader_end(&zip);

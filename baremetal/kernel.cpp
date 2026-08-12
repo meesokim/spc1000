@@ -37,7 +37,11 @@ static unsigned osd_offy = 0;
 static char osd_text[128] = "";
 static u64 osd_until_us = 0;
 static bool osd_ready = false;
+static u64 progress_bar_until_us = 0;
 #define OSD_DURATION_US 3000000ull
+#define OSD_SHORT_DURATION_US 1000000ull
+#define PROGRESS_BAR_FADE_US 1000000ull
+#define RGB565(r,g,b) (((r)&0x1F)<<11 | ((g)&0x3F)<<5 | ((b)&0x1F))
 
 // Start the slower boot subsystems (VCHIQ sound) only after this many frames.
 // Each frame advances 4000 Z80 cycles (~1ms), so by frame 400 the SPC-1000
@@ -77,17 +81,38 @@ static void DrawOsd (void)
 		osd_text[0] = 0;
 		return;
 	}
+	// Clear the OSD row area to erase any leftover pixels from a previous
+	// longer string. The MC6847 copy loop skips y=2..13 when OSD is active,
+	// so we must clear it ourselves.
+	for (unsigned y = 2; y < 14; y++)
+	{
+		u16 *dst = osd_screen + (y + osd_offy) * osd_pitch + osd_offx;
+		for (unsigned x = 0; x < 320; x++)
+			dst[x] = 0;
+	}
+	// Truncate to 40 chars (320px / 8px font width) to prevent wrapping
+	char buf[41];
+	strncpy(buf, osd_text, 40);
+	buf[40] = '\0';
 	UG_SetForecolor (C_WHITE);
 	UG_SetBackcolor (C_BLACK);
-	UG_PutString (2, 2, osd_text);
+	UG_PutString (0, 2, buf);
 }
 
-// Show a message in the OSD bar for OSD_DURATION_US.
+// Show a message in the OSD bar for OSD_DURATION_US (3s).
 static void ShowOsd (const char *text)
 {
 	strncpy (osd_text, text, sizeof (osd_text) - 1);
 	osd_text[sizeof (osd_text) - 1] = 0;
 	osd_until_us = NowUs () + OSD_DURATION_US;
+}
+
+// Show a message in the OSD bar for OSD_SHORT_DURATION_US (1s).
+static void ShowOsdShort (const char *text)
+{
+	strncpy (osd_text, text, sizeof (osd_text) - 1);
+	osd_text[sizeof (osd_text) - 1] = 0;
+	osd_until_us = NowUs () + OSD_SHORT_DURATION_US;
 }
 
 SPCSystem spcsys;
@@ -238,6 +263,7 @@ static bool LoadTapeConfig(void)
 // Cassette state (cycles-based timing matching sdl2/cassette.cpp)
 static unsigned int batch_start_cycles = 0;
 static int batch_start_icount = 0;
+static bool casLastMotor = false;
 
 static unsigned int GetCycles(void)
 {
@@ -250,6 +276,39 @@ static int consecutiveZeros = 0;
 
 class CKernel; // forward
 static CKernel *s_pThis;
+
+// Draw a 4-pixel progress bar at the bottom of the screen showing tape position.
+// Light gray = total, dark gray = current position.
+static void DrawProgressBar (u16 *pScreen, unsigned pitch, unsigned offX, unsigned offY)
+{
+	if (!s_pThis)
+		return;
+	Cassette &cas = s_pThis->m_Cassette;
+	int total = cas.get_len();
+	if (total <= 0)
+		return;
+	int pos = cas.pos;
+	if (pos < 0) pos = 0;
+	if (pos > total) pos = total;
+
+	u16 light_gray = RGB565(0xC0>>3, 0xC0>>2, 0xC0>>3);
+	u16 dark_gray  = RGB565(0x80>>3, 0x80>>2, 0x80>>3);
+
+	int bar_y = 236;
+	int bar_h = 4;
+	int bar_w = 320;
+
+	int filled = (int)((long long)pos * bar_w / total);
+	if (filled < 0) filled = 0;
+	if (filled > bar_w) filled = bar_w;
+
+	for (int y = bar_y; y < bar_y + bar_h; y++)
+	{
+		u16 *dst = pScreen + (y + offY) * pitch + offX;
+		for (int x = 0; x < bar_w; x++)
+			dst[x] = (x < filled) ? dark_gray : light_gray;
+	}
+}
 
 static int ReadBitFrom(char *tapBuf, int tapLen, int &tapPos)
 {
@@ -317,14 +376,48 @@ static int ReadTapeBit(void)
 static int CasRead(void)
 {
 	if (!spcsys.cas.motor)
+	{
+		casLastMotor = false;
 		return 1;
+	}
 	if (s_pThis && s_pThis->m_Cassette.get_len() > 0)
 	{
-		// SD card path: read one bit per poll from the Cassette buffer,
-		// matching the ROM's polling model (not the old cycle-timing model).
-		int bit = ReadBitFrom(s_pThis->m_Cassette.get_tape(),
-		                      s_pThis->m_Cassette.get_len(),
-		                      s_pThis->m_Cassette.pos);
+		Cassette &cas = s_pThis->m_Cassette;
+		if (!casLastMotor && cas.is_zip())
+		{
+			char title[256];
+			cas.get_title(title);
+			if (title[0])
+			{
+				char osd_buf[128];
+				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
+					cas.get_index(),
+					cas.get_count(),
+					title,
+					cas.get_size());
+				ShowOsdShort(osd_buf);
+			}
+		}
+		casLastMotor = true;
+		if (cas.pos >= cas.get_len())
+		{
+			cas.pos = 0;
+			char title[256];
+			cas.get_title(title);
+			if (title[0])
+			{
+				char osd_buf[128];
+				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
+					cas.get_index(),
+					cas.get_count(),
+					title,
+					cas.get_size());
+				ShowOsdShort(osd_buf);
+			}
+		}
+		int bit = ReadBitFrom(cas.get_tape(),
+		                      cas.get_len(),
+		                      cas.pos);
 		return bit;
 	}
 	int bit = ReadTapeBit();
@@ -344,7 +437,6 @@ static bool right_was_pressed = false;
 int bpp = 16;
 char samsung_bmp_c[] = "";
 
-#define RGB565(r,g,b) (((r)&0x1F)<<11 | ((g)&0x3F)<<5 | ((b)&0x1F))
 #define I_PERIOD 4000
 #define SAMPLE_RATE   44100
 #define PSG_CLOCK    1789776
@@ -404,13 +496,6 @@ boolean CKernel::Initialize (void)
 	// first frame. Device detection is done by UpdatePlugAndPlay() in the main
 	// loop, after the SPC-1000 boot screen has been rendered.
 	if (bOK) bOK = m_USBHCI.Initialize (FALSE);
-	if (bOK)
-	{
-		if (m_EMMC.Initialize ())
-		{
-			f_mount (&m_FileSystem, "SD:", 0);
-		}
-	}
 
 	if (bOK)
 	{
@@ -438,8 +523,6 @@ boolean CKernel::Initialize (void)
 	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
 
 	memcpy(spcsys.ROM, ROM, 0x8000);
-	// Load tape loader configuration
-	LoadTapeConfig();
 	// Initialize tapeLen from tap0 fallback to resolve the tape presence detection chicken-and-egg bug
 	{
 		int len = 0;
@@ -498,22 +581,14 @@ TShutdownMode CKernel::Run (void){
 	UG_FontSelect (&FONT_8X12);
 	osd_ready = true;
 
-	// Load cassette directory from SD card
-	m_Cassette.loaddir("SD:/taps");
-	{
-		char title[256];
-		m_Cassette.get_title(title);
-		if (title[0]) ScreenLog(10, "Tape: %s", title);
-	}
-
 	Z80 *R = &spcsys.Z80R;
 	ResetZ80(R);
 	R->ICount = I_PERIOD;
 
 	int frame = 0;
-	// Boot optimization: VCHIQ/sound init is deferred until the SPC-1000 boot
-	// screen has been rendered, so the first frame appears immediately instead
-	// of after ~1s of blocking subsystem setup.
+	// Boot optimization: SD card, tape config, cassette directory, VCHIQ/sound,
+	// and USB init are all deferred until the SPC-1000 boot screen has been
+	// rendered, so the first frame appears immediately.
 	bool boot_slow_init_done = false;
 
 	while (1)
@@ -584,7 +659,10 @@ TShutdownMode CKernel::Run (void){
 					s_pThis->m_Cassette.next();
 				}
 				char title[256];
-				s_pThis->m_Cassette.get_title(title);
+				if (s_pThis->m_Cassette.is_zip())
+					s_pThis->m_Cassette.get_zip_name(title);
+				else
+					s_pThis->m_Cassette.get_title(title);
 				ScreenLog(10, "Tape: %s", title);
 				// Show the switched tape filename as an OSD overlay:
 				// "N/TOTAL. filename (filesize)"
@@ -595,6 +673,26 @@ TShutdownMode CKernel::Run (void){
 					title,
 					s_pThis->m_Cassette.get_size());
 				ShowOsd(osd_buf);
+			}
+
+			// Boot optimization: initialize SD card, tape config, and cassette
+			// directory at frame 1 (after the first frame is on screen).
+			if (frame == 1 && !boot_slow_init_done)
+			{
+				if (m_EMMC.Initialize ())
+				{
+					f_mount (&m_FileSystem, "SD:", 0);
+				}
+				LoadTapeConfig();
+				m_Cassette.loaddir("SD:/taps");
+				{
+					char title[256];
+					if (m_Cassette.is_zip())
+						m_Cassette.get_zip_name(title);
+					else
+						m_Cassette.get_title(title);
+					if (title[0]) ScreenLog(10, "Tape: %s", title);
+				}
 			}
 
 			// Boot optimization: initialize VCHIQ sound only after the boot
@@ -685,11 +783,14 @@ TShutdownMode CKernel::Run (void){
 						dst[x] = pal565[src[x]];
 				}
 				DrawOsd();
+				if (NowUs() <= progress_bar_until_us)
+					DrawProgressBar(pScreen, pitch, offX, offY);
 				R->ICount -= 20;
 			}
 
 			if (spcsys.cas.motor)
 			{
+				progress_bar_until_us = NowUs() + 3600000000ull;
 				if (frame % 200 == 0)
 				{
 					m_Scheduler.Yield();
@@ -697,6 +798,8 @@ TShutdownMode CKernel::Run (void){
 			}
 			else
 			{
+				if (progress_bar_until_us > NowUs() + PROGRESS_BAR_FADE_US)
+					progress_bar_until_us = NowUs() + PROGRESS_BAR_FADE_US;
 				m_Scheduler.MsSleep(1);
 			}
 		}
