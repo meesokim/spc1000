@@ -385,35 +385,38 @@ static int CasRead(void)
 		Cassette &cas = s_pThis->m_Cassette;
 		if (!casLastMotor && cas.is_zip())
 		{
-			char title[256];
-			cas.get_title(title);
-			if (title[0])
-			{
-				char osd_buf[128];
-				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
-					cas.get_index(),
-					cas.get_count(),
-					title,
-					cas.get_size());
-				ShowOsdShort(osd_buf);
-			}
+			char osd_buf[128];
+			snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
+				cas.get_zip_file_index(),
+				cas.get_zip_file_count(),
+				cas.get_zip_file_name(),
+				cas.get_zip_file_size());
+			ShowOsdShort(osd_buf);
 		}
 		casLastMotor = true;
 		if (cas.pos >= cas.get_len())
 		{
 			cas.pos = 0;
-			char title[256];
-			cas.get_title(title);
-			if (title[0])
+			char osd_buf[128];
+			if (cas.is_zip())
 			{
-				char osd_buf[128];
+				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
+					cas.get_zip_file_index(),
+					cas.get_zip_file_count(),
+					cas.get_zip_file_name(),
+					cas.get_zip_file_size());
+			}
+			else
+			{
+				char title[256];
+				cas.get_title(title);
 				snprintf(osd_buf, sizeof(osd_buf), "%d/%d. %s (%d)",
 					cas.get_index(),
 					cas.get_count(),
 					title,
 					cas.get_size());
-				ShowOsdShort(osd_buf);
 			}
+			ShowOsdShort(osd_buf);
 		}
 		int bit = ReadBitFrom(cas.get_tape(),
 		                      cas.get_len(),

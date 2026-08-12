@@ -318,6 +318,7 @@ int Cassette::loadzip(const char *data, int size)
     char unzipfile[256];
     memset(tape, 0, TAPE_SIZE);
     memset(&zip, 0, sizeof(zip));
+    m_zip_file_count = 0;
     l = 0;
     
     if (!size)
@@ -374,6 +375,12 @@ int Cassette::loadzip(const char *data, int size)
             
             if (strcmp(ext, ".tap") == 0)
             {
+                if (m_zip_file_count < 32)
+                {
+                    m_zip_file_starts[m_zip_file_count] = l;
+                    strncpy(m_zip_files[m_zip_file_count], file.filename(), 127);
+                    m_zip_files[m_zip_file_count][127] = '\0';
+                }
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
@@ -383,22 +390,34 @@ int Cassette::loadzip(const char *data, int size)
                     memcpy(tape+l, uncompressed, uncomp_size);
                     l += uncomp_size;
                 }
+                if (m_zip_file_count < 32)
+                    m_zip_file_sizes[m_zip_file_count++] = uncomp_size;
             } 
             else if (strcmp(ext, ".cas") == 0)
             {
+                if (m_zip_file_count < 32)
+                {
+                    m_zip_file_starts[m_zip_file_count] = l;
+                    strncpy(m_zip_files[m_zip_file_count], file.filename(), 127);
+                    m_zip_files[m_zip_file_count][127] = '\0';
+                }
                 bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
                 if (!ret)
                 {
                     continue;
                 }
                 size_t max_bits = (uncomp_size * 8 > TAPE_SIZE - l - 1) ? (TAPE_SIZE - l - 1) : (uncomp_size * 8);
+                int bits_written = 0;
                 for(size_t bit = 0; bit < max_bits; bit++)
                 {
                     int i = bit / 8;
                     int j = bit % 8;
                     tape[l] = (uncompressed[i] & (0x80 >> j)) > 0 ? '1' : '0';
                     l++;
+                    bits_written++;
                 }
+                if (m_zip_file_count < 32)
+                    m_zip_file_sizes[m_zip_file_count++] = bits_written;
             } else 
                 continue;
             

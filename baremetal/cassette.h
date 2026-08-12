@@ -56,6 +56,10 @@ class Cassette {
     char m_dirname[256];
     char loaded_filename[256];
     char m_zip_name[256];
+    char m_zip_files[32][128];
+    int  m_zip_file_starts[32];
+    int  m_zip_file_sizes[32];
+    int  m_zip_file_count;
     const char *exts[4];
 
 public:
@@ -84,6 +88,22 @@ public:
     void get_title(char *buf) { strcpy(buf, loaded_filename); }
     bool is_zip() const { return m_zip_name[0] != '\0'; }
     void get_zip_name(char *buf) const { strcpy(buf, m_zip_name); }
+    int get_zip_file_count() const { return m_zip_file_count; }
+    int get_zip_file_index() const {
+        for (int i = m_zip_file_count - 1; i >= 0; i--)
+            if (pos >= m_zip_file_starts[i]) return i + 1;
+        return 1;
+    }
+    const char *get_zip_file_name() const {
+        int idx = get_zip_file_index() - 1;
+        if (idx >= 0 && idx < m_zip_file_count) return m_zip_files[idx];
+        return loaded_filename;
+    }
+    int get_zip_file_size() const {
+        int idx = get_zip_file_index() - 1;
+        if (idx >= 0 && idx < m_zip_file_count) return m_zip_file_sizes[idx];
+        return len;
+    }
     int get_count() const { return files_size; }
     int get_index() const { return file_index + 1; } // 1-based
     int get_size() const { return files[file_index].size; }
