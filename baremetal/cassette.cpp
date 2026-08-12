@@ -190,7 +190,6 @@ void Cassette::load(const char *name)
     int size = nBytesRead;
 
     ZFile filename(name ? name : files[file_index].c_str());
-    strcpy(loaded_filename, filename.filename());
     char ext[16];
     lower(ext, filename.extension());
 
@@ -198,6 +197,7 @@ void Cassette::load(const char *name)
 
     if (strcmp(ext, ".bz2") == 0) 
     {
+        strcpy(loaded_filename, filename.filename());
         unsigned int dest_len = TAPE_SIZE;
         int bReturn = BZ2_bzBuffToBuffDecompress(tape, &dest_len, Buffer, size, 0, 0);
         if (bReturn == BZ_OK) {
@@ -206,6 +206,7 @@ void Cassette::load(const char *name)
     }
     else if (strcmp(ext, ".tap") == 0) 
     {
+        strcpy(loaded_filename, filename.filename());
         memcpy(tape, Buffer, size);
         len = size;
         // Strip trailing CR/LF so the bit buffer matches the compiled-in tap0
@@ -214,6 +215,7 @@ void Cassette::load(const char *name)
     } 
     else if (strcmp(ext, ".cas") == 0) 
     {
+        strcpy(loaded_filename, filename.filename());
         len = 0;
         int max_bits = (size * 8 > TAPE_SIZE - 1) ? (TAPE_SIZE - 1) : (size * 8);
         for(int bit = 0; bit < max_bits; bit++)
@@ -228,6 +230,7 @@ void Cassette::load(const char *name)
     else if (strcmp(ext, ".zip") == 0)
     {
         strcpy(m_zip_name, filename.filename());
+        loaded_filename[0] = '\0';
         len = loadzip(Buffer, size);
     }
     delete[] Buffer;
