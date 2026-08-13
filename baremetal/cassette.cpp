@@ -83,8 +83,13 @@ Cassette::~Cassette()
     delete[] tape;
 }
 
+void Cassette::ensure_loaded() const
+{
+}
+
 #define PULSE 14
 char Cassette::read(unsigned int cycles, unsigned char wait) {
+    ensure_loaded();
     char val = 0;
     wait = 38;
     int diff = (int)(cycles - old_cycles);
@@ -158,8 +163,8 @@ void Cassette::load(const char *name)
 {
     pos = 0;
     len = 0;
-    char *Buffer = new char[TAPE_SIZE];
-    if (!Buffer) return;
+    m_zip_name[0] = '\0';
+
 
     char path[256];
     if (name)
@@ -175,10 +180,24 @@ void Cassette::load(const char *name)
             strcpy(path, m_dirname);
             strcat(path, files[file_index].c_str());
         } else {
-            delete[] Buffer;
             return;
         }
     }        
+
+    ZFile filename(name ? name : files[file_index].c_str());
+    char ext[16];
+    lower(ext, filename.extension());
+
+    if (strcmp(ext, ".zip") == 0)
+    {
+        strcpy(m_zip_name, filename.filename());
+        loadzip(path);
+        pos = 0;
+        return;
+    }
+
+    char *Buffer = new char[TAPE_SIZE];
+    if (!Buffer) return;
 
     unsigned int nBytesRead = 0;
     FIL File;
@@ -188,12 +207,6 @@ void Cassette::load(const char *name)
         f_close (&File);
     }
     int size = nBytesRead;
-
-    ZFile filename(name ? name : files[file_index].c_str());
-    char ext[16];
-    lower(ext, filename.extension());
-
-    m_zip_name[0] = '\0';
 
     if (strcmp(ext, ".bz2") == 0) 
     {
@@ -226,12 +239,6 @@ void Cassette::load(const char *name)
             tape[len] = (c & (0x80 >> j)) > 0 ? '1' : '0';
             len++;
         }
-    } 
-    else if (strcmp(ext, ".zip") == 0)
-    {
-        strcpy(m_zip_name, filename.filename());
-        loaded_filename[0] = '\0';
-        len = loadzip(Buffer, size);
     }
     delete[] Buffer;
 }
@@ -253,7 +260,6 @@ void Cassette::load(const char *data, unsigned int length, const char *filename)
 
 void Cassette::setfile(const char *filename)
 {
-    // In bare-metal, just try to load directly by extension
     char ext[16];
     const char *dot = strrchr(filename, '.');
     if (dot) {
@@ -263,7 +269,18 @@ void Cassette::setfile(const char *filename)
     }
     if (strcmp(ext, ".zip") == 0)
     {
-        loadzip(filename);
+        pos = 0;
+        len = 0;
+        ZFile zf(filename);
+        strcpy(m_zip_name, zf.filename());
+        char path[256];
+        if (strncmp(filename, "SD:/", 4) != 0 && strncmp(filename, "sd:/", 4) != 0) {
+            strcpy(path, m_dirname);
+            strcat(path, filename);
+        } else {
+            strcpy(path, filename);
+        }
+        loadzip(path);
     }
     else {
         load(filename);
@@ -303,24 +320,18 @@ void Cassette::loaddir(const char *dirname)
 
 int Cassette::loadzip(const char *data, int size)
 {
-    size_t uncomp_size, l; 
     mz_zip_archive zip;
     mz_zip_archive_file_stat file_stat;
-    
-    uint8_t *compressed = new uint8_t[1024*1024*1];
-    uint8_t *uncompressed = new uint8_t[1024*1024*4];
-    if (!compressed || !uncompressed)
-    {
-        delete[] compressed;
-        delete[] uncompressed;
-        return 0;
-    }
     char unzipfile[256];
+    static uint8_t zip_buf[512 * 1024];
+    static uint8_t cas_buf[64 * 1024];
+
     memset(tape, 0, TAPE_SIZE);
     memset(&zip, 0, sizeof(zip));
     m_zip_file_count = 0;
-    l = 0;
-    
+    size_t l = 0;
+    const uint8_t *zip_data = nullptr;
+
     if (!size)
     {
         char zipname[256];
@@ -329,105 +340,121 @@ int Cassette::loadzip(const char *data, int size)
             strcpy(zipname, m_dirname);
             strcat(zipname, data);
         }
-        else 
+        else
         {
             strcpy(zipname, data);
         }
         FIL File;
-        unsigned int nBytesRead = 0;
-        FRESULT Result = f_open (&File, zipname, FA_READ | FA_OPEN_EXISTING);
-        if (Result == FR_OK) {
-            f_read (&File, compressed, 1024*1024*1, &nBytesRead);
-            f_close (&File);
-        }
-        size = nBytesRead;
-        if (size == 0)
+        FRESULT Result = f_open(&File, zipname, FA_READ | FA_OPEN_EXISTING);
+        if (Result != FR_OK) return 0;
+        DWORD file_size = f_size(&File);
+        if (file_size == 0 || file_size > sizeof(zip_buf))
         {
-            delete[] compressed;
-            delete[] uncompressed;
+            f_close(&File);
             return 0;
         }
+        unsigned int nBytesRead = 0;
+        f_read(&File, zip_buf, file_size, &nBytesRead);
+        f_close(&File);
+        size = nBytesRead;
+        zip_data = zip_buf;
     }
-    else 
+    else
     {
-        if (size > 1024*1024*1) size = 1024*1024*1;
-        memcpy(compressed, data, size);
+        zip_data = (const uint8_t *)data;
     }
-    
-    if (mz_zip_reader_init_mem(&zip, compressed, size, 0))
+
+    if (!mz_zip_reader_init_mem(&zip, zip_data, size, 0))
+        return 0;
+
+    mz_uint num_files = mz_zip_reader_get_num_files(&zip);
+    for (mz_uint no = 0; no < num_files; ++no)
     {
-        for (mz_uint no = 0; no < mz_zip_reader_get_num_files(&zip); no++)
+        if (!mz_zip_reader_file_stat(&zip, no, &file_stat))
+            continue;
+        if (file_stat.m_is_directory || !strlen(file_stat.m_filename))
+            continue;
+
+        strncpy(unzipfile, file_stat.m_filename, 255);
+        unzipfile[255] = '\0';
+        ZFile file(unzipfile);
+        const char *fname = file.filename();
+        if (fname[0] == '.' || strstr(unzipfile, "__MACOSX"))
+            continue;
+
+        char ext[16];
+        lower(ext, file.extension());
+
+        if (strcmp(ext, ".tap") == 0 || strcmp(ext, ".cas") == 0)
         {
-            if (!mz_zip_reader_file_stat(&zip, no, &file_stat))
-            {
-                break;
-            }
-            if (!strlen(file_stat.m_filename))
+            size_t uncomp = (size_t)file_stat.m_uncomp_size;
+            if (uncomp == 0)
                 continue;
-            
-            strncpy(unzipfile, file_stat.m_filename, 255);
-            unzipfile[255] = '\0';
-            uncomp_size = file_stat.m_uncomp_size;
-            
-            ZFile file(unzipfile);
-            char ext[16];
-            lower(ext, file.extension());
-            
+                
+            bool extracted = false;
             if (strcmp(ext, ".tap") == 0)
             {
-                if (m_zip_file_count < 32)
+                if (l + uncomp < TAPE_SIZE && mz_zip_reader_extract_to_mem(&zip, no, (uint8_t *)tape + l, uncomp, 0))
                 {
-                    m_zip_file_starts[m_zip_file_count] = l;
-                    strncpy(m_zip_files[m_zip_file_count], file.filename(), 127);
-                    m_zip_files[m_zip_file_count][127] = '\0';
+                    extracted = true;
                 }
-                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
-                if (!ret)
+            }
+            else if (strcmp(ext, ".cas") == 0)
+            {
+                size_t max_cas_bytes = (l < TAPE_SIZE - 1) ? ((TAPE_SIZE - 1 - l) / 8) : 0;
+                if (uncomp > max_cas_bytes) uncomp = max_cas_bytes;
+                if (uncomp > 0 && uncomp <= sizeof(cas_buf) && 
+                    mz_zip_reader_extract_to_mem(&zip, no, cas_buf, uncomp, 0))
                 {
+                    extracted = true;
+                    if (m_zip_file_count < 32)
+                    {
+                        m_zip_file_starts[m_zip_file_count] = l;
+                        strncpy(m_zip_files[m_zip_file_count], file.filename(), 127);
+                        m_zip_files[m_zip_file_count][127] = '\0';
+                        m_zip_file_sizes[m_zip_file_count] = uncomp * 8;
+                        ++m_zip_file_count;
+                    }
+                    for (size_t bi = 0; bi < uncomp; ++bi)
+                    {
+                        uint8_t c = cas_buf[bi];
+                        for (int bj = 0; bj < 8; ++bj)
+                        {
+                            tape[l++] = (c & (0x80 >> bj)) ? '1' : '0';
+                        }
+                    }
+                    if (loaded_filename[0] == '\0') {
+                        strncpy(loaded_filename, file.filename(), 255);
+                        loaded_filename[255] = '\0';
+                    }
                     continue;
                 }
-                if (l + uncomp_size < TAPE_SIZE) {
-                    memcpy(tape+l, uncompressed, uncomp_size);
-                    l += uncomp_size;
-                }
-                if (m_zip_file_count < 32)
-                    m_zip_file_sizes[m_zip_file_count++] = uncomp_size;
-            } 
-            else if (strcmp(ext, ".cas") == 0)
+            }
+            
+            if (extracted)
             {
                 if (m_zip_file_count < 32)
                 {
                     m_zip_file_starts[m_zip_file_count] = l;
                     strncpy(m_zip_files[m_zip_file_count], file.filename(), 127);
                     m_zip_files[m_zip_file_count][127] = '\0';
+                    m_zip_file_sizes[m_zip_file_count] = (strcmp(ext, ".tap") == 0) ? uncomp : uncomp * 8;
+                    ++m_zip_file_count;
                 }
-                bool ret = mz_zip_reader_extract_file_to_mem(&zip, unzipfile, uncompressed, 1024*1024*4, 0);
-                if (!ret)
-                {
-                    continue;
-                }
-                size_t max_bits = (uncomp_size * 8 > TAPE_SIZE - l - 1) ? (TAPE_SIZE - l - 1) : (uncomp_size * 8);
-                int bits_written = 0;
-                for(size_t bit = 0; bit < max_bits; bit++)
-                {
-                    int i = bit / 8;
-                    int j = bit % 8;
-                    tape[l] = (uncompressed[i] & (0x80 >> j)) > 0 ? '1' : '0';
-                    l++;
-                    bits_written++;
-                }
-                if (m_zip_file_count < 32)
-                    m_zip_file_sizes[m_zip_file_count++] = bits_written;
-            } else 
-                continue;
-            
-            if (loaded_filename[0] == '\0') {
-                strcpy(loaded_filename, unzipfile);
+                l += (strcmp(ext, ".tap") == 0) ? uncomp : uncomp * 8;
             }
         }
+
     }
     mz_zip_reader_end(&zip);
-    delete[] compressed;
-    delete[] uncompressed;
-    return l;
+    len = l;
+    
+    if (m_zip_file_count > 0) {
+        char base_name[128];
+        strncpy(base_name, m_zip_files[0], 100);
+        base_name[100] = '\0';
+        snprintf(loaded_filename, sizeof(loaded_filename), "%s", base_name);
+    }
+    
+    return (int)l;
 }

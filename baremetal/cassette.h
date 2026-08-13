@@ -8,6 +8,7 @@ typedef unsigned char uint8_t;
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 enum castype {TYPE_CHARBIN, TYPE_BINARY};
 
@@ -39,7 +40,7 @@ public:
     }
 };
 
-#define TAPE_SIZE (512 * 1024) // 512KB
+#define TAPE_SIZE (1536 * 1024) // 1.5MB
 
 class Cassette {
     unsigned int old_cycles;
@@ -65,8 +66,9 @@ class Cassette {
 public:
     char motor;
     int pos;
-    int get_len() const { return len; }
-    char *get_tape() { return tape; }
+    void ensure_loaded() const;
+    int get_len() { ensure_loaded(); return len; }
+    char *get_tape() { ensure_loaded(); return tape; }
     Cassette();
     ~Cassette();
     void initTick(unsigned int tick) { old_cycles = tick; }
@@ -75,38 +77,67 @@ public:
     void save(const char *name);
     char read(unsigned int, unsigned char);
     char read_bit() {
+        ensure_loaded();
         if (pos >= len) return 1;
+        if (is_zip() && m_zip_file_count > 0) {
+            for (int i = 0; i < m_zip_file_count; i++) {
+                if (pos >= m_zip_file_starts[i]) {
+                    snprintf(loaded_filename, sizeof(loaded_filename), "%s", m_zip_files[i]);
+                }
+            }
+        }
         return (tape[pos++] == '1') ? 1 : 0;
     }
     void write(char);
+    void get_title(char *buf) { strcpy(buf, loaded_filename); }
+    bool is_zip() const { return m_zip_name[0] != '\0'; }
+    void get_zip_name(char *buf) const { strcpy(buf, m_zip_name); }
+    int get_zip_file_count() {
+        ensure_loaded();
+        return m_zip_file_count;
+    }
+    int get_zip_file_index() const {
+        ensure_loaded();
+        if (m_zip_file_count <= 0) return 1;
+        for (int i = m_zip_file_count - 1; i >= 0; i--)
+            if (pos >= m_zip_file_starts[i]) return i + 1;
+        return 1;
+    }
+    const char *get_zip_file_name() {
+        ensure_loaded();
+        int idx = get_zip_file_index() - 1;
+        if (idx >= 0 && idx < m_zip_file_count && m_zip_files[idx][0] != '\0')
+            return m_zip_files[idx];
+        if (loaded_filename[0] != '\0')
+            return loaded_filename;
+        return m_zip_name;
+    }
+    int get_zip_file_size() const {
+        ensure_loaded();
+        int idx = get_zip_file_index() - 1;
+        if (idx >= 0 && idx < m_zip_file_count) return m_zip_file_sizes[idx];
+        return len;
+    }
+    int get_count() const { 
+        if (files_size == 0 && m_zip_file_count > 0) return m_zip_file_count;
+        return files_size; 
+    }
+    int get_index() const { 
+        return file_index + 1; 
+    }
+    int get_size() const { 
+        if (m_zip_name[0] != '\0' && m_zip_file_count > 0) {
+            int idx = get_zip_file_index() - 1;
+            if (idx >= 0 && idx < m_zip_file_count) return m_zip_file_sizes[idx];
+        }
+        return files[file_index].size; 
+    }
     void next() {
         if (files_size == 0) return;
         file_index++;
         if (file_index >= (int)files_size) file_index = 0;
         load();
     }
-    void get_title(char *buf) { strcpy(buf, loaded_filename); }
-    bool is_zip() const { return m_zip_name[0] != '\0'; }
-    void get_zip_name(char *buf) const { strcpy(buf, m_zip_name); }
-    int get_zip_file_count() const { return m_zip_file_count; }
-    int get_zip_file_index() const {
-        for (int i = m_zip_file_count - 1; i >= 0; i--)
-            if (pos >= m_zip_file_starts[i]) return i + 1;
-        return 1;
-    }
-    const char *get_zip_file_name() const {
-        int idx = get_zip_file_index() - 1;
-        if (idx >= 0 && idx < m_zip_file_count) return m_zip_files[idx];
-        return loaded_filename;
-    }
-    int get_zip_file_size() const {
-        int idx = get_zip_file_index() - 1;
-        if (idx >= 0 && idx < m_zip_file_count) return m_zip_file_sizes[idx];
-        return len;
-    }
-    int get_count() const { return files_size; }
-    int get_index() const { return file_index + 1; } // 1-based
-    int get_size() const { return files[file_index].size; }
     void prev() {
         if (files_size == 0) return;
         file_index--;

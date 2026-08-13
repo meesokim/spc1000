@@ -4962,8 +4962,7 @@ void UG_PutString( UG_S16 x, UG_S16 y, char* str )
       cw = gui->font.widths ? gui->font.widths[chr - gui->font.start_char] : gui->font.char_width;
       if ( xp + cw > gui->x_dim - 1 )
       {
-         xp = x;
-         yp += gui->font.char_height+gui->char_v_space;
+         break; // Truncate so it doesn't exceed one line
       }
       if (chr <= 127)
       {

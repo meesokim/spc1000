@@ -82,9 +82,9 @@ static void DrawOsd (void)
 		return;
 	}
 	// Clear the OSD row area to erase any leftover pixels from a previous
-	// longer string. The MC6847 copy loop skips y=2..13 when OSD is active,
+	// longer string. The MC6847 copy loop skips y=2..17 when OSD is active,
 	// so we must clear it ourselves.
-	for (unsigned y = 2; y < 14; y++)
+	for (unsigned y = 2; y < 18; y++)
 	{
 		u16 *dst = osd_screen + (y + osd_offy) * osd_pitch + osd_offx;
 		for (unsigned x = 0; x < 320; x++)
@@ -119,7 +119,7 @@ SPCSystem spcsys;
 extern unsigned char ROM[32768];
 
 // Embedded tape data (from tap.c)
-extern char tap0[];
+char tap0[1] = {0};
 static int tapeLen = 0;
 static int tapePos = 0;
 static TapeLoaderConfig tapeCfg;
@@ -581,7 +581,7 @@ TShutdownMode CKernel::Run (void){
 	osd_offx = offX;
 	osd_offy = offY;
 	UG_Init (&osd_gui, UguiSetPixel, 320, 240);
-	UG_FontSelect (&FONT_8X12);
+	UG_FontSelect (&FONT_8X14);
 	osd_ready = true;
 
 	Z80 *R = &spcsys.Z80R;
@@ -778,7 +778,7 @@ TShutdownMode CKernel::Run (void){
 				for (unsigned y = 0; y < 240; y++)
 				{
 					// Skip OSD rows so the text doesn't flicker
-					if (osd_active && y >= 2 && y < 14)
+					if (osd_active && y >= 2 && y < 18)
 						continue;
 					u16 *dst = pScreen + (y + offY) * pitch + offX;
 					u8  *src = mc6847_buf + y * 320;
@@ -794,7 +794,11 @@ TShutdownMode CKernel::Run (void){
 			if (spcsys.cas.motor)
 			{
 				progress_bar_until_us = NowUs() + 3600000000ull;
+#ifdef HOST_COMPILE
+				if (frame % 10 == 0)
+#else
 				if (frame % 200 == 0)
+#endif
 				{
 					m_Scheduler.Yield();
 				}

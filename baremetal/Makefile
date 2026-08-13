@@ -12,7 +12,7 @@ CPPFLAGS += -DUSE_VCHIQ_SOUND=$(USE_VCHIQ_SOUND)
 KERNEL_MAX_SIZE = 0x400000
 DEFINE += -DKERNEL_MAX_SIZE=$(KERNEL_MAX_SIZE)
 
-OBJS = main.o kernel.o MC6847.o Z80SPC.o spcall.o emu2149.o tap.o tape_loader.o cassette.o stub.o \
+OBJS = main.o kernel.o MC6847.o Z80SPC.o spcall.o emu2149.o tape_loader.o cassette.o stub.o \
        ugui/ugui.o \
        miniz/miniz.o miniz/miniz_tdef.o miniz/miniz_tinfl.o miniz/miniz_zip.o \
        bzip2/blocksort.o bzip2/huffman.o bzip2/crctable.o bzip2/randtable.o bzip2/compress.o bzip2/decompress.o bzip2/bzlib.o
@@ -36,15 +36,6 @@ TARGET = kernel
 include $(CIRCLEHOME)/Rules.mk
 
 ugui/ugui.o: ugui/ugui.c
-
-tap.o: tap.c
-
-tap.c: apple.tap
-	@echo "Generating tap.c from $<..."
-	@echo 'char tap0[] = {' > $@
-	@echo -n '"' >> $@
-	@tr -d '\r\n' < $< >> $@
-	@echo '"};' >> $@
 
 host:
 	$(MAKE) -f Makefile.host
