@@ -8,6 +8,7 @@
 
 #ifdef HOST_COMPILE
 #include <SDL.h>
+#include <chrono>
 void SetHostKeyHandler(void (*)(unsigned char, const unsigned char[6]));
 #endif
 
@@ -24,6 +25,21 @@ extern "C" {
 // 8bpp intermediate buffer for MC6847
 static u8 mc6847_buf[320*240];
 static u16 pal565[256];
+static u32 pal32[256];
+static u32 pal32_bright[256];
+static bool g_scanline_mode = true;
+
+static u16 BrightenRGB565(u16 c)
+{
+	u32 r = (c >> 11) & 0x1F;
+	u32 g = (c >> 5)  & 0x3F;
+	u32 b = c & 0x1F;
+	if (r == 0 && g == 0 && b == 0) return 0;
+	r = (r * 13) / 10 + 2; if (r > 31) r = 31;
+	g = (g * 13) / 10 + 3; if (g > 63) g = 63;
+	b = (b * 13) / 10 + 2; if (b > 31) b = 31;
+	return (u16)((r << 11) | (g << 5) | b);
+}
 
 // ---------------------------------------------------------------------------
 // On-screen display (OSD) via uGUI: shows the current tape filename at the
@@ -59,44 +75,63 @@ static u64 NowUs (void)
 }
 
 // uGUI pixel callback: writes an RGB565 pixel into the live framebuffer.
-// Coordinates are relative to the 320x240 emulated image.
+// Coordinates are relative to the 640x480 screen image.
 static void UguiSetPixel (UG_S16 x, UG_S16 y, UG_COLOR c)
 {
 	if (x < 0 || y < 0)
 		return;
-	if ((unsigned) x >= 320 || (unsigned) y >= 240)
+	if ((unsigned) x >= 640 || (unsigned) y >= 480)
 		return;
 	osd_screen[(y + osd_offy) * osd_pitch + (x + osd_offx)] = (u16) c;
 }
+
+static bool osd_was_active = false;
 
 // Draw the OSD text (no box). Called from the render path only; while it is
 // active the uGUI text stays on screen because nothing else writes to the
 // framebuffer in between.
 static void DrawOsd (void)
 {
-	if (!osd_ready || osd_text[0] == 0)
+	if (!osd_ready)
 		return;
-	if (NowUs () > osd_until_us)
+
+	bool osd_active = (osd_text[0] != 0 && NowUs() <= osd_until_us);
+
+	if (osd_active)
 	{
-		osd_text[0] = 0;
-		return;
+		// Clear the OSD row area (y=8..25) to erase any leftover pixels from a previous
+		// longer string. The MC6847 copy loop skips OSD rows when OSD is active,
+		// so we must clear it ourselves.
+		for (unsigned y = 8; y < 26; y++)
+		{
+			u16 *dst = osd_screen + (y + osd_offy) * osd_pitch + osd_offx;
+			for (unsigned x = 0; x < 640; x++)
+				dst[x] = 0;
+		}
+		// Truncate to 75 chars (starts at x=10, 10 + 75*8 = 610 <= 640px) to prevent wrapping
+		char buf[76];
+		strncpy(buf, osd_text, 75);
+		buf[75] = '\0';
+		UG_SetForecolor (C_WHITE);
+		UG_SetBackcolor (C_BLACK);
+		UG_PutString (10, 10, buf);
+		osd_was_active = true;
 	}
-	// Clear the OSD row area to erase any leftover pixels from a previous
-	// longer string. The MC6847 copy loop skips y=2..17 when OSD is active,
-	// so we must clear it ourselves.
-	for (unsigned y = 2; y < 18; y++)
+	else
 	{
-		u16 *dst = osd_screen + (y + osd_offy) * osd_pitch + osd_offx;
-		for (unsigned x = 0; x < 320; x++)
-			dst[x] = 0;
+		if (osd_was_active || osd_text[0] != 0)
+		{
+			// When osd_active is false, clear the OSD area to black
+			for (unsigned y = 8; y < 26; y++)
+			{
+				u16 *dst = osd_screen + (y + osd_offy) * osd_pitch + osd_offx;
+				for (unsigned x = 0; x < 640; x++)
+					dst[x] = 0;
+			}
+			osd_text[0] = 0;
+			osd_was_active = false;
+		}
 	}
-	// Truncate to 40 chars (320px / 8px font width) to prevent wrapping
-	char buf[41];
-	strncpy(buf, osd_text, 40);
-	buf[40] = '\0';
-	UG_SetForecolor (C_WHITE);
-	UG_SetBackcolor (C_BLACK);
-	UG_PutString (0, 2, buf);
 }
 
 // Show a message in the OSD bar for OSD_DURATION_US (3s).
@@ -277,7 +312,7 @@ static int consecutiveZeros = 0;
 class CKernel; // forward
 static CKernel *s_pThis;
 
-// Draw a 4-pixel progress bar at the bottom of the screen showing tape position.
+// Draw an 8-pixel progress bar at the bottom of the screen showing tape position.
 // Light gray = total, dark gray = current position.
 static void DrawProgressBar (u16 *pScreen, unsigned pitch, unsigned offX, unsigned offY)
 {
@@ -294,9 +329,9 @@ static void DrawProgressBar (u16 *pScreen, unsigned pitch, unsigned offX, unsign
 	u16 light_gray = RGB565(0xC0>>3, 0xC0>>2, 0xC0>>3);
 	u16 dark_gray  = RGB565(0x80>>3, 0x80>>2, 0x80>>3);
 
-	int bar_y = 236;
-	int bar_h = 4;
-	int bar_w = 320;
+	int bar_y = 472;
+	int bar_h = 8;
+	int bar_w = 640;
 
 	int filled = (int)((long long)pos * bar_w / total);
 	if (filled < 0) filled = 0;
@@ -464,7 +499,7 @@ CKernel::CKernel (void)
 :	m_Memory (TRUE),
 	m_Timer (&m_Interrupt),
 	m_Logger (m_Options.GetLogLevel (), &m_Timer),
-	m_Screen (320, 240),
+	m_Screen (640, 480),
 	m_VCHIQ (CMemorySystem::Get (), &m_Interrupt),
 	m_USBHCI (&m_Interrupt, &m_Timer, TRUE),
 	m_pKeyboard (0),
@@ -524,6 +559,13 @@ boolean CKernel::Initialize (void)
 	pal565[14] = RGB565(0xff>>3, 0x81>>2, 0x00>>3);  // bright orange
 	pal565[15] = RGB565(0xff>>3, 0xff>>2, 0x00>>3);  // yellow
 	for (int i = 16; i < 256; i++) pal565[i] = pal565[i % 16];
+	for (int i = 0; i < 256; i++)
+	{
+		u32 c = pal565[i];
+		pal32[i] = c | (c << 16);
+		u32 cb = BrightenRGB565(pal565[i]);
+		pal32_bright[i] = cb | (cb << 16);
+	}
 
 	memcpy(spcsys.ROM, ROM, 0x8000);
 	// Initialize tapeLen from tap0 fallback to resolve the tape presence detection chicken-and-egg bug
@@ -572,15 +614,15 @@ TShutdownMode CKernel::Run (void){
 	unsigned sw = pFB->GetWidth();
 	unsigned sh = pFB->GetHeight();
 	unsigned pitch = pFB->GetPitch() / 2;
-	unsigned offX = (sw > 320) ? (sw - 320) / 2 : 0;
-	unsigned offY = (sh > 240) ? (sh - 240) / 2 : 0;
+	unsigned offX = (sw > 640) ? (sw - 640) / 2 : 0;
+	unsigned offY = (sh > 480) ? (sh - 480) / 2 : 0;
 
 	// Set up the uGUI OSD overlay (RGB565, drawn on top of the MC6847 image)
 	osd_screen = pScreen;
 	osd_pitch = pitch;
 	osd_offx = offX;
 	osd_offy = offY;
-	UG_Init (&osd_gui, UguiSetPixel, 320, 240);
+	UG_Init (&osd_gui, UguiSetPixel, 640, 480);
 	UG_FontSelect (&FONT_8X14);
 	osd_ready = true;
 
@@ -732,63 +774,85 @@ TShutdownMode CKernel::Run (void){
 				}
 			}
 
-#ifdef HOST_COMPILE
-			// Automated LOAD command key sequence injection (starts at frame 1100)
-			static int autotype_step = -1;
-			if (frame >= 1100 && autotype_step < 10)
-			{
-				int new_step = (frame - 1100) / 60;
-				if (new_step != autotype_step)
-				{
-					autotype_step = new_step;
-					unsigned char raw_keys[6] = {0};
-					switch (autotype_step) {
-						case 0: raw_keys[0] = 0x0F; break; // 'L'
-						case 1: break;                       // release
-						case 2: raw_keys[0] = 0x12; break; // 'O'
-						case 3: break;                       // release
-						case 4: raw_keys[0] = 0x04; break; // 'A'
-						case 5: break;                       // release
-						case 6: raw_keys[0] = 0x07; break; // 'D'
-						case 7: break;                       // release
-						case 8: raw_keys[0] = 0x28; break; // RETURN
-						case 9: break;                       // release
-					}
-					if (autotype_step <= 9)
-					{
-						KeyStatusHandlerRaw(0, raw_keys);
-					}
-				}
-			}
-#endif
 
-			if (frame % 16 == 0)
-			{
-				if (R->IFF & IFF_EI)
-				{
-					R->IFF |= IFF_IM1 | IFF_1;
-					IntZ80(R, 0);
-				}
-			}
 
-			if (frame % 33 == 0)
+			// 60 Hz VSYNC timing accumulator: 1000 ms / 60 = 16.666... ms
+			static int vsync_accum = 0;
+			static bool vsync_pending = false;
+			vsync_accum += 60;
+			if (vsync_accum >= 1000)
 			{
+				vsync_accum -= 1000;
+				vsync_pending = true;
+
 				Update6847(spcsys.GMODE);
 				bool osd_active = osd_ready && osd_text[0] != 0 && NowUs() <= osd_until_us;
+				const u32 *cur_pal32 = g_scanline_mode ? pal32_bright : pal32;
+
 				for (unsigned y = 0; y < 240; y++)
 				{
-					// Skip OSD rows so the text doesn't flicker
-					if (osd_active && y >= 2 && y < 18)
+					unsigned dst_y0 = y * 2;
+					unsigned dst_y1 = y * 2 + 1;
+					bool skip0 = osd_active && (dst_y0 >= 8 && dst_y0 < 26);
+					bool skip1 = osd_active && (dst_y1 >= 8 && dst_y1 < 26);
+
+					if (skip0 && skip1)
 						continue;
-					u16 *dst = pScreen + (y + offY) * pitch + offX;
-					u8  *src = mc6847_buf + y * 320;
-					for (unsigned x = 0; x < 320; x++)
-						dst[x] = pal565[src[x]];
+
+					u16 *dst0 = pScreen + (dst_y0 + offY) * pitch + offX;
+					u16 *dst1 = pScreen + (dst_y1 + offY) * pitch + offX;
+					const u8 *src = mc6847_buf + y * 320;
+
+					if (!skip0 && !skip1)
+					{
+						u64 *d0 = (u64 *)dst0;
+						for (unsigned x = 0; x < 320; x += 2)
+						{
+							u64 p0 = cur_pal32[src[x]];
+							u64 p1 = cur_pal32[src[x + 1]];
+							d0[x >> 1] = p0 | (p1 << 32);
+						}
+						if (!g_scanline_mode)
+						{
+							memcpy(dst1, dst0, 640 * sizeof(u16));
+						}
+					}
+					else if (!skip0)
+					{
+						u64 *d0 = (u64 *)dst0;
+						for (unsigned x = 0; x < 320; x += 2)
+						{
+							u64 p0 = cur_pal32[src[x]];
+							u64 p1 = cur_pal32[src[x + 1]];
+							d0[x >> 1] = p0 | (p1 << 32);
+						}
+					}
+					else // !skip1
+					{
+						if (!g_scanline_mode)
+						{
+							u64 *d1 = (u64 *)dst1;
+							for (unsigned x = 0; x < 320; x += 2)
+							{
+								u64 p0 = cur_pal32[src[x]];
+								u64 p1 = cur_pal32[src[x + 1]];
+								d1[x >> 1] = p0 | (p1 << 32);
+							}
+						}
+					}
 				}
 				DrawOsd();
 				if (NowUs() <= progress_bar_until_us)
 					DrawProgressBar(pScreen, pitch, offX, offY);
 				R->ICount -= 20;
+			}
+
+			// Deliver VSYNC interrupt as soon as interrupts are enabled
+			if (vsync_pending && (R->IFF & IFF_EI))
+			{
+				R->IFF |= IFF_IM1 | IFF_1;
+				IntZ80(R, 0);
+				vsync_pending = false;
 			}
 
 			if (spcsys.cas.motor)
@@ -849,6 +913,35 @@ void CKernel::KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned cha
 		{
 			return;
 		}
+	}
+
+	// Detect F8 scanline mode toggle
+	static bool f8_was_pressed = false;
+	bool f8_pressed = false;
+	for (int r = 0; r < 6; r++)
+	{
+		if (RawKeys[r] == 0x41) // CRLK_F8 (0x41)
+		{
+			f8_pressed = true;
+			break;
+		}
+	}
+	if (f8_pressed && !f8_was_pressed)
+	{
+		g_scanline_mode = !g_scanline_mode;
+		if (osd_screen)
+		{
+			for (unsigned y = 0; y < 480; y++)
+			{
+				memset(osd_screen + (y + osd_offy) * osd_pitch + osd_offx, 0, 640 * sizeof(u16));
+			}
+		}
+		ShowOsdShort(g_scanline_mode ? "Scanline: ON" : "Scanline: OFF");
+	}
+	f8_was_pressed = f8_pressed;
+	if (f8_pressed)
+	{
+		return;
 	}
 
 	memset(keyMatrix, 0xff, 10);

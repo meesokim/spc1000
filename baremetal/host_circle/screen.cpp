@@ -132,7 +132,7 @@ boolean CScreenDevice::Initialize() {
         return FALSE;
     }
 
-    g_Renderer = SDL_CreateRenderer(g_Window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    g_Renderer = SDL_CreateRenderer(g_Window, -1, SDL_RENDERER_ACCELERATED);
     if (!g_Renderer) {
         g_Renderer = SDL_CreateRenderer(g_Window, -1, SDL_RENDERER_SOFTWARE);
     }
@@ -157,7 +157,6 @@ CBcmFrameBuffer *CScreenDevice::GetFrameBuffer() {
 }
 
 void HostUpdate() {
-    static unsigned last_draw_time = 0;
     SDL_Event event;
     bool keys_changed = false;
 
@@ -178,19 +177,22 @@ void HostUpdate() {
         }
     }
 
-    // Poll the physical keyboard state for reset keys (F10/F12) explicitly.
-    // This makes RESET work even when the SDL video driver is in dummy mode
+    // Poll the physical keyboard state for reset keys (F10/F12) and toggle keys (F8) explicitly.
+    // This makes hotkeys work even when the SDL video driver is in dummy mode
     // or when the window manager does not deliver key-up/down events reliably.
     static bool prev_f12 = false;
     static bool prev_f10 = false;
+    static bool prev_f8 = false;
     const Uint8 *keystate = SDL_GetKeyboardState(NULL);
     bool cur_f12 = keystate[SDL_SCANCODE_F12] != 0;
     bool cur_f10 = keystate[SDL_SCANCODE_F10] != 0;
-    if (cur_f12 != prev_f12 || cur_f10 != prev_f10) {
+    bool cur_f8 = keystate[SDL_SCANCODE_F8] != 0;
+    if (cur_f12 != prev_f12 || cur_f10 != prev_f10 || cur_f8 != prev_f8) {
         keys_changed = true;
     }
     prev_f12 = cur_f12;
     prev_f10 = cur_f10;
+    prev_f8 = cur_f8;
 
     if (keys_changed) {
         Uint8 modifiers = 0;
@@ -207,12 +209,14 @@ void HostUpdate() {
         unsigned char raw_keys[6];
         GetActiveKeys(raw_keys);
 
-        // Place F10/F12 in the first slot so KeyStatusHandlerRaw detects them
+        // Place F12/F10/F8 in the first slot so KeyStatusHandlerRaw detects them
         // regardless of what other keys are held.
         if (cur_f12) {
             raw_keys[0] = 0x45; // F12
         } else if (cur_f10) {
             raw_keys[0] = 0x43; // F10
+        } else if (cur_f8) {
+            raw_keys[0] = 0x41; // F8
         }
 
         if (g_pKeyboardDevice && g_pKeyboardDevice->m_pHandler) {
@@ -222,15 +226,11 @@ void HostUpdate() {
         }
     }
 
-    unsigned now = SDL_GetTicks();
-    if (now - last_draw_time >= 16) {
-        last_draw_time = now;
-        if (g_Window && g_Renderer && g_Texture && g_pScreenDevice && g_pScreenDevice->GetFrameBuffer()) {
-            u16 *pixels = (u16*)g_pScreenDevice->GetFrameBuffer()->GetBuffer();
-            SDL_UpdateTexture(g_Texture, NULL, pixels, 320 * 2);
-            SDL_RenderClear(g_Renderer);
-            SDL_RenderCopy(g_Renderer, g_Texture, NULL, NULL);
-            SDL_RenderPresent(g_Renderer);
-        }
+    if (g_Window && g_Renderer && g_Texture && g_pScreenDevice && g_pScreenDevice->GetFrameBuffer()) {
+        u16 *pixels = (u16*)g_pScreenDevice->GetFrameBuffer()->GetBuffer();
+        SDL_UpdateTexture(g_Texture, NULL, pixels, g_pScreenDevice->GetFrameBuffer()->GetPitch());
+        SDL_RenderClear(g_Renderer);
+        SDL_RenderCopy(g_Renderer, g_Texture, NULL, NULL);
+        SDL_RenderPresent(g_Renderer);
     }
 }

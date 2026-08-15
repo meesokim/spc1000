@@ -18,3 +18,4 @@ spc-1000_*.bin
 spcall.rom
 spcall.c
 spcall.h
+sdcard/taps/
