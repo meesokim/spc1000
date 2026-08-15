@@ -843,7 +843,18 @@ TShutdownMode CKernel::Run (void){
 				}
 				DrawOsd();
 				if (NowUs() <= progress_bar_until_us)
+				{
 					DrawProgressBar(pScreen, pitch, offX, offY);
+				}
+				else if (g_scanline_mode)
+				{
+					for (int y = 473; y < 480; y += 2)
+					{
+						u16 *dst = pScreen + (y + offY) * pitch + offX;
+						for (int x = 0; x < 640; x++)
+							dst[x] = 0;
+					}
+				}
 				R->ICount -= 20;
 			}
 
