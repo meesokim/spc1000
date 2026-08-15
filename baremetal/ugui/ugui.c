@@ -4977,7 +4977,7 @@ void UG_PutString( UG_S16 x, UG_S16 y, char* str )
          utf8[1] = *str++;
          utf8[2] = *str++;
          utf8[3] = 0;
-         UG_PutKorChar(utf8, xp, yp-2, gui->fore_color, gui->back_color);
+         UG_PutKorChar(utf8, xp, yp-1, gui->fore_color, gui->back_color);
          xp += 16 + gui->char_h_space;
       }
    }

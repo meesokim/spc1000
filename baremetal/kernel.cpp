@@ -623,7 +623,7 @@ TShutdownMode CKernel::Run (void){
 	osd_offx = offX;
 	osd_offy = offY;
 	UG_Init (&osd_gui, UguiSetPixel, 640, 480);
-	UG_FontSelect (&FONT_8X12);
+	UG_FontSelect (&FONT_8X14);
 	osd_ready = true;
 
 	Z80 *R = &spcsys.Z80R;
