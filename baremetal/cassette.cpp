@@ -9,6 +9,15 @@ extern "C" {
     #include <miniz_zip.h>
 }
 
+extern "C" void bz_internal_error(int errcode) {
+#ifdef HOST_COMPILE
+    fprintf(stderr, "bzip2 internal error: %d\n", errcode);
+    exit(1);
+#else
+    for(;;);
+#endif
+}
+
 static void lower(char *out, const char *in) {
     while (*in) {
         char c = *in;

@@ -1,0 +1,42 @@
+#
+# Makefile.windows - Windows native build using SDL2 and MinGW32
+#
+
+CXX = i686-w64-mingw32-g++
+CC = i686-w64-mingw32-gcc
+
+# Compiler flags
+CFLAGS = -O2 -g -Wall -DHOST_COMPILE -DVR_EMU_2149_STATIC -Ihost_include -I. -Iminiz -Ibzip2 -I/usr/i686-w64-mingw32/include/SDL2 -Dmain=SDL_main
+CXXFLAGS = -std=c++17 -O2 -g -Wall -DHOST_COMPILE -DVR_EMU_2149_STATIC -Ihost_include -I. -Iminiz -Ibzip2 -I/usr/i686-w64-mingw32/include/SDL2 -Dmain=SDL_main
+
+# Linker flags for static binding
+LDFLAGS = -static -static-libgcc -static-libstdc++ -L/usr/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid
+
+SRCS = main.cpp kernel.cpp cassette.cpp MC6847.c Z80SPC.c spcall.c emu2149.c tape_loader.c \
+       ugui/ugui.c \
+       miniz/miniz.c miniz/miniz_tdef.c miniz/miniz_tinfl.c miniz/miniz_zip.c \
+       bzip2/blocksort.c bzip2/bzlib.c bzip2/compress.c bzip2/crctable.c bzip2/decompress.c bzip2/huffman.c bzip2/randtable.c \
+       host_circle/screen.cpp host_circle/sound.cpp host_circle/scheduler.cpp host_circle/fatfs.cpp
+
+OBJS = main.win.o kernel.win.o cassette.win.o MC6847.win.o Z80SPC.win.o spcall.win.o \
+       emu2149.win.o tape_loader.win.o ugui/ugui.win.o \
+       miniz/miniz.win.o miniz/miniz_tdef.win.o miniz/miniz_tinfl.win.o miniz/miniz_zip.win.o \
+       bzip2/blocksort.win.o bzip2/bzlib.win.o bzip2/compress.win.o bzip2/crctable.win.o bzip2/decompress.win.o bzip2/huffman.win.o bzip2/randtable.win.o \
+       host_circle/screen.win.o host_circle/sound.win.o \
+       host_circle/scheduler.win.o host_circle/fatfs.win.o
+
+TARGET = spc1000.windows.exe
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) -o $(TARGET) $(OBJS) $(LDFLAGS)
+
+%.win.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.win.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)

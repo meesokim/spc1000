@@ -1,5 +1,6 @@
 #include <vc4/sound/vchiqsoundbasedevice.h>
 #include <SDL2/SDL.h>
+#include <cstdio>
 
 static void SDLCALL HostAudioCallback(void *userdata, Uint8 *stream, int len) {
     CVCHIQSoundBaseDevice *pSound = (CVCHIQSoundBaseDevice*)userdata;

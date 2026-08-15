@@ -20,7 +20,11 @@
 #include "kernel.h"
 #include <circle/startup.h>
 
+#ifdef HOST_COMPILE
+extern "C" int main (int argc, char *argv[])
+#else
 int main (void)
+#endif
 {
 	// cannot return here because some destructors used in CKernel are not implemented
 

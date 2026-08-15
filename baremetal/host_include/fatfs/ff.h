@@ -18,8 +18,12 @@ typedef int FRESULT;
 #define FA_OPEN_EXISTING 0x00
 #define FA_OPEN_ALWAYS   0x10
 
+#ifndef _WIN32
 typedef unsigned int UINT;
 typedef unsigned int DWORD;
+#else
+#include <windows.h>
+#endif
 
 struct FATFS {
     int dummy;

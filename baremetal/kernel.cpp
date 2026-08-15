@@ -7,7 +7,10 @@
 #include <stdio.h>
 
 #ifdef HOST_COMPILE
-#include <SDL.h>
+#include <SDL2/SDL.h>
+#ifdef Yield
+#undef Yield
+#endif
 #include <chrono>
 void SetHostKeyHandler(void (*)(unsigned char, const unsigned char[6]));
 #endif
